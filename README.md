@@ -11,7 +11,8 @@ Users can discover cocktails they can make with ingredients at home, add their o
 - Estimate bottle quantities for parties  
 - Get bartending tips, techniques, and history  
 
----
+<br>
+
 
 ## Tech Stack
 - **Frontend:** React (plain React + Vite + TailwindCSS)
@@ -20,6 +21,8 @@ Users can discover cocktails they can make with ingredients at home, add their o
 - **CI/CD:** GitHub Actions
 - **Hosting:** Render (backend) + Vercel (frontend)
 - **Database:** Supabase / PostgreSQL
+
+<br>
 
 ## Getting Started
 ### Prerequisites
@@ -31,6 +34,8 @@ git clone https://github.com/your-org/your-project.git
 cd your-project
 npm install
 ```
+
+<br>
 
 ## Contributing
 For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
