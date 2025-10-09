@@ -15,12 +15,12 @@ Users can discover cocktails they can make with ingredients at home, add their o
 
 
 ## Tech Stack
-- **Frontend:** React (plain React + Vite + TailwindCSS)
-- **Backend:** Node.js + Express + PostgreSQL
-- **Auth:** JWT / OAuth2
+- **Frontend:** React Native
+- **Backend:** Node.js
+- **Auth:**
 - **CI/CD:** GitHub Actions
 - **Hosting:** Render (backend) + Vercel (frontend)
-- **Database:** Supabase / PostgreSQL
+- **Database:** 
 
 <br>
 
