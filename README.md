@@ -17,10 +17,10 @@ Users can discover cocktails they can make with ingredients at home, add their o
 ## Tech Stack
 - **Frontend:** React Native
 - **Backend:** Node.js
-- **Auth:**
+- **UI component library:** GlueStack
 - **CI/CD:** GitHub Actions
 - **Hosting:** Render (backend) + Vercel (frontend)
-- **Database:** 
+- **Database:** SupaBase
 
 <br>
 
