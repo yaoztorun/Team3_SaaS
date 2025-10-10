@@ -24,18 +24,5 @@ Users can discover cocktails they can make with ingredients at home, add their o
 
 <br>
 
-## Getting Started
-### Prerequisites
-List tools you need installed (Node, npm, Docker, etc.)
-
-### Installation
-```bash
-git clone https://github.com/your-org/your-project.git
-cd your-project
-npm install
-```
-
-<br>
-
 ## Contributing
 For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
