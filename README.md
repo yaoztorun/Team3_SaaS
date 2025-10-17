@@ -31,9 +31,6 @@ For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 # Technical
 
-### 📱 **Mobile App — Expo (React Native + TypeScript + NativeWind)**
-
----
 
 ## ⚙️ **0) Prerequisites (Windows)**
 
@@ -55,7 +52,6 @@ ComSpec → C:\Windows\System32\cmd.exe
 
 Then reopen VS Code.
 
----
 
 ## 🚀 **1) Create the project (in an empty folder)**
 
@@ -67,7 +63,7 @@ npx create-expo-app@latest . --template blank-typescript
 
 📘 Docs → [Expo Quickstart](https://docs.expo.dev/get-started/start-developing/)
 
----
+
 
 ## 🎨 **2) Add NativeWind (Tailwind for React Native)**
 
@@ -119,7 +115,7 @@ module.exports = function (api) {
 
 🚫 Ensure there is **no `.babelrc` file** and **no `"babel"` block** inside `package.json`.
 
----
+
 
 ## 🧠 **3) Quick UI Sanity Test**
 
@@ -143,7 +139,7 @@ export default function App() {
 }
 ```
 
----
+
 
 ## 🧩 **4) Run the app (development)**
 
@@ -162,7 +158,7 @@ npx expo start -c --tunnel
 
 > 💡 If a blank tab opens on port 8081 (from VS Code Live Server), click **“Port: 8081 / Go Live”** to stop it and use the Expo web URL shown in the terminal instead.
 
----
+
 
 ## 🛠️ **5) Useful Commands / Checks**
 
@@ -180,7 +176,7 @@ npx tsc --noEmit
 npx expo doctor
 ```
 
----
+
 
 ## 🧰 **6) Common Issues & Fixes**
 
@@ -193,7 +189,7 @@ npm i -D babel-preset-expo
 npx expo start -c
 ```
 
----
+
 
 ### ⚠️ `className` TypeScript error
 
@@ -201,7 +197,7 @@ npx expo start -c
 * Restart TS server:
   `Ctrl + Shift + P → TypeScript: Restart TS Server`
 
----
+
 
 ### 📶 Phone times out
 
@@ -213,4 +209,3 @@ npx expo start -c
 * Update **Expo Go**
 * Ensure both devices share same network
 
----
