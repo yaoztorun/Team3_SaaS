@@ -3,20 +3,25 @@ name: CI + Deploy (Vercel)
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # 🧩 Step 1: Checkout repo
       - uses: actions/checkout@v4
 
+      # 🧩 Step 2: Use Node 20
       - name: Use Node 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
+      # 🧩 Step 3: Create .env file
       - name: Create .env for build
         run: |
           cat > .env <<EOF
@@ -24,23 +29,44 @@ jobs:
           EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
           EOF
 
+      # 🧩 Step 4: Install dependencies
       - name: Install deps
         run: npm ci
 
+      # 🧩 Step 5: Build Expo web → dist/
       - name: Build Expo Web
-        run: npx expo export -p web && npx workbox-cli generateSW workbox-config.js
+        run: npx expo export --platform web --output-dir dist
 
+      # 🧩 Step 6: Copy public assets (PWA manifest, icons, etc.)
+      - name: Merge public/ into dist/ (PWA assets)
+        if: ${{ hashFiles('public/**') != '' }}
+        run: |
+          mkdir -p dist
+          cp -R public/* dist/ || true
+
+      # 🧩 Step 7: Copy manifest.json (if at root)
+      - name: Ensure manifest.json in dist/
+        if: ${{ hashFiles('manifest.json') != '' && hashFiles('dist/manifest.json') == '' }}
+        run: cp manifest.json dist/ || true
+
+      # 🧩 Step 8: Copy vercel.json for custom headers (optional)
+      - name: Include vercel.json in dist (optional)
+        if: ${{ hashFiles('vercel.json') != '' }}
+        run: cp vercel.json dist/ || true
+
+      # 🧩 Step 9: Install Vercel CLI
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
+      # 🧩 Step 10: Deploy to Vercel
       - name: Deploy dist/ to Vercel
         id: deploy
         shell: bash
         run: |
-          # Deploy the built folder to Vercel and capture the deployment URL
           url=$(vercel deploy --prod --token "${{ secrets.VERCEL_TOKEN }}" --cwd dist --yes)
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+      # 🧩 Step 11: Show deployment summary in Actions
       - name: Post deployment URL to summary
         shell: bash
         run: |
@@ -52,6 +78,7 @@ jobs:
             echo "**URL:** ${{ steps.deploy.outputs.url }}";
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # 🧩 Step 12: Comment URL on PR (optional)
       - name: Comment URL on PR (optional)
         if: ${{ github.event_name == 'pull_request' }}
         uses: actions/github-script@v7
