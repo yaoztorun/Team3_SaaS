@@ -3,12 +3,11 @@ name: CI + Deploy (Vercel)
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,24 +27,13 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Build Expo Web to dist/
+      - name: Build Expo Web
         run: npx expo export --platform web --output-dir dist
 
-      - name: Deploy dist/ to Vercel
-        id: vercel
-        uses: amondnet/vercel-action@v25
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          working-directory: ./dist
-          vercel-args: '--prebuilt --prod'   # this replaces the invalid "prod:" input
-          github-comment: true
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
 
-      - name: Post deployment URL
+      - name: Deploy dist/ to Vercel
+        id: deploy
         run: |
-          {
-            echo "### Deployment";
-            echo "";
-            echo "**URL:** ${{ steps.vercel.outputs.deployment-url || steps.vercel.outputs.preview-url }}";
-          } >> $GITHUB_STEP_SUMMARY
+          vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }} --cwd dist --yes
