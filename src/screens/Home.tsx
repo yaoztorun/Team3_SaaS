@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -11,6 +11,7 @@ import {
   Dimensions 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from './lib/supabase';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 48;
@@ -40,7 +41,31 @@ const sampleCocktails = [
 ];
 
 export default function Home() {
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [dbStatus, setDbStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [dbMsg, setDbMsg] = useState<string>('');
+
+  useEffect(() => {
+  const testConnection = async () => {
+    // use a real table you have OR the test "ping" table from my earlier SQL
+    const { data, error } = await supabase.from('ping').select('*').limit(1);
+
+    if (error) {
+      setDbStatus('error');
+      setDbMsg(error.message);
+      console.log('❌ Supabase error:', error.message);
+    } else {
+      setDbStatus('ok');
+      setDbMsg(`Rows: ${data?.length ?? 0}`);
+      console.log('✅ Connected! Data from Supabase:', data);
+    }
+  };
+
+  testConnection();
+}, []);
+
+
 
   return (
     <View style={styles.container}>
