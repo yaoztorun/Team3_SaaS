@@ -83,7 +83,7 @@ The different types and areas we work with in this project are shown in the tabl
 | **bugfix** | Fixes a bug found during development or testing. | `bugfix/backend-auth-token` |
 | **refactor** | Improves existing code structure without changing functionality. | `refactor/frontend-input-validation` |
 | **chore** | Routine maintenance tasks like updating dependencies or configs. | `chore/update-eslint-config` |
-| **test** | Adds or updates test cases. | `test/api-cocktail-endpoints` |
+| **perf** | Performance improvement. | `perf/backend-query-optimization` |
 | **docs** | Documentation changes only. | `docs/update-readme` |
 
 #### Area
@@ -91,9 +91,10 @@ The different types and areas we work with in this project are shown in the tabl
 | Area | Explanation | Example |
 |------|--------------|----------|
 | **frontend** | UI, React components, styling, or client-side logic. | `feature/frontend-login-page` |
-| **backend** | Node.js API, Express routes, business logic, or controllers. | `feature/backend-add-rating-endpoint` |
-| **database** | Database schema, migrations, or seed data updates. | `bugfix/database-add-cocktail-table` |
+| **backend** | Supabase logic, server-side functions, Supabase Edge Functions. | `feature/backend-add-rating-endpoint` |
+| **database** | Schema changes, migrations, or seed data updates in Supabase SQL. | `feature/database-add-cocktail-table` |
 | **api** | Interfaces or integrations with external/internal APIs. | `feature/api-cocktaildb-integration` |
+| **ci/cd** | Github Actions, deployment configs
 <br>
 
 **Tip:**  
