@@ -13,7 +13,6 @@ Users can discover cocktails they can make with ingredients at home, add their o
 
 <br>
 
-
 ## Tech Stack
 - **Front end**: React Native (TypeScript)
 - **Mobile local testing**: Expo Go
@@ -26,11 +25,36 @@ Users can discover cocktails they can make with ingredients at home, add their o
 
 <br>
 
+# 🔑 Environment Variables
+
+Each developer must create their own **`.env` file** at the root of the project before running locally.
+
+> ⚠️ Do **NOT** commit your `.env` file — it contains your personal Supabase credentials.
+
+### 🧩 Example `.env` file
+
+```bash
+EXPO_PUBLIC_SUPABASE_URL=https://your-supabase-project-id.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+````
+
+### 🧭 Where to find these values
+
+1. Go to your [Supabase Dashboard](https://app.supabase.com/).
+2. Select your project.
+3. Navigate to **Project Settings → API**.
+4. Copy the **Project URL** → use it as your `EXPO_PUBLIC_SUPABASE_URL`.
+5. Copy the **anon public key** under **Project API Keys** → use it as your `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
+
+💡 Restart your development server after adding or changing `.env`.
+
+---
+
 ## Contributing
+
 For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 # Technical
-
 
 ## ⚙️ **0) Prerequisites (Windows)**
 
@@ -52,7 +76,6 @@ ComSpec → C:\Windows\System32\cmd.exe
 
 Then reopen VS Code.
 
-
 ## 🚀 **1) Create the project (in an empty folder)**
 
 ```bash
@@ -62,8 +85,6 @@ npx create-expo-app@latest . --template blank-typescript
 ```
 
 📘 Docs → [Expo Quickstart](https://docs.expo.dev/get-started/start-developing/)
-
-
 
 ## 🎨 **2) Add NativeWind (Tailwind for React Native)**
 
@@ -115,8 +136,6 @@ module.exports = function (api) {
 
 🚫 Ensure there is **no `.babelrc` file** and **no `"babel"` block** inside `package.json`.
 
-
-
 ## 🧠 **3) Quick UI Sanity Test**
 
 Replace your **App.tsx** with:
@@ -139,8 +158,6 @@ export default function App() {
 }
 ```
 
-
-
 ## 🧩 **4) Run the app (development)**
 
 Use **tunnel mode** so your phone connects easily:
@@ -158,8 +175,6 @@ npx expo start -c --tunnel
 
 > 💡 If a blank tab opens on port 8081 (from VS Code Live Server), click **“Port: 8081 / Go Live”** to stop it and use the Expo web URL shown in the terminal instead.
 
-
-
 ## 🛠️ **5) Useful Commands / Checks**
 
 ```bash
@@ -176,8 +191,6 @@ npx tsc --noEmit
 npx expo doctor
 ```
 
-
-
 ## 🧰 **6) Common Issues & Fixes**
 
 ### ❌ Babel error about `babel-preset-expo` or `.plugins`
@@ -189,15 +202,11 @@ npm i -D babel-preset-expo
 npx expo start -c
 ```
 
-
-
 ### ⚠️ `className` TypeScript error
 
 * Add `"types": ["nativewind/types"]` to **tsconfig.json**
 * Restart TS server:
   `Ctrl + Shift + P → TypeScript: Restart TS Server`
-
-
 
 ### 📶 Phone times out
 
@@ -208,4 +217,5 @@ npx expo start -c
   ```
 * Update **Expo Go**
 * Ensure both devices share same network
+
 
