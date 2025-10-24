@@ -37,3 +37,7 @@ jobs:
         id: deploy
         run: |
           vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }} --cwd dist --yes
+
+      - name: Output deployment URL
+        run: echo "Visit: https://team3saas.vercel.app" >> $GITHUB_STEP_SUMMARY
+
