@@ -28,7 +28,7 @@ jobs:
         run: npm ci
 
       - name: Build Expo Web
-        run: npx expo export --platform web --output-dir dist
+        run: expo export -p web && npx workbox-cli generateSW workbox-config.js
 
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
