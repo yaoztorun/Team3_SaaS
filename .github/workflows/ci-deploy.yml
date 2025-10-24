@@ -1,0 +1,61 @@
+name: CI + Deploy (Vercel)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Create .env for build
+        run: |
+          cat > .env <<EOF
+          EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EOF
+
+      - name: Install deps
+        run: npm ci
+
+      # If you want simple CI checks before deploy, keep these; otherwise delete.
+      - name: Type check
+        run: npx tsc --noEmit || true
+      - name: Expo doctor
+        run: npx expo doctor --ci || true
+
+      # Build Expo Web (outputs to dist/)
+      - name: Build web
+        run: npx expo export --platform web
+
+      # Deploy to Vercel (requires repo secrets below)
+      - name: Deploy to Vercel
+        id: vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: .
+          github-comment: true
+          prod: ${{ github.ref == 'refs/heads/main' }}
+
+      - name: Post deployment URL
+        if: always()
+        run: |
+          {
+            echo "### Deployment";
+            echo "";
+            echo "**URL:** ${{ steps.vercel.outputs.deployment-url || steps.vercel.outputs.preview-url }}";
+          } >> $GITHUB_STEP_SUMMARY
