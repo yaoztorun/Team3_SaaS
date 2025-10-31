@@ -1,0 +1,67 @@
+
+name: CI + Deploy (Vercel)
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Create .env for build
+        run: |
+          cat > .env <<EOF
+          EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EOF
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build Expo Web
+        run: npx expo export -p web && npx workbox-cli generateSW workbox-config.js
+
+      - name: Install Vercel CLI
+        run: npm i -g vercel@latest
+
+      - name: Deploy dist/ to Vercel
+        id: deploy
+        shell: bash
+        run: |
+          # Deploy the built folder to Vercel and capture the deployment URL
+          url=$(vercel deploy --prod --token "${{ secrets.VERCEL_TOKEN }}" --cwd dist --yes)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Post deployment URL to summary
+        shell: bash
+        run: |
+          {
+            echo "### 🚀 Deployment Summary";
+            echo "";
+            echo "**✅ Deployed successfully!**";
+            echo "";
+            echo "**URL:** ${{ steps.deploy.outputs.url }}";
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment URL on PR (optional)
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = `${{ toJSON(steps.deploy.outputs.url) }}`;
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🚀 Preview deployed: ${url}`
+            });
