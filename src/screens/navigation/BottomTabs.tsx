@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Animated } from 'react-native';
+import { Animated, GestureResponderEvent } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Box } from '@/src/components/ui/box';
 import { Center } from '@/src/components/ui/center';
@@ -10,13 +9,16 @@ import { Text } from '@/src/components/ui/text';
 import { HomeIcon, SearchIcon, MessageCircle, UserIcon, PlusIcon } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 
+// Import screens
+import { HomeScreen } from '@/src/screens/Home/HomeScreen';
+
 const Tab = createBottomTabNavigator();
 
 export default function BottomTabs() {
     return (
         <Tab.Navigator
             screenOptions={{
-                headerShown: false,
+                headerShown: false, // We're using our custom TopBar
                 tabBarShowLabel: true,
                 tabBarActiveTintColor: colors.primary[500],
                 tabBarInactiveTintColor: colors.neutral[400],
@@ -30,7 +32,7 @@ export default function BottomTabs() {
         >
             <Tab.Screen
                 name="Home"
-                component={Home}
+                component={HomeScreen}
                 options={{
                     tabBarLabel: 'Home',
                     tabBarIcon: ({ focused }) => (
@@ -65,7 +67,7 @@ export default function BottomTabs() {
                 name="Add"
                 component={Add}
                 options={{
-                    tabBarButton: ({ onPress, accessibilityState }) => (
+                    tabBarButton: ({ onPress }) => (
                         <CenterButton onPress={onPress} />
                     ),
                 }}
@@ -109,9 +111,6 @@ export default function BottomTabs() {
 const IconButton = ({ icon }: { icon: React.ReactNode }) => (
     <Center>{icon}</Center>
 );
-
-// Animated center button with gradient
-import type { GestureResponderEvent } from 'react-native';
 
 const CenterButton = ({
     onPress,
@@ -181,13 +180,6 @@ const CenterButton = ({
         </Box>
     );
 };
-
-// Temporary test screens
-const Home = () => (
-    <Box className="flex-1 bg-neutral-900 justify-center items-center">
-        <Text className="text-white text-2xl">Home Screen</Text>
-    </Box>
-);
 
 const Explore = () => (
     <Box className="flex-1 bg-neutral-900 justify-center items-center">
