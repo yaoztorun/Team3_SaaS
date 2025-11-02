@@ -1,3 +1,158 @@
+// import React from 'react';
+// import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+// import { Box } from '@/src/components/ui/box';
+// import { Center } from '@/src/components/ui/center';
+// import { Pressable } from '@/src/components/ui/pressable';
+// import { Text } from '@/src/components/ui/text';
+// import { HomeIcon, SearchIcon, MessageCircle, UserIcon, PlusIcon } from 'lucide-react-native';
+// import { colors } from '@/src/theme/colors'; // For React Native parts
+
+// const Tab = createBottomTabNavigator();
+
+// export default function BottomTabs() {
+//     return (
+//         <Tab.Navigator
+//             screenOptions={{
+//                 headerShown: false,
+//                 tabBarShowLabel: true,
+//                 tabBarActiveTintColor: colors.primary[500],
+//                 tabBarInactiveTintColor: colors.neutral[400],
+//                 tabBarStyle: {
+//                     // Can't use className here - needs actual color value
+//                     backgroundColor: colors.white,
+//                     borderTopWidth: 0,
+//                     elevation: 10,
+//                     height: 70,
+//                 },
+//             }}
+//         >
+//             <Tab.Screen
+//                 name="Home"
+//                 component={Home}
+//                 options={{
+//                     tabBarLabel: 'Home',
+//                     tabBarIcon: ({ focused }) => (
+//                         <IconButton
+//                             icon={
+//                                 // Can't use className here - needs actual color value
+//                                 <HomeIcon
+//                                     size={24}
+//                                     color={focused ? colors.primary[500] : colors.neutral[400]}
+//                                 />
+//                             }
+//                         />
+//                     ),
+//                 }}
+//             />
+//             <Tab.Screen
+//                 name="Explore"
+//                 component={Explore}
+//                 options={{
+//                     tabBarIcon: ({ focused }) => (
+//                         <IconButton
+//                             icon={
+//                                 <SearchIcon
+//                                     size={24}
+//                                     color={focused ? colors.primary[500] : colors.neutral[400]}
+//                                 />
+//                             }
+//                         />
+//                     ),
+//                 }}
+//             />
+//             <Tab.Screen
+//                 name="Add"
+//                 component={Add}
+//                 options={{
+//                     tabBarButton: ({ onPress, accessibilityState }) => (
+//                         <Box style={{ top: -25 }}>
+//                             <Pressable
+//                                 onPress={onPress}
+//                                 style={{
+//                                     justifyContent: 'center',
+//                                     alignItems: 'center',
+//                                 }}
+//                             >
+//                                 <Box className="w-[70px] h-[70px] rounded-full justify-center items-center shadow-lg bg-primary-500">
+//                                     <PlusIcon color={colors.white} size={32} />
+//                                 </Box>
+//                             </Pressable>
+//                         </Box>
+//                     ),
+//                 }}
+//             />
+//             <Tab.Screen
+//                 name="Social"
+//                 component={Social}
+//                 options={{
+//                     tabBarIcon: ({ focused }) => (
+//                         <IconButton
+//                             icon={
+//                                 <MessageCircle
+//                                     size={24}
+//                                     color={focused ? colors.primary[500] : colors.neutral[400]}
+//                                 />
+//                             }
+//                         />
+//                     ),
+//                 }}
+//             />
+//             <Tab.Screen
+//                 name="Profile"
+//                 component={Profile}
+//                 options={{
+//                     tabBarIcon: ({ focused }) => (
+//                         <IconButton
+//                             icon={
+//                                 <UserIcon
+//                                     size={24}
+//                                     color={focused ? colors.primary[500] : colors.neutral[400]}
+//                                 />
+//                             }
+//                         />
+//                     ),
+//                 }}
+//             />
+//         </Tab.Navigator>
+//     );
+// }
+
+// const IconButton = ({ icon }: { icon: React.ReactNode }) => (
+//     <Center>{icon}</Center>
+// );
+
+// // Temporary test screens
+// const Home = () => (
+//     <Box className="flex-1 bg-neutral-900 justify-center items-center">
+//         <Text className="text-white text-2xl">Home Screen</Text>
+//     </Box>
+// );
+
+// const Explore = () => (
+//     <Box className="flex-1 bg-neutral-900 justify-center items-center">
+//         <Text className="text-white text-2xl">Search Screen</Text>
+//     </Box>
+// );
+
+// const Add = () => (
+//     <Box className="flex-1 bg-neutral-900 justify-center items-center">
+//         <Text className="text-white text-2xl">Add Screen</Text>
+//     </Box>
+// );
+
+// const Social = () => (
+//     <Box className="flex-1 bg-neutral-900 justify-center items-center">
+//         <Text className="text-white text-2xl">Favorites Screen</Text>
+//     </Box>
+// );
+
+// const Profile = () => (
+//     <Box className="flex-1 bg-neutral-900 justify-center items-center">
+//         <Text className="text-white text-2xl">Profile Screen</Text>
+//     </Box>
+// );
+
+
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Animated } from 'react-native';
