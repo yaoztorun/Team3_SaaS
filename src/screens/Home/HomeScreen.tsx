@@ -13,9 +13,9 @@ export const HomeScreen = () => {
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
-                    paddingHorizontal: 28,
-                    paddingTop: 24,
-                    paddingBottom: 100, // Space for bottom tab bar
+                    paddingHorizontal: spacing.screenHorizontal,
+                    paddingTop: spacing.screenVertical,
+                    paddingBottom: spacing.screenBottom,
                 }}
             >
                 <Text className="text-2xl font-bold text-neutral-900 mb-4">
