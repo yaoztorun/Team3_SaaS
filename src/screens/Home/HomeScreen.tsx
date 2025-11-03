@@ -13,11 +13,16 @@ export const HomeScreen = () => {
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
-                    paddingHorizontal: 28,
-                    paddingTop: 24,
-                    paddingBottom: 100, // Space for bottom tab bar
+                    paddingHorizontal: spacing.screenHorizontal,
+                    paddingTop: spacing.screenVertical,
+                    paddingBottom: spacing.screenBottom,
                 }}
             >
+
+                {/* SPECIFIC CONTENT HERE */}
+
+                {/* TESTING OUT THE SCROLLING BEHAVIOR OF THE PAGE */}
+
                 <Text className="text-2xl font-bold text-neutral-900 mb-4">
                     Welcome Home
                 </Text>
@@ -50,6 +55,11 @@ export const HomeScreen = () => {
                         </Text>
                     </Box>
                 ))}
+
+                {/* GOOD EXAMPLE OF THE USAGE OF UI COMPONENTS 
+                    BOX AND TEXT COMPONENTS ARE FROM THE GLUESTACK UI LIBRARY
+                    WE CAN USE THEM AND STYLE THEM WITH TAIL/NATIVE WIND CSS CLASSES
+                */}
 
                 <Box
                     className="bg-primary-500 rounded-xl p-6 mb-4"
