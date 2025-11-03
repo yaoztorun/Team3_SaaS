@@ -11,6 +11,10 @@ import { colors } from '@/src/theme/colors';
 
 // Import screens
 import { HomeScreen } from '@/src/screens/Home/HomeScreen';
+import { AddScreen } from '@/src/screens/Add/AddScreen';
+import { ExploreScreen } from '@/src/screens/Explore/ExploreScreen';
+import { SocialScreen } from '@/src/screens/Social/SocialScreen';
+import { ProfileScreen } from '@/src/screens/Profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -49,7 +53,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Explore"
-                component={Explore}
+                component={ExploreScreen}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
@@ -65,7 +69,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Add"
-                component={Add}
+                component={AddScreen}
                 options={{
                     tabBarButton: ({ onPress }) => (
                         <CenterButton onPress={onPress} />
@@ -74,7 +78,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Social"
-                component={Social}
+                component={SocialScreen}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
@@ -90,7 +94,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Profile"
-                component={Profile}
+                component={ProfileScreen}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
@@ -108,9 +112,16 @@ export default function BottomTabs() {
     );
 }
 
+// Simple Icon Button Wrapper
+// this ensures consistent styling for tab icons (centered)
+// not strictly necessary but keeps code clean, might be useful later for additional styling
+
 const IconButton = ({ icon }: { icon: React.ReactNode }) => (
     <Center>{icon}</Center>
 );
+
+// Custom Center Button for the "Add" tab
+// includes press animations
 
 const CenterButton = ({
     onPress,
@@ -180,27 +191,3 @@ const CenterButton = ({
         </Box>
     );
 };
-
-const Explore = () => (
-    <Box className="flex-1 bg-neutral-900 justify-center items-center">
-        <Text className="text-white text-2xl">Search Screen</Text>
-    </Box>
-);
-
-const Add = () => (
-    <Box className="flex-1 bg-neutral-900 justify-center items-center">
-        <Text className="text-white text-2xl">Add Screen</Text>
-    </Box>
-);
-
-const Social = () => (
-    <Box className="flex-1 bg-neutral-900 justify-center items-center">
-        <Text className="text-white text-2xl">Favorites Screen</Text>
-    </Box>
-);
-
-const Profile = () => (
-    <Box className="flex-1 bg-neutral-900 justify-center items-center">
-        <Text className="text-white text-2xl">Profile Screen</Text>
-    </Box>
-);
