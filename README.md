@@ -31,14 +31,18 @@ Each developer must create their own **`.env` file** at the root of the project 
 
 > ⚠️ Do **NOT** commit your `.env` file — it contains your personal Supabase credentials.
 
-### 🧩 Example `.env` file
+</br></br>
+
+### Example `.env` file
 
 ```bash
 EXPO_PUBLIC_SUPABASE_URL=https://your-supabase-project-id.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 ````
 
-### 🧭 Where to find these values
+</br></br>
+
+### Where to find these values
 
 1. Go to your [Supabase Dashboard](https://app.supabase.com/).
 2. Select your project.
@@ -48,15 +52,19 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 💡 Restart your development server after adding or changing `.env`.
 
----
+</br>
 
 ## Contributing
 
 For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
 
+</br></br>
+
 # Technical
 
-## ⚙️ **0) Prerequisites (Windows)**
+</br>
+
+## **0) Prerequisites (Windows)**
 
 ✅ **Node.js LTS installed** → check:
 
@@ -76,7 +84,9 @@ ComSpec → C:\Windows\System32\cmd.exe
 
 Then reopen VS Code.
 
-## 🚀 **1) Create the project (in an empty folder)**
+</br></br>
+
+## **1) Create the project (in an empty folder)**
 
 ```bash
 # from the desired parent folder
@@ -86,7 +96,9 @@ npx create-expo-app@latest . --template blank-typescript
 
 📘 Docs → [Expo Quickstart](https://docs.expo.dev/get-started/start-developing/)
 
-## 🎨 **2) Add NativeWind (Tailwind for React Native)**
+</br></br>
+
+## **2) Add NativeWind (Tailwind for React Native)**
 
 ```bash
 npm i nativewind tailwindcss
@@ -109,7 +121,7 @@ module.exports = {
 };
 ```
 
-🧩 **babel.config.js**
+**babel.config.js**
 *(only Babel file you should have)*
 
 ```js
@@ -122,7 +134,7 @@ module.exports = function (api) {
 };
 ```
 
-📘 **tsconfig.json**
+**tsconfig.json**
 
 ```json
 {
@@ -136,7 +148,9 @@ module.exports = function (api) {
 
 🚫 Ensure there is **no `.babelrc` file** and **no `"babel"` block** inside `package.json`.
 
-## 🧠 **3) Quick UI Sanity Test**
+</br></br>
+
+## **3) Quick UI Sanity Test**
 
 Replace your **App.tsx** with:
 
@@ -158,24 +172,59 @@ export default function App() {
 }
 ```
 
-## 🧩 **4) Run the app (development)**
+</br></br>
 
-Use **tunnel mode** so your phone connects easily:
+## **4) Run the app (development)**
 
+### Development Mode (Live Preview)
+
+Use this mode while developing and debugging the app.
+It runs Expo’s development server with live reloading, hot updates, and easy device access.
 ```bash
 npx expo start -c --tunnel
 ```
+Scan the QR with Expo Go (on your phone)
 
-* Scan the QR with **Expo Go**
-* Terminal shortcuts:
+</br>
 
-  * **w** → open web
-  * **a** → Android emulator
-  * **i** → iOS simulator (Mac)
+Terminal shortcuts:
+```
+w → open in web browser
 
-> 💡 If a blank tab opens on port 8081 (from VS Code Live Server), click **“Port: 8081 / Go Live”** to stop it and use the Expo web URL shown in the terminal instead.
+a → open in Android emulator
 
-## 🛠️ **5) Useful Commands / Checks**
+i → open in iOS simulator (Mac)
+```
+>💡 Tip: If a blank tab opens on port 8081 (from VS Code Live Server), stop it by clicking “Port: 8081 / Go Live”, then use the Expo web URL shown in the terminal instead.
+
+</br>
+
+### Production Preview (PWA Build)
+
+Use this mode to build and test the web version (PWA) as it would run in production.
+
+```bash
+# 1. Export the web build
+npx expo export -p web
+
+# 2. Generate the service worker for offline support
+npx workbox-cli generateSW workbox-config.js
+
+# 3. Serve the exported build locally
+serve dist
+```
+
+If serve is not installed:
+```bash
+npm install -g serve
+```
+</br>
+
+>💡 Note: This process builds the optimized static files into the dist/ folder. You can host these files on any static web server or deploy them to your production environment.
+
+</br></br>
+
+## **5) Useful Commands / Checks**
 
 ```bash
 # start with tunnel (phone friendly)
@@ -191,7 +240,9 @@ npx tsc --noEmit
 npx expo doctor
 ```
 
-## 🧰 **6) Common Issues & Fixes**
+</br></br>
+
+## **6) Common Issues & Fixes**
 
 ### ❌ Babel error about `babel-preset-expo` or `.plugins`
 
