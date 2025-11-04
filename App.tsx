@@ -1,11 +1,15 @@
 import React from 'react';
-import { View, Text } from 'react-native';
-import Home from './src/screens/Home';
+import { NavigationContainer } from '@react-navigation/native';
+import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider';
+import BottomTabs from './src/screens/navigation/BottomTabs';
+import '@/global.css';
 
 export default function App() {
   return (
-    <View style={{ flex: 1 }}>
-      <Home />
-    </View>
+    <GluestackUIProvider mode="light">
+      <NavigationContainer>
+        <BottomTabs />
+      </NavigationContainer>
+    </GluestackUIProvider>
   );
 }

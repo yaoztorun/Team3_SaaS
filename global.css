@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+        :root {
+                /* TEAL Primary Colors */
+                --color-primary-0: 255 255 255;
+                /* white */
+                --color-primary-50: 240 253 250;
+                /* #f0fdfa - teal-50 */
+                --color-primary-100: 204 251 241;
+                /* #ccfbf1 - teal-100 */
+                --color-primary-200: 153 246 228;
+                /* #99f6e4 - teal-200 */
+                --color-primary-300: 94 234 212;
+                /* #5eead4 - teal-300 */
+                --color-primary-400: 45 212 191;
+                /* #2dd4bf - teal-400 */
+                --color-primary-500: 20 184 166;
+                /* #14b8a6 - teal-500 */
+                --color-primary-600: 13 148 136;
+                /* #0d9488 - teal-600 */
+                --color-primary-700: 15 118 110;
+                /* #0f766e - teal-700 */
+                --color-primary-800: 17 94 89;
+                /* #115e59 - teal-800 */
+                --color-primary-900: 19 78 74;
+                /* #134e4a - teal-900 */
+                --color-primary-950: 4 47 46;
+                /* #042f2e - teal-950 */
+
+                /* You can keep secondary as is or change it */
+                --color-secondary-0: 255 255 255;
+                --color-secondary-50: 250 250 250;
+                /* ... rest of secondary colors */
+        }
+
+        /* Dark mode variations (optional - for dark: prefix) */
+        .dark {
+                --color-primary-0: 4 47 46;
+                /* Invert if needed */
+                /* Or keep them the same - teal looks good in dark mode */
+        }
+}
