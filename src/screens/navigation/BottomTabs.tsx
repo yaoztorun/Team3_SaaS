@@ -13,7 +13,7 @@ import { colors } from '@/src/theme/colors';
 import { HomeScreen } from '@/src/screens/Home/HomeScreen';
 import { AddScreen } from '@/src/screens/Add/AddScreen';
 import { ExploreStack } from '@/src/screens/Explore/ExploreStack';
-import { ProfileScreen } from '@/src/screens/Profile/ProfileScreen';
+import { ProfileStack } from '@/src/screens/Profile/ProfileStack';
 import { SocialStack } from '@/src/screens/Social/SocialStack';
 
 const Tab = createBottomTabNavigator();
@@ -94,7 +94,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Profile"
-                component={ProfileScreen}
+                component={ProfileStack}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
