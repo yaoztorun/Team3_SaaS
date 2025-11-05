@@ -11,6 +11,8 @@ jobs:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
       VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      DEV_URL: https://team3-saasdev.vercel.app
+      PROD_URL: https://team3-saas.vercel.app
 
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +29,7 @@ jobs:
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
-      # Link repo to Vercel project for CLI commands
+      # Link the project
       - name: Create .vercel/project.json
         run: |
           mkdir -p .vercel
@@ -35,42 +37,45 @@ jobs:
           { "projectId": "${VERCEL_PROJECT_ID}", "orgId": "${VERCEL_ORG_ID}" }
           EOF
 
-      # Pull the right environment vars
-      - name: Vercel pull (env)
+      # Choose env based on branch
+      - name: Set env flags
+        id: flags
         shell: bash
         run: |
           BRANCH="${GITHUB_REF##*/}"
           if [ "$BRANCH" = "main" ]; then
-            vercel pull --yes --environment=production \
-              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+            echo "env=production" >> $GITHUB_OUTPUT
+            echo "prod_flag=--prod" >> $GITHUB_OUTPUT
           else
-            vercel pull --yes --environment=preview \
-              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+            echo "env=preview" >> $GITHUB_OUTPUT
+            echo "prod_flag=" >> $GITHUB_OUTPUT
           fi
 
-      # Build using the pulled env + vercel.json
-      - name: Vercel build
-        run: vercel build --token "$VERCEL_TOKEN"
+      # Pull env vars for the right target
+      - name: Vercel pull
+        run: vercel pull --yes --environment=${{ steps.flags.outputs.env }} --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
 
-      # Deploy: Production for main, Preview for others
+      # Build for the same target (important for --prebuilt)
+      - name: Vercel build
+        run: vercel build ${{ steps.flags.outputs.prod_flag }} --token "$VERCEL_TOKEN"
+
+      # Deploy (prebuilt) to the matching target
       - name: Deploy
         id: deploy
         shell: bash
         run: |
-          BRANCH="${GITHUB_REF##*/}"
-          if [ "$BRANCH" = "main" ]; then
-            url=$(vercel deploy --prebuilt --prod \
-              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN")
-          else
-            url=$(vercel deploy --prebuilt \
-              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN")
-          fi
+          url=$(vercel deploy --prebuilt ${{ steps.flags.outputs.prod_flag }} \
+            --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
+      # Always show both URLs in the summary
       - name: Post deployment URL to summary
         run: |
           {
             echo "### 🚀 Deployment Summary"
             echo ""
-            echo "**URL:** ${{ steps.deploy.outputs.url }}"
+            echo "- **Branch:** ${GITHUB_REF##*/}"
+            echo "- **This deploy URL:** ${{ steps.deploy.outputs.url }}"
+            echo "- **Production (main) URL:** $PROD_URL"
+            echo "- **Dev (preview) URL:** $DEV_URL"
           } >> "$GITHUB_STEP_SUMMARY"
