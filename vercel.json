@@ -1,0 +1,6 @@
+{
+  "version": 2,
+  "buildCommand": "npx expo export -p web && npx workbox-cli generateSW workbox-config.js",
+  "outputDirectory": "dist",
+  "framework": null
+}

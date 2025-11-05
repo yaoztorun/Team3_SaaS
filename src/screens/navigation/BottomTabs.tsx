@@ -78,7 +78,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Social"
-                component={SocialScreen}
+                component={SocialStack}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
