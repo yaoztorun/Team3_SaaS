@@ -13,8 +13,8 @@ import { colors } from '@/src/theme/colors';
 import { HomeScreen } from '@/src/screens/Home/HomeScreen';
 import { AddScreen } from '@/src/screens/Add/AddScreen';
 import { ExploreStack } from '@/src/screens/Explore/ExploreStack';
-import { SocialScreen } from '@/src/screens/Social/SocialScreen';
 import { ProfileScreen } from '@/src/screens/Profile/ProfileScreen';
+import { SocialStack } from '@/src/screens/Social/SocialStack';
 
 const Tab = createBottomTabNavigator();
 
