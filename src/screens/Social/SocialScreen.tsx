@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ScrollView, TextInput, TouchableOpacity, View, Text } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Box } from '@/src/components/ui/box';
+import { SocialStackParamList } from './SocialStack';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { colors } from '@/src/theme/colors';
@@ -12,7 +15,10 @@ import { Pressable } from '@/src/components/ui/pressable';
 type ViewType = 'friends' | 'parties';
 
 export const SocialScreen = () => {
-    const [activeView, setActiveView] = useState<ViewType>('friends');
+    const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
+    const route = useRoute();
+    const initialView = (route.params as { initialView?: ViewType })?.initialView || 'friends';
+    const [activeView, setActiveView] = useState<ViewType>(initialView);
     const [acceptedFriends, setAcceptedFriends] = useState<number[]>([]);
     const [goingToParties, setGoingToParties] = useState<number[]>([]);
 
@@ -193,7 +199,7 @@ export const SocialScreen = () => {
                         {/* Create Party Button */}
                         <Button
                             className="bg-[#00a294] mb-4 flex-row items-center justify-center"
-                            onPress={() => {}}
+                            onPress={() => navigation.navigate('CreateParty')}
                         >
                             <Text className="text-white">+ Create New Party</Text>
                         </Button>

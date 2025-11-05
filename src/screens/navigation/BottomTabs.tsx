@@ -13,7 +13,7 @@ import { colors } from '@/src/theme/colors';
 import { HomeScreen } from '@/src/screens/Home/HomeScreen';
 import { AddScreen } from '@/src/screens/Add/AddScreen';
 import { ExploreScreen } from '@/src/screens/Explore/ExploreScreen';
-import { SocialScreen } from '@/src/screens/Social/SocialScreen';
+import { SocialStack } from '@/src/screens/Social/SocialStack';
 import { ProfileScreen } from '@/src/screens/Profile/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -78,7 +78,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Social"
-                component={SocialScreen}
+                component={SocialStack}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
