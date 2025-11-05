@@ -27,15 +27,32 @@ jobs:
       - name: Install Vercel CLI
         run: npm i -g vercel@latest
 
-      # Link the CI working dir to your Vercel project and pull env
-      - name: Vercel pull (preview)
-        run: vercel pull --yes --environment=preview --scope $VERCEL_ORG_ID --token $VERCEL_TOKEN --project $VERCEL_PROJECT_ID
+      # Link repo to Vercel project for CLI commands
+      - name: Create .vercel/project.json
+        run: |
+          mkdir -p .vercel
+          cat > .vercel/project.json <<EOF
+          { "projectId": "${VERCEL_PROJECT_ID}", "orgId": "${VERCEL_ORG_ID}" }
+          EOF
 
-      # Let Vercel run the build (uses vercel.json)
+      # Pull the right environment vars
+      - name: Vercel pull (env)
+        shell: bash
+        run: |
+          BRANCH="${GITHUB_REF##*/}"
+          if [ "$BRANCH" = "main" ]; then
+            vercel pull --yes --environment=production \
+              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          else
+            vercel pull --yes --environment=preview \
+              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN"
+          fi
+
+      # Build using the pulled env + vercel.json
       - name: Vercel build
-        run: vercel build --token $VERCEL_TOKEN
+        run: vercel build --token "$VERCEL_TOKEN"
 
-      # Deploy: Production for main, Preview for dev
+      # Deploy: Production for main, Preview for others
       - name: Deploy
         id: deploy
         shell: bash
@@ -43,10 +60,10 @@ jobs:
           BRANCH="${GITHUB_REF##*/}"
           if [ "$BRANCH" = "main" ]; then
             url=$(vercel deploy --prebuilt --prod \
-              --scope $VERCEL_ORG_ID --token $VERCEL_TOKEN --project $VERCEL_PROJECT_ID)
+              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN")
           else
             url=$(vercel deploy --prebuilt \
-              --scope $VERCEL_ORG_ID --token $VERCEL_TOKEN --project $VERCEL_PROJECT_ID)
+              --scope "$VERCEL_ORG_ID" --token "$VERCEL_TOKEN")
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
