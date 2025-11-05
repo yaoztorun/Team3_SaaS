@@ -12,7 +12,7 @@ import { colors } from '@/src/theme/colors';
 // Import screens
 import { HomeScreen } from '@/src/screens/Home/HomeScreen';
 import { AddScreen } from '@/src/screens/Add/AddScreen';
-import { ExploreScreen } from '@/src/screens/Explore/ExploreScreen';
+import { ExploreStack } from '@/src/screens/Explore/ExploreStack';
 import { SocialScreen } from '@/src/screens/Social/SocialScreen';
 import { ProfileScreen } from '@/src/screens/Profile/ProfileScreen';
 
@@ -53,7 +53,7 @@ export default function BottomTabs() {
             />
             <Tab.Screen
                 name="Explore"
-                component={ExploreScreen}
+                component={ExploreStack}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
