@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView } from 'react-native';
+import { ScrollView, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
@@ -7,11 +7,23 @@ import { Button } from '@/src/components/ui/button';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '@/src/screens/navigation/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/src/theme/colors';
 
 const Settings: React.FC = () => {
     const navigation = useNavigation();
+    const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+    
+    const handleLogout = () => {
+        setShowLogoutDialog(false);
+        // TODO: Clear auth state (e.g. supabase.auth.signOut())
+        // Navigate to Auth -> Login
+        rootNavigation.navigate('Auth', { screen: 'Login' });
+    };
+    
     const [pushNotifications, setPushNotifications] = useState(true);
     const [friendRequests, setFriendRequests] = useState(true);
     const [partyInvites, setPartyInvites] = useState(false);
@@ -135,7 +147,10 @@ const Settings: React.FC = () => {
 
                 {/* Account actions */}
                 <Box className="mb-6 bg-white rounded-2xl p-4">
-                    <Pressable className="py-3 border-b border-neutral-100">
+                    <Pressable 
+                        className="py-3 border-b border-neutral-100"
+                        onPress={() => setShowLogoutDialog(true)}
+                    >
                         <Text className="text-sm text-neutral-800">Log Out</Text>
                     </Pressable>
                     <Pressable className="py-3">
@@ -154,6 +169,44 @@ const Settings: React.FC = () => {
                     </LinearGradient>
                 </Pressable>
             </ScrollView>
+
+            {/* Logout Confirmation Dialog */}
+            <Modal
+                visible={showLogoutDialog}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowLogoutDialog(false)}
+            >
+                <View className="flex-1 bg-black/50 items-center justify-center p-4">
+                    <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
+                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                            Log Out
+                        </Text>
+                        <Text className="text-neutral-600 mb-6 text-center">
+                            Are you sure you want to log out?
+                        </Text>
+                        <View className="flex-row gap-3">
+                            <Pressable
+                                onPress={() => setShowLogoutDialog(false)}
+                                className="flex-1 py-3 rounded-xl bg-neutral-100"
+                            >
+                                <Text className="text-neutral-900 text-center font-medium">
+                                    Cancel
+                                </Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleLogout}
+                                className="flex-1 py-3 rounded-xl"
+                                style={{ backgroundColor: colors.primary[500] }}
+                            >
+                                <Text className="text-white text-center font-medium">
+                                    Log Out
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </Box>
+                </View>
+            </Modal>
         </Box>
     );
 };
