@@ -6,11 +6,15 @@ import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
 import { TopBar } from '@/src/screens/navigation/TopBar';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { ProfileStackParamList } from './ProfileStack';
 import { spacing } from '@/src/theme/spacing';
 
 type View = 'logged-drinks' | 'stats';
 
 export const ProfileScreen = () => {
+    const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
     const [currentView, setCurrentView] = useState<View>('logged-drinks');
     const [isOwnRecipes, setIsOwnRecipes] = useState(false);
 
@@ -41,7 +45,7 @@ export const ProfileScreen = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Profile" streakCount={7} cocktailCount={42} />
+            <TopBar title="Profile" showSettingsIcon onSettingsPress={() => navigation.navigate('Settings')} />
             
             {/* User Profile Card */}
             <Box className="mx-4 mt-4 p-6 bg-white rounded-2xl">
@@ -55,7 +59,7 @@ export const ProfileScreen = () => {
                     </Box>
                 </HStack>
                 <Pressable 
-                    onPress={() => {/* TODO: Handle edit profile */}}
+                    onPress={() => navigation.navigate('EditProfile')}
                     className="flex-row justify-center items-center py-2 rounded-lg bg-neutral-100"
                 >
                     <Text className="text-sm text-teal-500">Edit Profile</Text>
