@@ -12,7 +12,7 @@ type RootStackParamList = {
     AllCocktails: undefined;
     AIAssistant: undefined;
     WhatCanIMake: undefined;
-    BestRated: undefined;
+    BestBars: undefined;
     UpcomingEvents: undefined;
     Shop: undefined;
 };
@@ -27,7 +27,7 @@ export const ExploreScreen = () => {
             'All Cocktails': 'AllCocktails',
             'AI Assistant': 'AIAssistant',
             'What Can I Make?': 'WhatCanIMake',
-            'Best Rated': 'BestRated',
+            'Best Bars': 'BestBars',
             'Upcoming Events': 'UpcomingEvents',
             'Shop': 'Shop'
         };
@@ -78,8 +78,8 @@ export const ExploreScreen = () => {
                 />
 
                 <ExploreBox 
-                    title="Best Rated" 
-                    description="Explore our highest rated cocktails"
+                    title="Best Bars" 
+                    description="Discover the highest rated bars near you"
                 />
 
                 <ExploreBox 
