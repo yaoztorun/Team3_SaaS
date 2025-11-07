@@ -4,6 +4,8 @@ import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Button } from '@/src/components/ui/button';
+import { LinearGradient } from 'expo-linear-gradient';
+import { colors } from '@/src/theme/colors';
 import { isWeb } from '@/src/utils/platform';
 import { Center } from '@/src/components/ui/center';
 import { useNavigation } from '@react-navigation/native';
@@ -261,12 +263,16 @@ export const CreateParty = () => {
                 </Box>
 
                 {/* Create Party Button */}
-                <Button
-                    className="bg-teal-500 py-4 rounded-xl shadow"
-                    onPress={handleCreateParty}
-                >
-                    <Text className="text-white text-base font-semibold">Create Party</Text>
-                </Button>
+                <Pressable onPress={handleCreateParty} className="rounded-xl shadow overflow-hidden">
+                    <LinearGradient
+                        colors={[colors.primary[400], colors.primary[600]]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                    >
+                        <Text className="text-white text-base font-semibold">Create Party</Text>
+                    </LinearGradient>
+                </Pressable>
             </ScrollView>
 
             {/* Date Picker Modal */}
