@@ -9,15 +9,25 @@ import { Cocktail } from '@/src/types/cocktail';
 
 // Fallback placeholder image (could be replaced with a local asset)
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/300x300.png?text=Cocktail';
+// Layout constants to keep grid stable and prevent vertical jumping while filtering
+const CARD_HEIGHT = 220; // total card height (image + text area)
+const CARD_VERTICAL_MARGIN = 16; // space below each card
 
 export const AllCocktails = () => {
     const [query, setQuery] = useState('');
+    const [debouncedQuery, setDebouncedQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
     const [cocktails, setCocktails] = useState<Cocktail[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
     const categories = ['All', 'Tropical', 'Classic', 'Modern', 'Whiskey'];
+
+    // Debounce the search input to reduce rapid re-renders that can cause perceived layout shifts
+    useEffect(() => {
+        const handle = setTimeout(() => setDebouncedQuery(query), 200);
+        return () => clearTimeout(handle);
+    }, [query]);
 
     useEffect(() => {
         let isMounted = true;
@@ -41,7 +51,7 @@ export const AllCocktails = () => {
     }, []);
 
     const filtered = useMemo(() => {
-        const q = query.trim().toLowerCase();
+        const q = debouncedQuery.trim().toLowerCase();
         return cocktails.filter(c => {
             const name = c.name?.toLowerCase() || '';
             const matchesQuery = !q || name.includes(q);
@@ -49,7 +59,7 @@ export const AllCocktails = () => {
             const matchesCategory = activeCategory === 'All' || (activeCategory === 'Whiskey' ? name.includes('whiskey') : true);
             return matchesQuery && matchesCategory;
         });
-    }, [query, activeCategory, cocktails]);
+    }, [debouncedQuery, activeCategory, cocktails]);
 
     const renderCard = ({ item }: { item: Cocktail }) => {
         const ingredientCount = item.ingredients?.length || 0;
@@ -57,7 +67,7 @@ export const AllCocktails = () => {
         return (
             <TouchableOpacity
                 className="bg-white rounded-xl overflow-hidden shadow"
-                style={{ width: '47%', marginBottom: 16, height: 220 }}
+                style={{ width: '47%', marginBottom: CARD_VERTICAL_MARGIN, height: CARD_HEIGHT }}
                 activeOpacity={0.85}
             >
                 <View
@@ -70,9 +80,9 @@ export const AllCocktails = () => {
                     <Text className="text-sm font-medium text-neutral-900" numberOfLines={1} ellipsizeMode="tail">{item.name ?? 'Unnamed Cocktail'}</Text>
                     <HStack className="justify-between items-center mt-2">
                         {/* Public / Private pill */}
-                        <Text className="text-xs bg-[#F3F3F5] px-2 py-1 rounded-full text-neutral-600">
+                        {/* <Text className="text-xs bg-[#F3F3F5] px-2 py-1 rounded-full text-neutral-600">
                             {item.is_public ? 'Public' : 'Private'}
-                        </Text>
+                        </Text> */}
                         <Text className="text-xs text-neutral-600">{ingredientCount} ingredients</Text>
                     </HStack>
                     <Text className="text-[10px] text-neutral-400 mt-2">Created {new Date(item.created_at).toLocaleDateString()}</Text>
@@ -85,7 +95,8 @@ export const AllCocktails = () => {
         <Box className="flex-1 bg-neutral-50">
             <PageHeader title="All Cocktails" />
             {/* Search and categories header (outside FlatList to prevent input blur issues) */}
-            <Box className="px-4 pt-5 pb-4 mb-20">
+            {/* Header spacing normalized: removed large bottom margin (was mb-20) to keep header height perception stable */}
+            <Box className="px-4 pt-5 pb-4 mb-10">
                 <Box
                     className="flex-row items-center bg-[#F3F3F5] rounded-lg px-4 py-3"
                     style={{
@@ -104,7 +115,7 @@ export const AllCocktails = () => {
                         onChangeText={setQuery}
                     />
                 </Box>
-                <Box className="mt-4">
+                <Box className="mt-2">
                     <ScrollViewHorizontal categories={categories} active={activeCategory} onChange={setActiveCategory} />
                 </Box>
             </Box>
