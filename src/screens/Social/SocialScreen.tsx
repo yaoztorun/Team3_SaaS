@@ -210,7 +210,11 @@ export const SocialScreen = () => {
                                 Active & Upcoming Parties
                             </Text>
                             {parties.map(party => (
-                                <Box key={party.id} className="bg-gray-100 p-4 rounded-xl mb-2 border border-gray-200">
+                                <Pressable
+                                    key={party.id}
+                                    onPress={() => navigation.navigate('PartyDetails', { party })}
+                                    className="bg-gray-100 p-4 rounded-xl mb-2 border border-gray-200"
+                                >
                                     <HStack className="justify-between items-start sm:items-center mb-4 flex-wrap gap-2">
                                         <HStack space="sm" className="items-center flex-shrink min-w-0">
                                             <Text className="text-2xl">{party.emoji}</Text>
@@ -263,7 +267,7 @@ export const SocialScreen = () => {
                                             )}
                                         </Button>
                                     </Box>
-                                </Box>
+                                </Pressable>
                             ))}
                         </Box>
                     </>
