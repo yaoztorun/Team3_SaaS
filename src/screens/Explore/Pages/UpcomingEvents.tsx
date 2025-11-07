@@ -99,48 +99,65 @@ export const UpcomingEvents = () => {
         <Box className="flex-1 bg-neutral-50">
             <PageHeader title="Upcoming Events" />
             
-            {/* Single scroll container so search + filters scroll away with content */}
-            <ScrollView className="flex-1">
-                {/* Search Bar */}
-                <Box className="px-4 pt-2 pb-1">
-                    <Box className="flex-row items-center bg-[#F3F3F5] rounded-lg px-3 py-2">
-                        <Search size={16} color="#6A7282" />
-                        <TextInput
-                            className="flex-1 ml-2 text-sm text-neutral-900"
-                            placeholder="Search events..."
-                            value={searchQuery}
-                            onChangeText={setSearchQuery}
-                            placeholderTextColor="#6A7282"
-                        />
-                    </Box>
+            {/* Search Bar */}
+            <Box className="px-4 pt-2 pb-1">
+                <Box className="flex-row items-center bg-[#F3F3F5] rounded-lg px-3 py-2">
+                    <Search size={16} color="#6A7282" />
+                    <TextInput
+                        className="flex-1 ml-2 text-sm text-neutral-900"
+                        placeholder="Search events..."
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholderTextColor="#6A7282"
+                    />
                 </Box>
+            </Box>
 
-                {/* Filter Categories */}
-                <Box className="px-4">
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexGrow: 0 }}>
-                        <Box className="flex-row gap-2 py-2">
-                            {filterTypes.map((type) => (
-                                <TouchableOpacity
-                                    key={type}
-                                    onPress={() => setSelectedType(type)}
-                                    className={`h-7 min-w-[60px] items-center justify-center px-3 rounded-full ${
-                                        selectedType === type ? 'bg-[#00BBA7]' : 'bg-[#F3F3F5]'
+            {/* Filter Categories */}
+            <Box className="bg-white border-b border-neutral-200">
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    className="px-4 py-2"
+                    contentContainerStyle={{ flexGrow: 0 }}
+                >
+                    <Box className="flex-row gap-2">
+                        {filterTypes.map((type) => (
+                            <TouchableOpacity
+                                key={type}
+                                onPress={() => setSelectedType(type)}
+                                className={`h-7 min-w-[60px] items-center justify-center px-3 rounded-full ${
+                                    selectedType === type
+                                        ? 'bg-[#00BBA7]'
+                                        : 'bg-[#F3F3F5]'
+                                }`}
+                            >
+                                <Text
+                                    className={`text-sm ${
+                                        selectedType === type ? 'text-white' : 'text-neutral-600'
                                     }`}
                                 >
-                                    <Text className={`text-sm ${selectedType === type ? 'text-white' : 'text-neutral-600'}`}>
-                                        {type}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </Box>
-                    </ScrollView>
-                </Box>
+                                    {type}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                      </Box>
+                </ScrollView>
+            </Box>
 
-                {/* Event cards list */}
-                <Box className="px-4 py-2 space-y-3">
+            <ScrollView className="flex-1 px-4">
+                <Box className="pt-2 space-y-3">
                     {filteredEvents.map((event) => (
-                        <TouchableOpacity key={event.id} className="bg-white rounded-2xl overflow-hidden shadow-sm" activeOpacity={0.7}>
-                            <Image source={{ uri: event.image }} className="w-full h-40" resizeMode="cover" />
+                        <TouchableOpacity
+                            key={event.id}
+                            className="bg-white rounded-2xl overflow-hidden shadow-sm"
+                            activeOpacity={0.7}
+                        >
+                            <Image
+                                source={{ uri: event.image }}
+                                className="w-full h-40"
+                                resizeMode="cover"
+                            />
                             <Box className="absolute top-3 left-3">
                                 <Box className="px-2 py-1 rounded-full bg-[#00BBA7]">
                                     <Text className="text-white text-xs font-medium">{event.type}</Text>
@@ -149,7 +166,9 @@ export const UpcomingEvents = () => {
                             <Box className="p-3 space-y-1.5">
                                 <HStack className="justify-between items-start">
                                     <Text className="text-base font-medium text-neutral-900">{event.title}</Text>
-                                    <Text className="text-base font-medium text-neutral-900">{typeof event.price === 'number' ? `$${event.price}` : event.price}</Text>
+                                    <Text className="text-base font-medium text-neutral-900">
+                                        {typeof event.price === 'number' ? `$${event.price}` : event.price}
+                                    </Text>
                                 </HStack>
                                 <HStack space="xs" className="items-center">
                                     <Text className="text-sm text-neutral-600">📍</Text>
@@ -160,8 +179,14 @@ export const UpcomingEvents = () => {
                                     <Text className="text-sm text-neutral-600">{event.date} · {event.time}</Text>
                                 </HStack>
                                 <HStack className="justify-between items-center pt-2 border-t border-neutral-100">
-                                    <Text className="text-xs text-neutral-600">{event.attendees} / {event.maxAttendees} attending</Text>
-                                    <TouchableOpacity className="px-3 py-1.5 rounded-lg bg-[#00BBA7]"><Text className="text-white text-sm font-medium">RSVP</Text></TouchableOpacity>
+                                    <Text className="text-xs text-neutral-600">
+                                        {event.attendees} / {event.maxAttendees} attending
+                                    </Text>
+                                    <TouchableOpacity
+                                        className="px-3 py-1.5 rounded-lg bg-[#00BBA7]"
+                                    >
+                                        <Text className="text-white text-sm font-medium">RSVP</Text>
+                                    </TouchableOpacity>
                                 </HStack>
                             </Box>
                         </TouchableOpacity>
