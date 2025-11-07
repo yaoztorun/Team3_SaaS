@@ -6,6 +6,14 @@ import { FlatList, TextInput, TouchableOpacity, Image, View } from 'react-native
 import { HStack } from '@/src/components/ui/hstack';
 import { fetchCocktails } from '@/src/api/cocktail';
 import { Cocktail } from '@/src/types/cocktail';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+type RootStackParamList = {
+    CocktailDetail: { cocktail: Cocktail };
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 // Fallback placeholder image (could be replaced with a local asset)
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/300x300.png?text=Cocktail';
@@ -14,6 +22,7 @@ const CARD_HEIGHT = 220; // total card height (image + text area)
 const CARD_VERTICAL_MARGIN = 16; // space below each card
 
 export const AllCocktails = () => {
+    const navigation = useNavigation<NavigationProp>();
     const [query, setQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
@@ -69,6 +78,7 @@ export const AllCocktails = () => {
                 className="bg-white rounded-xl overflow-hidden shadow"
                 style={{ width: '47%', marginBottom: CARD_VERTICAL_MARGIN, height: CARD_HEIGHT }}
                 activeOpacity={0.85}
+                onPress={() => navigation.navigate('CocktailDetail', { cocktail: item })}
             >
                 <View
                     className="bg-neutral-200 items-center justify-center"
