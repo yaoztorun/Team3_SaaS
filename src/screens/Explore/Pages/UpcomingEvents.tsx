@@ -141,7 +141,7 @@ export const UpcomingEvents = () => {
                                 </Text>
                             </TouchableOpacity>
                         ))}
-                    </Box>
+                      </Box>
                 </ScrollView>
             </Box>
 
