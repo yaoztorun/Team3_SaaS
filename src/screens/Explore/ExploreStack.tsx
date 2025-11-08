@@ -8,6 +8,7 @@ import { WhatCanIMake } from './Pages/WhatCanIMake';
 import { BestBars } from './Pages/BestBars';
 import { UpcomingEvents } from './Pages/UpcomingEvents';
 import { Shop } from './Pages/Shop';
+import { CocktailDetail } from './Pages/CocktailDetail';
 
 const Stack = createNativeStackNavigator();
 
@@ -20,6 +21,7 @@ export const ExploreStack = () => {
     >
       <Stack.Screen name="ExploreScreen" component={ExploreScreen} />
       <Stack.Screen name="AllCocktails" component={AllCocktails} />
+      <Stack.Screen name="CocktailDetail" component={CocktailDetail} />
       <Stack.Screen name="AIAssistant" component={AIAssistant} />
       <Stack.Screen name="WhatCanIMake" component={WhatCanIMake} />
       <Stack.Screen name="BestBars" component={BestBars} />

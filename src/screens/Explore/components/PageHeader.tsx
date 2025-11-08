@@ -16,7 +16,7 @@ export const PageHeader = ({ title }: PageHeaderProps) => {
     return (
         <Box className="bg-white p-4 shadow-sm">
             <HStack className="items-center">
-                <Pressable 
+                <Pressable
                     onPress={() => navigation.goBack()}
                     className="mr-3"
                 >
