@@ -8,8 +8,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/src/theme/colors';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
+import { supabase } from '@/src/lib/supabase';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
 
 const LoginScreen: React.FC = () => {
     const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -17,14 +19,28 @@ const LoginScreen: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = () => {
-        // TODO: Implement login logic (set auth state / token)
-        rootNavigation.navigate('Main', { screen: 'Home' });
+    const handleLogin = async () => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+        if (error) console.log(error.message);
     };
 
     const handleRegister = () => {
         navigation.navigate('Register');
     };
+
+    const handleGoogleLogin = async () => {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+            redirectTo: window.location.origin,
+            },
+        });
+        if (error) console.log(error.message);
+    };
+
 
     return (
         <KeyboardAvoidingView 
@@ -103,6 +119,20 @@ const LoginScreen: React.FC = () => {
                         <Text className="text-center text-primary-500 font-medium">
                             Forgot Password?
                         </Text>
+                    </Pressable>
+                    
+                    {/* Google Login Button */}
+                    <Pressable onPress={handleGoogleLogin} className="rounded-xl shadow overflow-hidden mb-4">
+                        <LinearGradient
+                            colors={[colors.primary[400], colors.primary[600]]}
+                            start={{ x: 0, y: 0.5 }}
+                            end={{ x: 1, y: 0.5 }}
+                            style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                        >
+                            <Text className="text-white text-base font-semibold">
+                                Sign In with Google
+                            </Text>
+                        </LinearGradient>
                     </Pressable>
 
                     {/* Sign Up Link */}
