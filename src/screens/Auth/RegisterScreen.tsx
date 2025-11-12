@@ -9,6 +9,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/src/theme/colors';
 import { AuthStackParamList } from '../navigation/types';
+import { supabase } from '@/src/lib/supabase';
+
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -19,13 +21,27 @@ const RegisterScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         // TODO: Implement registration logic (create user, set auth state)
         if (password !== confirmPassword) {
             // Show error
+            console.log('Passwords do not match');
             return;
         }
-        // After creating an account, navigate to Login to sign in
+
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+        });
+
+        if(error) {
+            console.log('Error signing up:', error.message);
+            //Show error
+            return;
+        }
+
+        //Show success
+        console.log('Successfully signed up:', data);
         navigation.navigate('Login');
     };
 
