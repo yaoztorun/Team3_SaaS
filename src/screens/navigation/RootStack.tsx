@@ -1,14 +1,15 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './types';
 import { AuthStack } from './AuthStack';
 import BottomTabs from './BottomTabs';
+import { globalScreenOptions } from '@/src/theme/navigationTransitions';
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
+const Stack = createStackNavigator<RootStackParamList>();
 
 export const RootStack = () => {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={globalScreenOptions}>
             <Stack.Screen name="Auth" component={AuthStack} />
             <Stack.Screen name="Main" component={BottomTabs} />
         </Stack.Navigator>

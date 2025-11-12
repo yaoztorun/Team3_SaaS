@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { PageHeader } from '../components/PageHeader';
-import { ScrollView, TextInput, Image, TouchableOpacity } from 'react-native';
+import { ScrollView, Image, TouchableOpacity } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
-import { Search } from 'lucide-react-native';
+import { SearchBar, FilterChip } from '@/src/components/global';
 
 type EventType = 'All' | 'Workshop' | 'Tasting' | 'Party' | 'Happy Hour' | 'Class';
 
@@ -101,16 +101,11 @@ export const UpcomingEvents = () => {
             
             {/* Search Bar */}
             <Box className="px-4 pt-2 pb-1">
-                <Box className="flex-row items-center bg-[#F3F3F5] rounded-lg px-3 py-2">
-                    <Search size={16} color="#6A7282" />
-                    <TextInput
-                        className="flex-1 ml-2 text-sm text-neutral-900"
-                        placeholder="Search events..."
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholderTextColor="#6A7282"
-                    />
-                </Box>
+                <SearchBar
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search events..."
+                />
             </Box>
 
             {/* Filter Categories */}
@@ -123,23 +118,12 @@ export const UpcomingEvents = () => {
                 >
                     <Box className="flex-row gap-2">
                         {filterTypes.map((type) => (
-                            <TouchableOpacity
+                            <FilterChip
                                 key={type}
+                                label={type}
+                                selected={selectedType === type}
                                 onPress={() => setSelectedType(type)}
-                                className={`h-7 min-w-[60px] items-center justify-center px-3 rounded-full ${
-                                    selectedType === type
-                                        ? 'bg-[#00BBA7]'
-                                        : 'bg-[#F3F3F5]'
-                                }`}
-                            >
-                                <Text
-                                    className={`text-sm ${
-                                        selectedType === type ? 'text-white' : 'text-neutral-600'
-                                    }`}
-                                >
-                                    {type}
-                                </Text>
-                            </TouchableOpacity>
+                            />
                         ))}
                       </Box>
                 </ScrollView>

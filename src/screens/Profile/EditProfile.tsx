@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { Button } from '@/src/components/ui/button';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/src/theme/colors';
+import { PrimaryButton, TextInputField } from '@/src/components/global';
 
 const EditProfile: React.FC = () => {
     const navigation = useNavigation();
@@ -39,67 +37,77 @@ const EditProfile: React.FC = () => {
                 <Box className="mb-4 bg-white rounded-xl p-4 shadow-sm">
                     <View style={{ flexDirection: 'row', gap: 12 }}>
                         <Box style={{ flex: 1 }}>
-                            <Text className="text-sm font-medium text-neutral-600 mb-2">First Name</Text>
-                            <Box className="bg-neutral-100 rounded-lg px-3 py-2">
-                                <TextInput value={firstName} onChangeText={setFirstName} placeholder="First" placeholderTextColor="#9CA3AF" />
-                            </Box>
+                            <TextInputField
+                                label="First Name"
+                                value={firstName}
+                                onChangeText={setFirstName}
+                                placeholder="First"
+                            />
                         </Box>
                         <Box style={{ flex: 1 }}>
-                            <Text className="text-sm font-medium text-neutral-600 mb-2">Last Name</Text>
-                            <Box className="bg-neutral-100 rounded-lg px-3 py-2">
-                                <TextInput value={lastName} onChangeText={setLastName} placeholder="Last" placeholderTextColor="#9CA3AF" />
-                            </Box>
+                            <TextInputField
+                                label="Last Name"
+                                value={lastName}
+                                onChangeText={setLastName}
+                                placeholder="Last"
+                            />
                         </Box>
                     </View>
 
                     <Box className="mt-4">
-                        <Text className="text-sm font-medium text-neutral-600 mb-2">Username</Text>
-                        <Box className="bg-neutral-100 rounded-lg px-3 py-2">
-                            <TextInput value={username} onChangeText={setUsername} placeholder="@username" placeholderTextColor="#9CA3AF" />
-                        </Box>
+                        <TextInputField
+                            label="Username"
+                            value={username}
+                            onChangeText={setUsername}
+                            placeholder="@username"
+                        />
                     </Box>
 
                     <Box className="mt-4">
-                        <Text className="text-sm font-medium text-neutral-600 mb-2">Bio</Text>
-                        <Box className="bg-neutral-100 rounded-lg px-3 py-2">
-                            <TextInput value={bio} onChangeText={setBio} placeholder="Cocktail enthusiast" multiline numberOfLines={3} textAlignVertical="top" placeholderTextColor="#9CA3AF" />
-                        </Box>
+                        <TextInputField
+                            label="Bio"
+                            value={bio}
+                            onChangeText={setBio}
+                            placeholder="Cocktail enthusiast"
+                            multiline
+                            numberOfLines={3}
+                        />
                     </Box>
 
                     <Box className="mt-4">
-                        <Text className="text-sm font-medium text-neutral-600 mb-2">Location</Text>
-                        <Box className="bg-neutral-100 rounded-lg px-3 py-2">
-                            <TextInput value={location} onChangeText={setLocation} placeholder="City, State" placeholderTextColor="#9CA3AF" />
-                        </Box>
+                        <TextInputField
+                            label="Location"
+                            value={location}
+                            onChangeText={setLocation}
+                            placeholder="City, State"
+                        />
                     </Box>
                 </Box>
 
                 <Box className="mb-6 bg-white rounded-xl p-4 shadow-sm">
                     <Text className="text-sm font-semibold text-neutral-800 mb-3">Preferences</Text>
                     <Box className="mb-3">
-                        <Text className="text-sm text-neutral-600 mb-2">Favorite Cocktail</Text>
-                        <Box className="bg-neutral-100 rounded-lg px-3 py-2">
-                            <TextInput value={favoriteCocktail} onChangeText={setFavoriteCocktail} placeholder="e.g., Old Fashioned" placeholderTextColor="#9CA3AF" />
-                        </Box>
+                        <TextInputField
+                            label="Favorite Cocktail"
+                            value={favoriteCocktail}
+                            onChangeText={setFavoriteCocktail}
+                            placeholder="e.g., Old Fashioned"
+                        />
                     </Box>
                     <Box>
-                        <Text className="text-sm text-neutral-600 mb-2">Favorite Spirit</Text>
-                        <Box className="bg-neutral-100 rounded-lg px-3 py-2">
-                            <TextInput value={favoriteSpirit} onChangeText={setFavoriteSpirit} placeholder="e.g., Whiskey" placeholderTextColor="#9CA3AF" />
-                        </Box>
+                        <TextInputField
+                            label="Favorite Spirit"
+                            value={favoriteSpirit}
+                            onChangeText={setFavoriteSpirit}
+                            placeholder="e.g., Whiskey"
+                        />
                     </Box>
                 </Box>
 
-                <Pressable onPress={() => navigation.goBack()} className="rounded-xl shadow overflow-hidden">
-                    <LinearGradient
-                        colors={[colors.primary[400], colors.primary[600]]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-                    >
-                        <Text className="text-white text-base font-semibold">Save Changes</Text>
-                    </LinearGradient>
-                </Pressable>
+                <PrimaryButton
+                    title="Save Changes"
+                    onPress={() => navigation.goBack()}
+                />
             </ScrollView>
         </Box>
     );

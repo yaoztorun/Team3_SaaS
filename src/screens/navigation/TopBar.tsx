@@ -1,5 +1,5 @@
 // src/navigation/TopBar.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/src/components/ui/box';
@@ -8,6 +8,16 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { Flame, GlassWater, Bell, Settings as SettingsIcon, ArrowLeft } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
+import { NotificationModal, Notification } from './NotificationModal';
+
+// Sample notifications data
+const initialNotifications: Notification[] = [
+    { id: '1', message: 'Sarah liked your cocktail post', timeAgo: '5m ago', isRead: false },
+    { id: '2', message: 'Mike commented on your Mai Tai', timeAgo: '1h ago', isRead: false },
+    { id: '3', message: 'You have a new friend request', timeAgo: '2h ago', isRead: false },
+    { id: '4', message: 'Cocktail Night event tonight at 8 PM', timeAgo: '3h ago', isRead: true },
+    { id: '5', message: 'Alex started following you', timeAgo: '1d ago', isRead: true },
+];
 
 interface TopBarProps {
     streakCount?: number;
@@ -31,6 +41,23 @@ export const TopBar: React.FC<TopBarProps> = ({
     onBackPress
 }) => {
     const insets = useSafeAreaInsets();
+    const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+    const [showNotifications, setShowNotifications] = useState(false);
+
+    const unreadCount = notifications.filter(n => !n.isRead).length;
+
+    const handleNotificationPress = (id: string) => {
+        setNotifications(prev =>
+            prev.map(n => n.id === id ? { ...n, isRead: true } : n)
+        );
+    };
+
+    const handleBellPress = () => {
+        setShowNotifications(true);
+        if (onNotificationPress) {
+            onNotificationPress();
+        }
+    };
 
     return (
         <Box
@@ -108,13 +135,24 @@ export const TopBar: React.FC<TopBarProps> = ({
                             </View>
 
                             {/* Notification Bell */}
-                            <Pressable onPress={onNotificationPress}>
+                            <Pressable onPress={handleBellPress} className="relative">
                                 <Bell size={22} color="#6b7280" strokeWidth={2} />
+                                {unreadCount > 0 && (
+                                    <View className="absolute -top-1 -right-1 bg-[#00BBA7] rounded-full w-2 h-2" />
+                                )}
                             </Pressable>
                         </>
                     )}
                 </View>
             </View>
+
+            {/* Notification Modal */}
+            <NotificationModal
+                visible={showNotifications}
+                notifications={notifications}
+                onClose={() => setShowNotifications(false)}
+                onNotificationPress={handleNotificationPress}
+            />
         </Box>
     );
 };
