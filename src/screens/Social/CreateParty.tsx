@@ -1,21 +1,19 @@
 import React, { useState } from 'react';
-import { ScrollView, Platform, TextInput } from 'react-native';
+import { ScrollView, Platform } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { Button } from '@/src/components/ui/button';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/src/theme/colors';
 import { isWeb } from '@/src/utils/platform';
-import { Center } from '@/src/components/ui/center';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Calendar, Clock, MapPin, Users } from 'lucide-react-native';
 
 import { HStack } from '@/src/components/ui/hstack';
 import { SocialStackParamList } from './SocialStack';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
+import { PrimaryButton, TextInputField, ImageUploadBox } from '@/src/components/global';
 
 type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party';
 
@@ -59,220 +57,208 @@ export const CreateParty = () => {
     };
 
     return (
-        <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Create Party" />
+        <Box className="flex-1 bg-gray-50">
+            <TopBar title="Create New Party" showBack onBackPress={() => navigation.goBack()} />
             <ScrollView
                 className="flex-1 px-4 pt-6"
                 contentContainerStyle={{
                     paddingBottom: spacing.screenBottom,
                 }}
             >
-                {/* Cover Image Upload */}
+                {/* Cover Image Upload - Using ImageUploadBox */}
                 <Box className="mb-6">
-                    <Pressable 
-                        onPress={() => {
-                            // Handle image upload
+                    <Text className="text-sm text-neutral-950 mb-2">Party Cover Image</Text>
+                    <ImageUploadBox
+                        onCameraPress={() => {
+                            // Handle camera
                         }}
-                        className="bg-white border-2 border-dashed border-neutral-200 rounded-xl h-48 items-center justify-center"
-                    >
-                        <Box className="items-center">
-                            <Text className="text-3xl mb-2">🖼️</Text>
-                            <Text className="text-neutral-600 font-medium">Upload Cover Image</Text>
-                        </Box>
-                    </Pressable>
+                        onGalleryPress={() => {
+                            // Handle gallery
+                        }}
+                    />
                 </Box>
 
                 {/* Party Title */}
                 <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Party Name *</Text>
-                    <Box className="bg-white border border-neutral-200 rounded-xl shadow-sm">
-                        <TextInput
-                            value={partyTitle}
-                            onChangeText={setPartyTitle}
-                            placeholder="e.g., Summer Cocktail Night"
-                            className="px-4 py-3.5 text-base"
-                            placeholderTextColor="#9CA3AF"
-                        />
-                    </Box>
-                </Box>
-
-                {/* Party Type Selection */}
-                <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Party Type</Text>
-                    <HStack className="flex-wrap gap-2">
-                        {partyTypes.map((type) => (
-                            <Pressable
-                                key={type.id}
-                                onPress={() => setSelectedType(type.id)}
-                                className={`flex-row items-center px-4 py-2.5 rounded-full border ${
-                                    selectedType === type.id 
-                                        ? 'bg-teal-500 border-transparent' 
-                                        : 'bg-white border-neutral-200'
-                                }`}
-                            >
-                                <Text className="text-xl mr-2">{type.emoji}</Text>
-                                <Text 
-                                    className={selectedType === type.id 
-                                        ? 'text-white font-medium' 
-                                        : 'text-neutral-900 font-medium'
-                                    }
-                                >
-                                    {type.label}
-                                </Text>
-                            </Pressable>
-                        ))}
-                    </HStack>
-                </Box>
-
-                {/* Date and Time Selection */}
-                <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Date & Time</Text>
-                    <HStack className="flex-wrap gap-3">
-                        {/* Date Picker */}
-                        <Pressable
-                            onPress={() => setShowDatePicker(true)}
-                            className="flex-1 min-w-[150px] bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-sm"
-                        >
-                            <HStack space="sm" className="items-center mb-1">
-                                <Text>📅</Text>
-                                <Text className="text-sm text-neutral-500">Date</Text>
-                            </HStack>
-                            <Text className="text-base text-neutral-900">{formatDate(date)}</Text>
-                        </Pressable>
-
-                        {/* Start Time Picker */}
-                        <Pressable
-                            onPress={() => setShowStartTimePicker(true)}
-                            className="flex-1 min-w-[150px] bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-sm"
-                        >
-                            <HStack space="sm" className="items-center mb-1">
-                                <Text>🕒</Text>
-                                <Text className="text-sm text-neutral-500">Start Time</Text>
-                            </HStack>
-                            <Text className="text-base text-neutral-900">{formatTime(startTime)}</Text>
-                        </Pressable>
-
-                        {/* End Time Picker */}
-                        <Pressable
-                            onPress={() => setShowEndTimePicker(true)}
-                            className="flex-1 min-w-[150px] bg-white border border-neutral-200 rounded-xl px-4 py-3 shadow-sm"
-                        >
-                            <HStack space="sm" className="items-center mb-1">
-                                <Text>🕒</Text>
-                                <Text className="text-sm text-neutral-500">End Time</Text>
-                            </HStack>
-                            <Text className="text-base text-neutral-900">{formatTime(endTime)}</Text>
-                        </Pressable>
-                    </HStack>
+                    <TextInputField
+                        label="Party Name"
+                        required
+                        value={partyTitle}
+                        onChangeText={setPartyTitle}
+                        placeholder="e.g., Summer Cocktail Night"
+                    />
                 </Box>
 
                 {/* Description */}
                 <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Description *</Text>
-                    <Box className="bg-white border border-neutral-200 rounded-xl shadow-sm">
-                        <TextInput
-                            value={description}
-                            onChangeText={setDescription}
-                            placeholder="Tell people what your party is all about..."
-                            multiline
-                            numberOfLines={4}
-                            className="px-4 py-4 text-base min-h-[120px]"
-                            textAlignVertical="top"
-                            placeholderTextColor="#9CA3AF"
-                        />
-                    </Box>
+                    <TextInputField
+                        label="Description"
+                        required
+                        value={description}
+                        onChangeText={setDescription}
+                        placeholder="Tell people what your party is all about..."
+                        multiline
+                        numberOfLines={3}
+                    />
                 </Box>
+
+                {/* Date Picker */}
+                <Box className="mb-3">
+                    <Text className="text-sm text-neutral-950 mb-2">Date *</Text>
+                    <Pressable
+                        onPress={() => setShowDatePicker(true)}
+                        className="bg-white border border-neutral-300 rounded-lg px-3 py-3 flex-row items-center"
+                    >
+                        <Calendar size={20} color="#6a7282" />
+                        <Text className="ml-3 text-base text-neutral-600">{formatDate(date)}</Text>
+                    </Pressable>
+                </Box>
+
+                {/* Time Pickers Row */}
+                <HStack className="gap-3 mb-6">
+                    {/* Start Time */}
+                    <Box className="flex-1">
+                        <Text className="text-sm text-neutral-950 mb-2">Start Time *</Text>
+                        <Pressable
+                            onPress={() => setShowStartTimePicker(true)}
+                            className="bg-white border border-neutral-300 rounded-lg px-3 py-3 flex-row items-center"
+                        >
+                            <Clock size={20} color="#6a7282" />
+                            <Text className="ml-3 text-base text-neutral-600">{formatTime(startTime)}</Text>
+                        </Pressable>
+                    </Box>
+
+                    {/* End Time */}
+                    <Box className="flex-1">
+                        <Text className="text-sm text-neutral-950 mb-2">End Time (Optional)</Text>
+                        <Pressable
+                            onPress={() => setShowEndTimePicker(true)}
+                            className="bg-white border border-neutral-300 rounded-lg px-3 py-3 flex-row items-center"
+                        >
+                            <Clock size={20} color="#6a7282" />
+                            <Text className="ml-3 text-base text-neutral-600">{formatTime(endTime)}</Text>
+                        </Pressable>
+                    </Box>
+                </HStack>
 
                 {/* Location */}
                 <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Location *</Text>
-                    <Box className="bg-white border border-neutral-200 rounded-xl shadow-sm">
-                        <TextInput
-                            value={location}
-                            onChangeText={setLocation}
-                            placeholder="Where's the party?"
-                            className="px-4 py-3.5 text-base"
-                            placeholderTextColor="#9CA3AF"
-                        />
-                    </Box>
+                    <TextInputField
+                        label="Location"
+                        required
+                        value={location}
+                        onChangeText={setLocation}
+                        placeholder="Where's the party?"
+                        icon={<MapPin size={20} color="#6a7282" />}
+                    />
                 </Box>
 
                 {/* Max Attendees */}
                 <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Max Attendees</Text>
-                    <Box className="bg-white border border-neutral-200 rounded-xl shadow-sm">
-                        <TextInput
-                            value={maxAttendees}
-                            onChangeText={setMaxAttendees}
-                            placeholder="No limit"
-                            keyboardType="numeric"
-                            className="px-4 py-3.5 text-base"
-                            placeholderTextColor="#9CA3AF"
-                        />
-                    </Box>
+                    <TextInputField
+                        label="Max Attendees"
+                        value={maxAttendees}
+                        onChangeText={setMaxAttendees}
+                        placeholder="No limit"
+                        keyboardType="numeric"
+                        icon={<Users size={20} color="#6a7282" />}
+                    />
                 </Box>
 
                 {/* Entry Fee */}
                 <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Entry Fee (Optional)</Text>
-                    <Box className="bg-white border border-neutral-200 rounded-xl shadow-sm">
-                        <TextInput
-                            value={entryFee}
-                            onChangeText={setEntryFee}
-                            placeholder="e.g., $10, Free"
-                            className="px-4 py-3.5 text-base"
-                            placeholderTextColor="#9CA3AF"
-                        />
+                    <TextInputField
+                        label="Entry Fee (Optional)"
+                        value={entryFee}
+                        onChangeText={setEntryFee}
+                        placeholder="e.g., $10, Free"
+                    />
+                </Box>
+
+                {/* Party Type Selection */}
+                <Box className="mb-6 bg-white border border-neutral-200 rounded-2xl p-4">
+                    <Text className="text-sm text-neutral-950 mb-3">Party Type</Text>
+                    <Box className="flex-row flex-wrap gap-3">
+                        {partyTypes.map((type) => (
+                            <Pressable
+                                key={type.id}
+                                onPress={() => setSelectedType(type.id)}
+                                className={`px-4 py-4 rounded-2xl border-2 ${
+                                    selectedType === type.id 
+                                        ? 'bg-teal-50 border-teal-500' 
+                                        : 'border-neutral-200'
+                                }`}
+                                style={{ width: '48%' }}
+                            >
+                                <Text 
+                                    className={`text-base ${
+                                        selectedType === type.id 
+                                            ? 'text-[#00786f] font-medium' 
+                                            : 'text-neutral-900'
+                                    }`}
+                                >
+                                    {type.emoji} {type.label}
+                                </Text>
+                            </Pressable>
+                        ))}
+                    </Box>
+                </Box>
+
+                {/* Privacy Settings */}
+                <Box className="mb-6 bg-white rounded-2xl p-4">
+                    <Box className="flex-row items-center justify-between mb-4">
+                        <Box className="flex-1">
+                            <Text className="text-base text-neutral-950 mb-1">Public Party</Text>
+                            <Text className="text-sm text-neutral-600">Anyone can see and join</Text>
+                        </Box>
+                        <Pressable 
+                            onPress={() => setIsPublic(!isPublic)}
+                            className={`w-8 h-[18px] rounded-full justify-center ${isPublic ? 'bg-neutral-950' : 'bg-neutral-300'}`}
+                            style={{ paddingHorizontal: 2 }}
+                        >
+                            <Box 
+                                className="w-4 h-4 rounded-full bg-white"
+                                style={{ 
+                                    alignSelf: isPublic ? 'flex-end' : 'flex-start',
+                                }} 
+                            />
+                        </Pressable>
+                    </Box>
+                    <Box className="flex-row items-center justify-between">
+                        <Box className="flex-1">
+                            <Text className="text-base text-neutral-950 mb-1">Require Approval</Text>
+                            <Text className="text-sm text-neutral-600">You approve attendees</Text>
+                        </Box>
+                        <Pressable 
+                            onPress={() => setRequireApproval(!requireApproval)}
+                            className={`w-8 h-[18px] rounded-full justify-center ${requireApproval ? 'bg-neutral-950' : 'bg-neutral-300'}`}
+                            style={{ paddingHorizontal: 2 }}
+                        >
+                            <Box 
+                                className="w-4 h-4 rounded-full bg-white"
+                                style={{ 
+                                    alignSelf: requireApproval ? 'flex-end' : 'flex-start',
+                                }} 
+                            />
+                        </Pressable>
                     </Box>
                 </Box>
 
                 {/* Cocktail Theme */}
                 <Box className="mb-6">
-                    <Text className="text-sm font-medium text-neutral-600 mb-2">Cocktail Theme (Optional)</Text>
-                    <Box className="bg-white border border-neutral-200 rounded-xl shadow-sm">
-                        <TextInput
-                            value={cocktailTheme}
-                            onChangeText={setCocktailTheme}
-                            placeholder="e.g., Tropical, Classic, Whiskey Night"
-                            className="px-4 py-3.5 text-base"
-                            placeholderTextColor="#9CA3AF"
-                        />
-                    </Box>
-                </Box>
-
-                {/* Privacy Settings */}
-                <Box className="mb-6">
-                    <Box className="flex-row items-center justify-between mb-4">
-                        <Text className="text-sm font-medium text-neutral-600">Public Party</Text>
-                        <Pressable 
-                            onPress={() => setIsPublic(!isPublic)}
-                            className={`w-12 h-6 rounded-full ${isPublic ? 'bg-teal-500' : 'bg-neutral-200'} justify-center px-0.5`}
-                        >
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow transition-all ${isPublic ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-                    <Box className="flex-row items-center justify-between">
-                        <Text className="text-sm font-medium text-neutral-600">Require Approval</Text>
-                        <Pressable 
-                            onPress={() => setRequireApproval(!requireApproval)}
-                            className={`w-12 h-6 rounded-full ${requireApproval ? 'bg-teal-500' : 'bg-neutral-200'} justify-center px-0.5`}
-                        >
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow transition-all ${requireApproval ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
+                    <TextInputField
+                        label="Cocktail Theme (Optional)"
+                        value={cocktailTheme}
+                        onChangeText={setCocktailTheme}
+                        placeholder="e.g., Tropical, Classic, Whiskey Night"
+                    />
                 </Box>
 
                 {/* Create Party Button */}
-                <Pressable onPress={handleCreateParty} className="rounded-xl shadow overflow-hidden">
-                    <LinearGradient
-                        colors={[colors.primary[400], colors.primary[600]]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-                    >
-                        <Text className="text-white text-base font-semibold">Create Party</Text>
-                    </LinearGradient>
-                </Pressable>
+                <PrimaryButton
+                    title="Create Party"
+                    onPress={handleCreateParty}
+                />
             </ScrollView>
 
             {/* Date Picker Modal */}

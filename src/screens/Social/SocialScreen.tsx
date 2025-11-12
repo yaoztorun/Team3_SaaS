@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, TextInput, TouchableOpacity, View, Text } from 'react-native';
+import { ScrollView, TouchableOpacity, View, Text } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Box } from '@/src/components/ui/box';
@@ -11,6 +11,7 @@ import { Button } from '@/src/components/ui/button';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
+import { SearchBar } from '@/src/components/global';
 
 type ViewType = 'friends' | 'parties';
 
@@ -105,15 +106,12 @@ export const SocialScreen = () => {
                 {activeView === 'friends' ? (
                     <>
                         {/* Search Bar */}
-                        <Box className="mb-4 relative">
-                            <TextInput
+                        <Box className="mb-4">
+                            <SearchBar
+                                value={''}
+                                onChangeText={() => {}}
                                 placeholder="Search users..."
-                                className="bg-gray-100 px-10 py-3 rounded-xl text-base text-neutral-500"
                             />
-                            <Box className="absolute left-3 top-3">
-                                {/* Search Icon Placeholder */}
-                                <Text>🔍</Text>
-                            </Box>
                         </Box>
 
                         {/* Friend Requests Section */}
