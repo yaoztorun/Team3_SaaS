@@ -1,8 +1,9 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 import { ProfileScreen } from './ProfileScreen';
 import EditProfile from './EditProfile';
 import Settings from './Settings';
+import { globalScreenOptions } from '@/src/theme/navigationTransitions';
 
 export type ProfileStackParamList = {
     ProfileMain: undefined;
@@ -10,11 +11,11 @@ export type ProfileStackParamList = {
     Settings: undefined;
 };
 
-const Stack = createNativeStackNavigator<ProfileStackParamList>();
+const Stack = createStackNavigator<ProfileStackParamList>();
 
 export const ProfileStack = () => {
     return (
-        <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Navigator screenOptions={globalScreenOptions}>
             <Stack.Screen name="ProfileMain" component={ProfileScreen} />
             <Stack.Screen name="EditProfile" component={EditProfile} />
             <Stack.Screen name="Settings" component={Settings} />
