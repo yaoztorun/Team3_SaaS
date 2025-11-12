@@ -25,6 +25,7 @@ const LoginScreen: React.FC = () => {
             password,
         });
         if (error) console.log(error.message);
+        console.log('Successfully logged in:', data);
     };
 
     const handleRegister = () => {
