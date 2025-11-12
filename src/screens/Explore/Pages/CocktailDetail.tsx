@@ -63,57 +63,60 @@ export const CocktailDetail = () => {
 
     return (
         <Box className="flex-1 bg-white">
-            {/* Hero Image with Back & Favorite Buttons */}
-            <View style={{ position: 'relative', height: 300 }}>
-                <Image
-                    source={{ uri: imageUri }}
-                    style={{ width: '100%', height: '100%' }}
-                    resizeMode="cover"
-                />
-                {/* Back Button */}
-                <Pressable
-                    onPress={() => navigation.goBack()}
-                    style={{
-                        position: 'absolute',
-                        top: 16,
-                        left: 16,
-                        width: 40,
-                        height: 40,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        borderRadius: 20,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
-                    <ArrowLeft size={24} color="#fff" />
-                </Pressable>
-                {/* Favorite Button */}
-                <Pressable
-                    onPress={() => setIsFavorited(!isFavorited)}
-                    style={{
-                        position: 'absolute',
-                        top: 16,
-                        right: 16,
-                        width: 40,
-                        height: 40,
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        borderRadius: 20,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
-                    <Heart
-                        size={24}
-                        color="#fff"
-                        fill={isFavorited ? '#fff' : 'transparent'}
-                    />
-                </Pressable>
-            </View>
+            {/* Hero image moved into ScrollView so it scrolls with content (see inside ScrollView) */}
 
             <ScrollView
                 className="flex-1"
-                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 24, paddingBottom: 40 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 }}
             >
+                {/* Hero Image with Back & Favorite Buttons - now part of the scrollable content */}
+                <View style={{ position: 'relative', height: 300, width: '100%', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, overflow: 'hidden' }}>
+                    <Image
+                        source={{ uri: imageUri }}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                    />
+                    {/* Back Button (scrolls with image) */}
+                    <Pressable
+                        onPress={() => navigation.goBack()}
+                        style={{
+                            position: 'absolute',
+                            top: 16,
+                            left: 16,
+                            width: 40,
+                            height: 40,
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            borderRadius: 20,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <ArrowLeft size={24} color="#fff" />
+                    </Pressable>
+                    {/* Favorite Button (scrolls with image) */}
+                    <Pressable
+                        onPress={() => setIsFavorited(!isFavorited)}
+                        style={{
+                            position: 'absolute',
+                            top: 16,
+                            right: 16,
+                            width: 40,
+                            height: 40,
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            borderRadius: 20,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <Heart
+                            size={24}
+                            color="#fff"
+                            fill={isFavorited ? '#fff' : 'transparent'}
+                        />
+                    </Pressable>
+                </View>
+                {/* preserve previous spacing between image and details */}
+                <View style={{ height: 24 }} />
                 {/* Title and Metadata */}
                 <Box className="mb-6">
                     <Text className="text-2xl font-bold text-neutral-950 mb-3">
