@@ -5,11 +5,8 @@ import { PageHeader } from '../components/PageHeader';
 import { HStack } from '@/src/components/ui/hstack';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { Button } from '@/src/components/ui/button';
 import { Star } from 'lucide-react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/src/theme/colors';
-import { Pressable as RNPressable } from 'react-native';
+import { PrimaryButton } from '@/src/components/global';
 
 type Product = {
     id: string;
@@ -44,21 +41,12 @@ const ProductCard = ({ product }: { product: Product }) => (
             </HStack>
             <Text className="font-semibold">{product.price}</Text>
         </HStack>
-        <RNPressable onPress={() => {}} style={{ marginTop: 12 }}>
-            <LinearGradient
-                colors={[colors.primary[400], colors.primary[600]]}
-                start={{ x: 0, y: 0.5 }}
-                end={{ x: 1, y: 0.5 }}
-                style={{
-                    paddingVertical: 8,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                }}
-            >
-                <Text className="text-white font-semibold">Add</Text>
-            </LinearGradient>
-        </RNPressable>
+        <Box className="mt-3">
+            <PrimaryButton
+                title="Add"
+                onPress={() => {}}
+            />
+        </Box>
     </Box>
 );
 

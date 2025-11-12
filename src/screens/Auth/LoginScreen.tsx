@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { View, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, KeyboardAvoidingView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/src/theme/colors';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
+import { PrimaryButton, TextInputField } from '@/src/components/global';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -57,26 +56,18 @@ const LoginScreen: React.FC = () => {
 
                 {/* Login Form */}
                 <Box className="w-full">
-                    <Box className="mb-6">
-                        <Text className="text-sm font-medium text-neutral-700 mb-2">
-                            Email
-                        </Text>
-                        <TextInput
-                            className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
-                            placeholder="Enter your email"
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                        />
-                    </Box>
+                    <TextInputField
+                        label="Email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
 
-                    <Box className="mb-8">
-                        <Text className="text-sm font-medium text-neutral-700 mb-2">
-                            Password
-                        </Text>
-                        <TextInput
-                            className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
+                    <Box className="mt-6 mb-8">
+                        <TextInputField
+                            label="Password"
                             placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
@@ -85,18 +76,10 @@ const LoginScreen: React.FC = () => {
                     </Box>
 
                     {/* Login Button */}
-                    <Pressable onPress={handleLogin} className="rounded-xl shadow overflow-hidden mb-4">
-                        <LinearGradient
-                            colors={[colors.primary[400], colors.primary[600]]}
-                            start={{ x: 0, y: 0.5 }}
-                            end={{ x: 1, y: 0.5 }}
-                            style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-                        >
-                            <Text className="text-white text-base font-semibold">
-                                Sign In
-                            </Text>
-                        </LinearGradient>
-                    </Pressable>
+                    <PrimaryButton 
+                        title="Sign In" 
+                        onPress={handleLogin}
+                    />
 
                     {/* Forgot Password */}
                     <Pressable className="mb-8">

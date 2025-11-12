@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { View, TextInput, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { ChevronLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/src/theme/colors';
 import { AuthStackParamList } from '../navigation/types';
+import { PrimaryButton, TextInputField } from '@/src/components/global';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -58,25 +57,17 @@ const RegisterScreen: React.FC = () => {
 
                     {/* Registration Form */}
                     <Box className="w-full mt-8">
-                        <Box className="mb-6">
-                            <Text className="text-sm font-medium text-neutral-700 mb-2">
-                                Full Name
-                            </Text>
-                            <TextInput
-                                className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
-                                placeholder="Enter your full name"
-                                value={name}
-                                onChangeText={setName}
-                                autoCapitalize="words"
-                            />
-                        </Box>
+                        <TextInputField
+                            label="Full Name"
+                            placeholder="Enter your full name"
+                            value={name}
+                            onChangeText={setName}
+                            autoCapitalize="words"
+                        />
 
-                        <Box className="mb-6">
-                            <Text className="text-sm font-medium text-neutral-700 mb-2">
-                                Email
-                            </Text>
-                            <TextInput
-                                className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
+                        <Box className="mt-6">
+                            <TextInputField
+                                label="Email"
                                 placeholder="Enter your email"
                                 value={email}
                                 onChangeText={setEmail}
@@ -85,12 +76,9 @@ const RegisterScreen: React.FC = () => {
                             />
                         </Box>
 
-                        <Box className="mb-6">
-                            <Text className="text-sm font-medium text-neutral-700 mb-2">
-                                Password
-                            </Text>
-                            <TextInput
-                                className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
+                        <Box className="mt-6">
+                            <TextInputField
+                                label="Password"
                                 placeholder="Enter your password"
                                 value={password}
                                 onChangeText={setPassword}
@@ -98,12 +86,9 @@ const RegisterScreen: React.FC = () => {
                             />
                         </Box>
 
-                        <Box className="mb-8">
-                            <Text className="text-sm font-medium text-neutral-700 mb-2">
-                                Confirm Password
-                            </Text>
-                            <TextInput
-                                className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
+                        <Box className="mt-6 mb-8">
+                            <TextInputField
+                                label="Confirm Password"
                                 placeholder="Confirm your password"
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
@@ -112,18 +97,10 @@ const RegisterScreen: React.FC = () => {
                         </Box>
 
                         {/* Register Button */}
-                        <Pressable onPress={handleRegister} className="rounded-xl shadow overflow-hidden mb-4">
-                            <LinearGradient
-                                colors={[colors.primary[400], colors.primary[600]]}
-                                start={{ x: 0, y: 0.5 }}
-                                end={{ x: 1, y: 0.5 }}
-                                style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-                            >
-                                <Text className="text-white text-base font-semibold">
-                                    Create Account
-                                </Text>
-                            </LinearGradient>
-                        </Pressable>
+                        <PrimaryButton 
+                            title="Create Account" 
+                            onPress={handleRegister}
+                        />
 
                         {/* Sign In Link */}
                         <View className="flex-row justify-center items-center mb-6">
