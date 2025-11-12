@@ -10,6 +10,7 @@ import { colors } from '@/src/theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { PrimaryButton } from '@/src/components/global';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -119,16 +120,10 @@ export const WhatCanIMake = () => {
 
                 {/* Find button */}
                 <Box>
-                    <Pressable onPress={() => navigation.navigate('AllCocktails')}>
-                        <LinearGradient
-                            colors={[colors.primary[400], colors.primary[600]]}
-                            start={{ x: 0, y: 0.5 }}
-                            end={{ x: 1, y: 0.5 }}
-                            style={{ paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}
-                        >
-                            <Text className="text-white font-semibold">Find cocktails</Text>
-                        </LinearGradient>
-                    </Pressable>
+                    <PrimaryButton
+                        title="Find cocktails"
+                        onPress={() => navigation.navigate('AllCocktails')}
+                    />
                 </Box>
             </ScrollView>
         </Box>
