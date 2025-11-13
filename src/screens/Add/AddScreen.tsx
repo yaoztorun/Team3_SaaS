@@ -16,6 +16,8 @@ import {
     ToggleSwitch
 } from '@/src/components/global';
 import { createCameraHandlers } from '@/src/utils/camera';
+import uploadImageUri from '@/src/utils/storage';
+import { supabase } from '@/src/lib/supabase';
 
 type ViewType = 'log' | 'recipe';
 
@@ -29,6 +31,48 @@ export const AddScreen = () => {
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
+
+    const [isUploading, setIsUploading] = useState(false);
+
+    const handleLogCocktail = async () => {
+        try {
+            setIsUploading(true);
+
+            // Ensure user is signed in to satisfy row-level security policies
+            const {
+                data: { user },
+                error: userErr,
+            } = await supabase.auth.getUser();
+
+            if (userErr) {
+                console.error('Error fetching user', userErr);
+                alert('Authentication error. Please sign in and try again.');
+                return;
+            }
+
+            if (!user) {
+                alert('You must be signed in to upload images. Please sign in and try again.');
+                return;
+            }
+
+            let uploadedUrl: string | null = null;
+            if (photoUri) {
+                uploadedUrl = await uploadImageUri(photoUri);
+                console.log('Uploaded image URL:', uploadedUrl);
+            }
+
+            // TODO: Save the cocktail record to the DB including `uploadedUrl` as image link
+            // When inserting to `Cocktail` or `DrinkLog`, include the authenticated user id:
+            // e.g. await supabase.from('Cocktail').insert({ name, image_url: uploadedUrl, creator_id: user.id })
+
+            alert(`Photo uploaded: ${uploadedUrl || 'no photo'}`);
+        } catch (e) {
+            console.error('Error logging cocktail', e);
+            alert('Upload failed. See console for details.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
 
     return (
         <Box className="flex-1 bg-neutral-50">
@@ -139,7 +183,7 @@ export const AddScreen = () => {
                         </Box>
 
                         {/* Submit Button */}
-                        <PrimaryButton title="Log Cocktail" onPress={() => console.log('Log cocktail')} />
+                        <PrimaryButton title={isUploading ? 'Uploading…' : 'Log Cocktail'} onPress={handleLogCocktail} disabled={isUploading} />
                     </Box>
                 ) : (
                     // Recipe Creation View
