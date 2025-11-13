@@ -19,13 +19,18 @@ const LoginScreen: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
+    const [message, setMessage] = useState<string | null>(null);
+
     const handleLogin = async () => {
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
-        if (error) console.log(error.message);
-        console.log('Successfully logged in:', data);
+        if (error) setMessage(error.message);
+        else {
+            setMessage('Successfully logged in! Redirecting...');
+            setTimeout(() => setMessage(null), 2000);
+        }
     };
 
     const handleRegister = () => {
@@ -39,7 +44,7 @@ const LoginScreen: React.FC = () => {
             redirectTo: window.location.origin,
             },
         });
-        if (error) console.log(error.message);
+        if (error) setMessage(error.message);
     };
 
 
@@ -100,6 +105,14 @@ const LoginScreen: React.FC = () => {
                             secureTextEntry
                         />
                     </Box>
+
+                    {message && (
+                        <Text
+                            className={`text-center mb-4 ${message.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'}`}
+                        >
+                            {message}
+                        </Text>
+                    )}
 
                     {/* Login Button */}
                     <Pressable onPress={handleLogin} className="rounded-xl shadow overflow-hidden mb-4">
