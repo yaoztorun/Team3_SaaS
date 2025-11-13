@@ -3,13 +3,12 @@ import { ScrollView, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { Button } from '@/src/components/ui/button';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/src/screens/navigation/types';
-import { LinearGradient } from 'expo-linear-gradient';
+import { PrimaryButton } from '@/src/components/global';
 import { colors } from '@/src/theme/colors';
 import { supabase } from '@/src/lib/supabase';
 
@@ -168,16 +167,10 @@ const Settings: React.FC = () => {
                     )}
                 </Box>
 
-                <Pressable onPress={() => navigation.goBack()} className="rounded-xl shadow overflow-hidden">
-                    <LinearGradient
-                        colors={[colors.primary[400], colors.primary[600]]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-                    >
-                        <Text className="text-white text-base font-semibold">Save Settings</Text>
-                    </LinearGradient>
-                </Pressable>
+                <PrimaryButton
+                    title="Save Settings"
+                    onPress={() => navigation.goBack()}
+                />
             </ScrollView>
 
             {/* Logout Confirmation Dialog */}
