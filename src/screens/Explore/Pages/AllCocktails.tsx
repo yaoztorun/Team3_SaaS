@@ -4,13 +4,12 @@ import { Text } from '@/src/components/ui/text';
 import { PageHeader } from '../components/PageHeader';
 import { FlatList, TextInput, TouchableOpacity, Image, View, Platform } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
-import { fetchCocktails } from '@/src/api/cocktail';
-import { Cocktail } from '@/src/types/cocktail';
+import { fetchCocktails, DBCocktail } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 type RootStackParamList = {
-    CocktailDetail: { cocktail: Cocktail };
+    CocktailDetail: { cocktail: DBCocktail };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,7 +26,7 @@ export const AllCocktails = () => {
     const [query, setQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [activeCategory, setActiveCategory] = useState('All');
-    const [cocktails, setCocktails] = useState<Cocktail[]>([]);
+    const [cocktails, setCocktails] = useState<DBCocktail[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [overlayHeight, setOverlayHeight] = useState(0);
@@ -64,7 +63,7 @@ export const AllCocktails = () => {
     const filtered = useMemo(() => {
         const q = debouncedQuery.trim().toLowerCase();
         return cocktails.filter(c => {
-            const name = c.name?.toLowerCase() || '';
+            const name = (c.name ?? '')?.toString().toLowerCase();
             const matchesQuery = !q || name.includes(q);
             // Category filtering placeholder (no origin_type semantics yet)
             const matchesCategory = activeCategory === 'All' || (activeCategory === 'Whiskey' ? name.includes('whiskey') : true);
@@ -72,8 +71,18 @@ export const AllCocktails = () => {
         });
     }, [debouncedQuery, activeCategory, cocktails]);
 
-    const renderCard = ({ item }: { item: Cocktail }) => {
-        const ingredientCount = item.ingredients?.length ?? 0;
+    const renderCard = ({ item }: { item: DBCocktail }) => {
+        const parseJsonArray = (v: any) => {
+            if (!v) return [] as any[];
+            if (Array.isArray(v)) return v;
+            try {
+                return typeof v === 'string' ? JSON.parse(v) : v;
+            } catch (e) {
+                return [];
+            }
+        };
+
+        const ingredientCount = parseJsonArray(item.ingredients).length ?? 0;
         const imageUri = item.image_url ?? PLACEHOLDER_IMAGE;
         return (
             <TouchableOpacity

@@ -1,7 +1,9 @@
 import { supabase } from '../lib/supabase'
-import { Cocktail } from '../types/cocktail'
+import type { Tables } from '../types/supabase'
 
-export async function fetchCocktails(): Promise<Cocktail[]> {
+export type DBCocktail = Tables<'Cocktail'>;
+
+export async function fetchCocktails(): Promise<DBCocktail[]> {
         const { data, error } = await supabase
                 .from('Cocktail')
                 .select('*')
@@ -12,5 +14,5 @@ export async function fetchCocktails(): Promise<Cocktail[]> {
                 return [];
         }
 
-        return data as Cocktail[];
+        return (data ?? []) as DBCocktail[];
 }
