@@ -11,17 +11,22 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/src/screens/navigation/types';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '@/src/theme/colors';
+import { supabase } from '@/src/lib/supabase';
 
 const Settings: React.FC = () => {
     const navigation = useNavigation();
     const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+    const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
+
     
-    const handleLogout = () => {
+    const handleLogout = async () => {
         setShowLogoutDialog(false);
-        // TODO: Clear auth state (e.g. supabase.auth.signOut())
-        // Navigate to Auth -> Login
-        rootNavigation.navigate('Auth', { screen: 'Login' });
+
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            setLogoutMessage(error.message);
+        }
     };
     
     const [pushNotifications, setPushNotifications] = useState(true);
@@ -156,6 +161,11 @@ const Settings: React.FC = () => {
                     <Pressable className="py-3">
                         <Text className="text-sm text-red-500">Delete Account</Text>
                     </Pressable>
+                    {logoutMessage && (
+                        <Text className="text-center text-red-500 mb-4">
+                            {logoutMessage}
+                        </Text>
+                    )}
                 </Box>
 
                 <Pressable onPress={() => navigation.goBack()} className="rounded-xl shadow overflow-hidden">

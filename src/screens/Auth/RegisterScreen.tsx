@@ -21,28 +21,27 @@ const RegisterScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    const [message, setMessage] = useState<string | null>(null);
+
     const handleRegister = async () => {
-        // TODO: Implement registration logic (create user, set auth state)
         if (password !== confirmPassword) {
-            // Show error
-            console.log('Passwords do not match');
+            setMessage('Passwords do not match');
             return;
         }
 
+        // TODO: Add name, picture, etc. to user profile registration (supabase: raw_user_metadata?)
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
         });
 
         if(error) {
-            console.log('Error signing up:', error.message);
-            //Show error
+            setMessage(error.message);
             return;
         }
 
-        //Show success
-        console.log('Successfully signed up:', data);
-        navigation.navigate('Login');
+        setMessage('Registration successful! Please check your email to verify your account.');
+        setTimeout(() => navigation.navigate('Login'), 3000);
     };
 
     const handleLogin = () => {
@@ -123,9 +122,16 @@ const RegisterScreen: React.FC = () => {
                                 placeholder="Confirm your password"
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
-                                secureTextEntry
+                                secureTextEntry 
                             />
                         </Box>
+                        {message && (
+                            <Text
+                                className={`text-center mb-4 ${message.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'}`}
+                            >
+                                {message}
+                            </Text>
+                        )}
 
                         {/* Register Button */}
                         <Pressable onPress={handleRegister} className="rounded-xl shadow overflow-hidden mb-4">

@@ -6,10 +6,8 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-  
-    // Check if there’s a current session
+    //Initial Session Check
     supabase.auth.getSession().then(({ data }) => {
-      console.log('Current session data:', data);
       setUser(data.session?.user ?? null);
       setLoading(false);
 
@@ -17,11 +15,11 @@ export function useAuth() {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
     });
-
-    // Subscribe to auth changes (login/logout)
+    
+    //Listen for auth changes
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state changed:', _event, session);
       setUser(session?.user ?? null);
+      setLoading(false);
 
       if (session) {
       window.history.replaceState({}, document.title, window.location.pathname);
