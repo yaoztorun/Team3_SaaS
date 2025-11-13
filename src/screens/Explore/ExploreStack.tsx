@@ -1,5 +1,5 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 
 import { ExploreScreen } from './ExploreScreen';
 import { AllCocktails } from './Pages/AllCocktails';
@@ -9,16 +9,13 @@ import { BestBars } from './Pages/BestBars';
 import { UpcomingEvents } from './Pages/UpcomingEvents';
 import { Shop } from './Pages/Shop';
 import { CocktailDetail } from './Pages/CocktailDetail';
+import { globalScreenOptions } from '@/src/theme/navigationTransitions';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
 
 export const ExploreStack = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
+    <Stack.Navigator screenOptions={globalScreenOptions}>
       <Stack.Screen name="ExploreScreen" component={ExploreScreen} />
       <Stack.Screen name="AllCocktails" component={AllCocktails} />
       <Stack.Screen name="CocktailDetail" component={CocktailDetail} />
