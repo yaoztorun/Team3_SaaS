@@ -7,10 +7,10 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { ArrowLeft, Heart, Star, Clock, Info, Users, Minus, Plus } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Cocktail } from '@/src/types/cocktail';
+import type { DBCocktail } from '@/src/api/cocktail';
 
 type RootStackParamList = {
-    CocktailDetail: { cocktail: Cocktail };
+    CocktailDetail: { cocktail: DBCocktail };
 };
 
 type CocktailDetailRouteProp = RouteProp<RootStackParamList, 'CocktailDetail'>;
@@ -37,7 +37,20 @@ export const CocktailDetail = () => {
     const [checkedIngredients, setCheckedIngredients] = useState<{ [key: number]: boolean }>({});
 
     const dummyData = getDummyData(cocktail.name || '');
-    const imageUri = cocktail.image_url || PLACEHOLDER_IMAGE;
+    const imageUri = cocktail.image_url ?? PLACEHOLDER_IMAGE;
+
+    const parseJsonArray = <T,>(v: any): T[] => {
+        if (!v) return [] as T[];
+        if (Array.isArray(v)) return v as T[];
+        try {
+            return typeof v === 'string' ? JSON.parse(v) as T[] : (v as T[]);
+        } catch (e) {
+            return [] as T[];
+        }
+    };
+
+    const ingredients = parseJsonArray<{ name?: string; amount?: number; unit?: string }>(cocktail.ingredients);
+    const instructions = parseJsonArray<{ step?: number; description?: string }>(cocktail.instructions);
 
     const toggleIngredient = (index: number) => {
         setCheckedIngredients(prev => ({
@@ -209,7 +222,7 @@ export const CocktailDetail = () => {
                 <Box className="mb-6">
                     <Text className="text-lg font-semibold text-neutral-950 mb-4">Ingredients</Text>
                     <Box className="gap-3">
-                        {cocktail.ingredients.map((ingredient, index) => (
+                        {ingredients.map((ingredient, index) => (
                             <Pressable
                                 key={index}
                                 onPress={() => toggleIngredient(index)}
@@ -245,7 +258,7 @@ export const CocktailDetail = () => {
                                                 {ingredient.name}
                                             </Text>
                                             <Text className="text-base text-neutral-600">
-                                                {ingredient.amount * servings} {ingredient.unit}
+                                                {(ingredient.amount ?? 0) * servings} {ingredient.unit ?? ''}
                                             </Text>
                                         </HStack>
                                     </Box>
@@ -259,7 +272,7 @@ export const CocktailDetail = () => {
                 <Box className="mb-6">
                     <Text className="text-lg font-semibold text-neutral-950 mb-4">Instructions</Text>
                     <Box className="gap-3">
-                        {cocktail.instructions.map((instruction, index) => (
+                        {instructions.map((instruction, index) => (
                             <HStack key={index} className="gap-3 items-start">
                                 <View
                                     style={{
