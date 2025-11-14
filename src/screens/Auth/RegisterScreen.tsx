@@ -8,6 +8,9 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { supabase } from '@/src/lib/supabase';
+
+//TODO: Scrollability screen
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -18,14 +21,27 @@ const RegisterScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    const handleRegister = () => {
-        // TODO: Implement registration logic (create user, set auth state)
+    const [message, setMessage] = useState<string | null>(null);
+
+    const handleRegister = async () => {
         if (password !== confirmPassword) {
-            // Show error
+            setMessage('Passwords do not match');
             return;
         }
-        // After creating an account, navigate to Login to sign in
-        navigation.navigate('Login');
+
+        // TODO: Add name, picture, etc. to user profile registration (supabase: raw_user_metadata?)
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+        });
+
+        if(error) {
+            setMessage(error.message);
+            return;
+        }
+
+        setMessage('Registration successful! Please check your email to verify your account.');
+        setTimeout(() => navigation.navigate('Login'), 3000);
     };
 
     const handleLogin = () => {
@@ -92,9 +108,16 @@ const RegisterScreen: React.FC = () => {
                                 placeholder="Confirm your password"
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
-                                secureTextEntry
+                                secureTextEntry 
                             />
                         </Box>
+                        {message && (
+                            <Text
+                                className={`text-center mb-4 ${message.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'}`}
+                            >
+                                {message}
+                            </Text>
+                        )}
 
                         {/* Register Button */}
                         <PrimaryButton 
