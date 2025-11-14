@@ -80,10 +80,10 @@ export const CocktailDetail = () => {
 
             <ScrollView
                 className="flex-1"
-                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 0, paddingBottom: 40 }}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }}
             >
                 {/* Hero Image with Back & Favorite Buttons - now part of the scrollable content */}
-                <View style={{ position: 'relative', height: 300, width: '100%', borderBottomLeftRadius: 16, borderBottomRightRadius: 16, overflow: 'hidden' }}>
+                <View style={{ position: 'relative', height: 300, width: '100%', borderRadius: 16, overflow: 'hidden' }}>
                     <Image
                         source={{ uri: imageUri }}
                         style={{ width: '100%', height: '100%' }}
