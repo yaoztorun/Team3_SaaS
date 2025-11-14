@@ -5,6 +5,7 @@ import { ExploreScreen } from './ExploreScreen';
 import { AllCocktails } from './Pages/AllCocktails';
 import { AIAssistant } from './Pages/AIAssistant';
 import { WhatCanIMake } from './Pages/WhatCanIMake';
+import { MatchingCocktails } from './Pages/MatchingCocktails';
 import { BestBars } from './Pages/BestBars';
 import { UpcomingEvents } from './Pages/UpcomingEvents';
 import { Shop } from './Pages/Shop';
@@ -22,6 +23,7 @@ export const ExploreStack = () => {
       <Stack.Screen name="CocktailDetail" component={CocktailDetail} />
       <Stack.Screen name="AIAssistant" component={AIAssistant} />
       <Stack.Screen name="WhatCanIMake" component={WhatCanIMake} />
+      <Stack.Screen name="MatchingCocktails" component={MatchingCocktails} />
       <Stack.Screen name="BestBars" component={BestBars} />
       <Stack.Screen name="BarDetail" component={BarDetail} />
       <Stack.Screen name="UpcomingEvents" component={UpcomingEvents} />
