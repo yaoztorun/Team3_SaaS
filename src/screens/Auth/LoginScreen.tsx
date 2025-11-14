@@ -2,13 +2,14 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { View, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
+import { spacing } from '@/src/theme/spacing';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -50,11 +51,16 @@ const LoginScreen: React.FC = () => {
 
 
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1 bg-white"
+        <ScrollView
+            className="bg-white h-screen overflow-auto"
+            contentContainerStyle={{
+                justifyContent: 'flex-start',
+                paddingTop: spacing.screenVertical,
+                paddingBottom: spacing.screenBottom,
+            }}
+            keyboardShouldPersistTaps="handled"
         >
-            <Box className="flex-1 p-6 justify-between">
+            <Box className="p-6">
                 {/* Logo and Welcome Text */}
                 <Box className="items-center mt-12">
                     {/* logo.png not present in repo; using a simple placeholder */}
@@ -79,7 +85,7 @@ const LoginScreen: React.FC = () => {
                 </Box>
 
                 {/* Login Form */}
-                <Box className="w-full">
+                <Box className="w-full mt-8">
                     <TextInputField
                         label="Email"
                         placeholder="Enter your email"
@@ -134,14 +140,16 @@ const LoginScreen: React.FC = () => {
                 </Box>
 
                 {/* Google Login Button */}
+                <Box className="mt-8">
                     <GoogleSignInButton 
                         onPress={handleGoogleLogin}
                     />
+                </Box>
 
                 {/* Footer space for keyboard */}
                 <Box className="h-6" />
             </Box>
-        </KeyboardAvoidingView>
+        </ScrollView>
     );
 };
 

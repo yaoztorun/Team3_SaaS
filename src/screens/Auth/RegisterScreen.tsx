@@ -9,8 +9,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
+import { spacing } from '@/src/theme/spacing';
 
-//TODO: Scrollability screen
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -49,105 +49,108 @@ const RegisterScreen: React.FC = () => {
     };
 
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1 bg-white"
+        <ScrollView
+            className="bg-white h-screen overflow-auto"
+            contentContainerStyle={{
+                justifyContent: 'flex-start',
+                paddingTop: spacing.screenVertical,
+                paddingBottom: spacing.screenBottom,
+            }}
+            keyboardShouldPersistTaps="handled"
         >
-            <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-                <Box className="flex-1 p-6 justify-between">
-                    {/* Welcome Text */}
-                    <Box className="flex-row items-center justify-start mb-4">
-                        <Pressable onPress={() => navigation.navigate('Login')} className="mr-3">
-                            <ChevronLeft size={24} color={"#000"} />
-                        </Pressable>
-                    </Box>
+            <Box className="p-6">
+                {/* Welcome Text */}
+                <Box className="flex-row items-center justify-start mb-4">
+                    <Pressable onPress={() => navigation.navigate('Login')} className="mr-3">
+                        <ChevronLeft size={24} color={"#000"} />
+                    </Pressable>
+                </Box>
 
-                    <Box className="items-center mt-2">
-                        <Text className="text-2xl font-bold text-neutral-900 mb-2">
-                            Create Account
-                        </Text>
-                        <Text className="text-neutral-500 text-center">
-                            Create your account to discover cocktails and get personalized recommendations
-                        </Text>
-                    </Box>
-
-                    {/* Registration Form */}
-                    <Box className="w-full mt-8">
-                        <TextInputField
-                            label="Full Name"
-                            placeholder="Enter your full name"
-                            value={name}
-                            onChangeText={setName}
-                            autoCapitalize="words"
-                        />
-
-                        <Box className="mt-6">
-                            <TextInputField
-                                label="Email"
-                                placeholder="Enter your email"
-                                value={email}
-                                onChangeText={setEmail}
-                                autoCapitalize="none"
-                                keyboardType="email-address"
-                            />
-                        </Box>
-
-                        <Box className="mt-6">
-                            <TextInputField
-                                label="Password"
-                                placeholder="Enter your password"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                            />
-                        </Box>
-
-                        <Box className="mt-6 mb-8">
-                            <TextInputField
-                                label="Confirm Password"
-                                placeholder="Confirm your password"
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                secureTextEntry 
-                            />
-                        </Box>
-                        {message && (
-                            <Text
-                                className={`text-center mb-4 ${message.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'}`}
-                            >
-                                {message}
-                            </Text>
-                        )}
-
-                        {/* Register Button */}
-                        <PrimaryButton 
-                            title="Create Account" 
-                            onPress={handleRegister}
-                        />
-
-                        {/* Sign In Link */}
-                        <View className="flex-row justify-center items-center mb-6">
-                            <Text className="text-neutral-600">
-                                Already have an account?{' '}
-                            </Text>
-                            <Pressable onPress={handleLogin}>
-                                <Text className="text-primary-500 font-medium">
-                                    Sign In
-                                </Text>
-                            </Pressable>
-                        </View>
-                    </Box>
-
-                    {/* Terms and Privacy */}
-                    <Text className="text-center text-neutral-500 text-sm mb-6">
-                        By signing up, you agree to our{' '}
-                        <Text className="text-primary-500">Terms of Service</Text>
-                        {' '}and{' '}
-                        <Text className="text-primary-500">Privacy Policy</Text>
+                <Box className="items-center mt-2">
+                    <Text className="text-2xl font-bold text-neutral-900 mb-2">
+                        Create Account
+                    </Text>
+                    <Text className="text-neutral-500 text-center">
+                        Create your account to discover cocktails and get personalized recommendations
                     </Text>
                 </Box>
-            </ScrollView>
-        </KeyboardAvoidingView>
+
+                {/* Registration Form */}
+                <Box className="w-full mt-8">
+                    <TextInputField
+                        label="Full Name"
+                        placeholder="Enter your full name"
+                        value={name}
+                        onChangeText={setName}
+                        autoCapitalize="words"
+                    />
+
+                    <Box className="mt-6">
+                        <TextInputField
+                            label="Email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChangeText={setEmail}
+                            autoCapitalize="none"
+                            keyboardType="email-address"
+                        />
+                    </Box>
+
+                    <Box className="mt-6">
+                        <TextInputField
+                            label="Password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChangeText={setPassword}
+                            secureTextEntry
+                        />
+                    </Box>
+
+                    <Box className="mt-6 mb-8">
+                        <TextInputField
+                            label="Confirm Password"
+                            placeholder="Confirm your password"
+                            value={confirmPassword}
+                            onChangeText={setConfirmPassword}
+                            secureTextEntry 
+                        />
+                    </Box>
+                    {message && (
+                        <Text
+                            className={`text-center mb-4 ${message.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'}`}
+                        >
+                            {message}
+                        </Text>
+                    )}
+
+                    {/* Register Button */}
+                    <PrimaryButton 
+                        title="Create Account" 
+                        onPress={handleRegister}
+                    />
+
+                    {/* Sign In Link */}
+                    <View className="flex-row justify-center items-center mb-6">
+                        <Text className="text-neutral-600">
+                            Already have an account?{' '}
+                        </Text>
+                        <Pressable onPress={handleLogin}>
+                            <Text className="text-primary-500 font-medium">
+                                Sign In
+                            </Text>
+                        </Pressable>
+                    </View>
+                </Box>
+
+                {/* Terms and Privacy */}
+                <Text className="text-center text-neutral-500 text-sm mb-6">
+                    By signing up, you agree to our{' '}
+                    <Text className="text-primary-500">Terms of Service</Text>
+                    {' '}and{' '}
+                    <Text className="text-primary-500">Privacy Policy</Text>
+                </Text>
+            </Box>
+        </ScrollView>
     );
 };
 
