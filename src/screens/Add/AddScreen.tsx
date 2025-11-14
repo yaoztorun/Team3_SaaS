@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScrollView, TouchableOpacity } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ScrollView, TouchableOpacity, Platform, Image as RNImage } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
@@ -15,6 +15,7 @@ import {
     DifficultySelector,
     ToggleSwitch
 } from '@/src/components/global';
+import { createCameraHandlers } from '@/src/utils/camera';
 
 type ViewType = 'log' | 'recipe';
 
@@ -24,11 +25,15 @@ export const AddScreen = () => {
     const [isAtHome, setIsAtHome] = useState(false);
     const [shareWith, setShareWith] = useState<'private' | 'friends'>('private');
     const [selectedDifficulty, setSelectedDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
+    const [photoUri, setPhotoUri] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
 
     return (
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="Log your drink!" streakCount={7} cocktailCount={42} />
-            
+
             {/* View Toggle */}
             <Box className="px-4 py-2 bg-white border-b border-gray-200">
                 <ToggleSwitch
@@ -60,9 +65,14 @@ export const AddScreen = () => {
                         <Box className="space-y-2">
                             <Text className="text-sm text-neutral-950">Photo</Text>
                             <ImageUploadBox
-                                onCameraPress={() => console.log('Camera pressed')}
-                                onGalleryPress={() => console.log('Gallery pressed')}
+                                onCameraPress={handleCameraPress}
+                                onGalleryPress={handleGalleryPress}
                             />
+                            {photoUri && (
+                                <Box className="mt-3 rounded-xl overflow-hidden">
+                                    <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
+                                </Box>
+                            )}
                         </Box>
 
                         {/* Rating */}
@@ -89,7 +99,7 @@ export const AddScreen = () => {
                                 placeholder="Bar name, restaurant..."
                                 icon={<MapPin size={20} color="#6B7280" />}
                             />
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 className="flex-row items-center space-x-3 bg-white p-4 rounded-xl border border-gray-200"
                                 onPress={() => setIsAtHome(!isAtHome)}
                             >
@@ -145,9 +155,14 @@ export const AddScreen = () => {
                         <Box className="space-y-2">
                             <Text className="text-sm text-neutral-950">Photo</Text>
                             <ImageUploadBox
-                                onCameraPress={() => console.log('Camera pressed')}
-                                onGalleryPress={() => console.log('Gallery pressed')}
+                                onCameraPress={handleCameraPress}
+                                onGalleryPress={handleGalleryPress}
                             />
+                            {photoUri && (
+                                <Box className="mt-3 rounded-xl overflow-hidden">
+                                    <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
+                                </Box>
+                            )}
                         </Box>
 
                         {/* Ingredients */}
@@ -156,7 +171,7 @@ export const AddScreen = () => {
                             <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
                                 <Box className="space-y-3">
                                     <Box className="flex-col space-y-2">
-                                        <TouchableOpacity 
+                                        <TouchableOpacity
                                             className="w-full p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
                                         >
                                             <Text className="text-neutral-600">Select ingredient</Text>
@@ -167,7 +182,7 @@ export const AddScreen = () => {
                                                 placeholder="Amount"
                                                 keyboardType="numeric"
                                             />
-                                            <TouchableOpacity 
+                                            <TouchableOpacity
                                                 className="flex-1 p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
                                             >
                                                 <Text className="text-neutral-600">Unit</Text>
@@ -176,7 +191,7 @@ export const AddScreen = () => {
                                         </Box>
                                     </Box>
                                 </Box>
-                                <TouchableOpacity 
+                                <TouchableOpacity
                                     className="flex-row items-center justify-center py-2 mt-2"
                                 >
                                     <Text className="text-primary-500">+ Add Ingredient</Text>
