@@ -8,9 +8,11 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
+import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
+//TODO: Scrollability screen
 
 const LoginScreen: React.FC = () => {
     const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -111,12 +113,6 @@ const LoginScreen: React.FC = () => {
                         onPress={handleLogin}
                     />
 
-                    {/* Google Login Button */}
-                    <PrimaryButton 
-                        title="Sign In with Google" 
-                        onPress={handleGoogleLogin}
-                    />
-
                     {/* Forgot Password */}
                     <Pressable className="mb-8">
                         <Text className="text-center text-primary-500 font-medium">
@@ -136,6 +132,11 @@ const LoginScreen: React.FC = () => {
                         </Pressable>
                     </View>
                 </Box>
+
+                {/* Google Login Button */}
+                    <GoogleSignInButton 
+                        onPress={handleGoogleLogin}
+                    />
 
                 {/* Footer space for keyboard */}
                 <Box className="h-6" />

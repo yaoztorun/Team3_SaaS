@@ -10,6 +10,7 @@ import { AuthStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 
+//TODO: Scrollability screen
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 

@@ -27,6 +27,8 @@ const Settings: React.FC = () => {
             setLogoutMessage(error.message);
         }
     };
+
+    // TODO: Delete account option implementation
     
     const [pushNotifications, setPushNotifications] = useState(true);
     const [friendRequests, setFriendRequests] = useState(true);
