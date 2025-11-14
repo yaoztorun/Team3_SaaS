@@ -8,14 +8,19 @@ async function uriToBlob(uri: string) {
         return blob;
 }
 
-export async function uploadImageUri(uri: string, destinationPath?: string) {
+/**
+ * Upload an image URI to the storage bucket.
+ * If `userId` is provided, the file will be uploaded under a top-level folder named after the user.
+ */
+export async function uploadImageUri(uri: string, userId?: string | null, destinationPath?: string) {
         try {
                 const blob = await uriToBlob(uri);
 
                 const extMatch = uri.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
                 const ext = extMatch ? `.${extMatch[1]}` : '.jpg';
 
-                const filename = destinationPath || `${Date.now()}_${Math.random().toString(36).slice(2, 9)}${ext}`;
+                const baseName = destinationPath || `${Date.now()}_${Math.random().toString(36).slice(2, 9)}${ext}`;
+                const filename = userId ? `${userId}/${baseName}` : baseName;
 
                 const { data, error: uploadError } = await supabase.storage
                         .from(BUCKET_NAME)

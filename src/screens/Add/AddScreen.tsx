@@ -57,15 +57,34 @@ export const AddScreen = () => {
 
             let uploadedUrl: string | null = null;
             if (photoUri) {
-                uploadedUrl = await uploadImageUri(photoUri);
+                // upload into a user-scoped folder so permissions can be enforced per-user
+                uploadedUrl = await uploadImageUri(photoUri, user.id);
                 console.log('Uploaded image URL:', uploadedUrl);
             }
 
-            // TODO: Save the cocktail record to the DB including `uploadedUrl` as image link
-            // When inserting to `Cocktail` or `DrinkLog`, include the authenticated user id:
-            // e.g. await supabase.from('Cocktail').insert({ name, image_url: uploadedUrl, creator_id: user.id })
+            // Example: save a DrinkLog for this user including the uploaded image URL
+            const { data: insertData, error: insertError } = await supabase
+                .from('DrinkLog')
+                .insert([
+                    {
+                        user_id: user.id,
+                        cocktail_id: null,
+                        rating: rating || null,
+                        caption: '',
+                        location_id: null,
+                        visibility: 'public',
+                        image_url: uploadedUrl,
+                        created_at: new Date().toISOString(),
+                    },
+                ]);
 
-            alert(`Photo uploaded: ${uploadedUrl || 'no photo'}`);
+            if (insertError) {
+                console.error('Insert error', insertError);
+                alert('Saved image but failed to create log entry. See console.');
+                return;
+            }
+
+            alert('Drink logged successfully');
         } catch (e) {
             console.error('Error logging cocktail', e);
             alert('Upload failed. See console for details.');
