@@ -1,5 +1,5 @@
-import React from 'react';
-import { ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, ActivityIndicator } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
@@ -9,6 +9,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Search, ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
 import { PreviewCard, EventCard } from '@/src/components/global';
+import { fetchLocations } from '@/src/api/location';
+import type { Location } from '@/src/types/location';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -23,6 +25,32 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const ExploreScreen = () => {
     const navigation = useNavigation<NavigationProp>();
+    const [bars, setBars] = useState<Location[]>([]);
+    const [loadingBars, setLoadingBars] = useState(true);
+
+    useEffect(() => {
+        const loadBars = async () => {
+            setLoadingBars(true);
+            const data = await fetchLocations();
+            if (data && data.length > 0) {
+                // Show top 3 rated bars, or first 3 if no ratings
+                const sortedBars = data
+                    .filter((bar: Location) => bar.rating !== null && bar.rating !== undefined)
+                    .sort((a: Location, b: Location) => (b.rating || 0) - (a.rating || 0))
+                    .slice(0, 3);
+                
+                // If we don't have 3 rated bars, fill with unrated ones
+                if (sortedBars.length < 3) {
+                    const unratedBars = data.filter((bar: Location) => bar.rating === null || bar.rating === undefined).slice(0, 3 - sortedBars.length);
+                    setBars([...sortedBars, ...unratedBars]);
+                } else {
+                    setBars(sortedBars);
+                }
+            }
+            setLoadingBars(false);
+        };
+        loadBars();
+    }, []);
 
     const navigateToSection = (route: keyof RootStackParamList) => {
         navigation.navigate(route);
@@ -150,41 +178,37 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">⭐</Text>
-                            <Text className="text-xl font-medium text-neutral-900">Best Rated</Text>
+                            <Text className="text-xl font-medium text-neutral-900">Best Bars</Text>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
-                    >
-                        <Box className="mr-3">
-                            <PreviewCard
-                                emoji="🍷"
-                                title="The Velvet Lounge"
-                                rating={4.8}
-                                variant="bar"
-                                onPress={() => navigateToSection('BestBars')}
-                            />
+                    {loadingBars ? (
+                        <Box className="px-4 py-8 items-center">
+                            <ActivityIndicator size="large" color="#14b8a6" />
                         </Box>
-                        <Box className="mr-3">
-                            <PreviewCard
-                                emoji="🍸"
-                                title="Cosmopolitan Bar"
-                                rating={4.7}
-                                variant="bar"
-                                onPress={() => navigateToSection('BestBars')}
-                            />
+                    ) : bars.length > 0 ? (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
+                        >
+                            {bars.map((bar, index) => (
+                                <Box key={bar.id} className={index < bars.length - 1 ? "mr-3" : ""}>
+                                    <PreviewCard
+                                        emoji="🍸"
+                                        title={bar.name}
+                                        rating={bar.rating || undefined}
+                                        variant="bar"
+                                        onPress={() => navigateToSection('BestBars')}
+                                    />
+                                </Box>
+                            ))}
+                        </ScrollView>
+                    ) : (
+                        <Box className="px-4">
+                            <Text className="text-gray-500 text-center">No bars available</Text>
                         </Box>
-                        <PreviewCard
-                            emoji="🌺"
-                            title="Mai Tai Paradise"
-                            rating={4.7}
-                            variant="bar"
-                            onPress={() => navigateToSection('BestBars')}
-                        />
-                    </ScrollView>
+                    )}
                 </Box>
 
                 {/* Divider */}
