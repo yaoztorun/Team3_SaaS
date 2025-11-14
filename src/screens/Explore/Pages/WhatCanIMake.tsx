@@ -8,49 +8,104 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { Check } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
+import { fetchCocktails } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PrimaryButton } from '@/src/components/global';
 
 type RootStackParamList = {
     AllCocktails: undefined;
+    MatchingCocktails: { selectedIngredients: string[] };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-const INGREDIENTS = [
-    'Vodka',
-    'Gin',
-    'Rum',
-    'Tequila',
-    'Triple Sec',
-    'Lime',
-    'Lemon',
-    'Sugar',
-    'Mint',
-    'Soda',
-    'Tonic',
-    'Orange Juice',
-    'Cranberry Juice',
-    'Pineapple Juice',
-    'Angostura Bitters',
-    'Sweet Vermouth',
-    'Dry Vermouth',
-    'Whiskey',
-    'Bourbon',
-    'Maple Syrup',
-];
+// will be populated from DB
+const INITIAL_INGREDIENTS: string[] = [];
 
 export const WhatCanIMake = () => {
     const [query, setQuery] = useState('');
     const [selected, setSelected] = useState<string[]>([]);
+    const [ingredients, setIngredients] = useState<string[]>(INITIAL_INGREDIENTS);
+    const [loading, setLoading] = useState(false);
     const navigation = useNavigation<NavigationProp>();
 
     const filtered = useMemo(() => {
         const q = query.trim().toLowerCase();
-        if (!q) return INGREDIENTS;
-        return INGREDIENTS.filter((i) => i.toLowerCase().includes(q));
-    }, [query]);
+        if (!q) return ingredients.slice(0, 50); // Show only top 50 when no search query otherwise to much options
+        return ingredients.filter((i) => i.toLowerCase().includes(q));
+    }, [query, ingredients]);
+
+    // Load distinct ingredient names from the Cocktail table
+    React.useEffect(() => {
+        let mounted = true;
+        const load = async () => {
+            setLoading(true);
+            try {
+                const data = await fetchCocktails();
+                
+                // Count ingredient usage (case-insensitive to avoid duplicates) 
+                const countMap = new Map<string, number>();
+                const nameMap = new Map<string, string>(); // normalized -> display name
+                
+                (data || []).forEach((row: any) => {
+                    const raw = row?.ingredients;
+                    let arr: any[] = [];
+                    if (!raw) return;
+                    if (typeof raw === 'string') {
+                        try {
+                            arr = JSON.parse(raw);
+                        } catch (e) {
+                            return;
+                        }
+                    } else if (Array.isArray(raw)) {
+                        arr = raw;
+                    }
+
+                    arr.forEach((ing) => {
+                        if (!ing) return;
+                        const name = (ing.name || '').toString().trim();
+                        if (!name) return;
+                        
+                        // Normalize to lowercase for deduplication
+                        const normalized = name.toLowerCase();
+                        countMap.set(normalized, (countMap.get(normalized) || 0) + 1);
+                        
+                        // Store the first occurrence as display name (or prefer capitalized)
+                        if (!nameMap.has(normalized)) {
+                            nameMap.set(normalized, name);
+                        } else {
+                            // Prefer the version with proper capitalization
+                            const current = nameMap.get(normalized)!;
+                            if (name[0] === name[0].toUpperCase() && current[0] !== current[0].toUpperCase()) {
+                                nameMap.set(normalized, name);
+                            }
+                        }
+                    });
+                });
+
+                // Sort by usage count (most popular first), then alphabetically
+                const sorted = Array.from(countMap.entries())
+                    .sort((a, b) => {
+                        const countDiff = b[1] - a[1];
+                        if (countDiff !== 0) return countDiff;
+                        return a[0].localeCompare(b[0]);
+                    })
+                    .map(([normalized]) => nameMap.get(normalized)!);
+
+                if (mounted) setIngredients(sorted);
+            } catch (e) {
+                console.warn('Failed to load ingredients', e);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        load();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     const toggle = (name: string) => {
         setSelected((s) => (s.includes(name) ? s.filter((x) => x !== name) : [...s, name]));
@@ -75,6 +130,11 @@ export const WhatCanIMake = () => {
                         }}
                         placeholderTextColor="#9CA3AF"
                     />
+                </Box>
+
+                {/* Instructions */}
+                <Box className="mb-3">
+                    <Text className="text-sm text-gray-600">Please select ingredients you have available:</Text>
                 </Box>
 
                 {/* Chips */}
@@ -115,7 +175,7 @@ export const WhatCanIMake = () => {
                 <Box>
                     <PrimaryButton
                         title="Find cocktails"
-                        onPress={() => navigation.navigate('AllCocktails')}
+                        onPress={() => navigation.navigate('MatchingCocktails', { selectedIngredients: selected })}
                     />
                 </Box>
             </ScrollView>

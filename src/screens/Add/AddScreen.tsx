@@ -1,21 +1,20 @@
 import React, { useRef, useState } from 'react';
-import { ScrollView, TouchableOpacity, Platform, Image as RNImage } from 'react-native';
+import { ScrollView, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { Center } from '@/src/components/ui/center';
-import { MapPin } from 'lucide-react-native';
-import {
-    PrimaryButton,
-    TextInputField,
-    ImageUploadBox,
-    RatingStars,
-    RadioOption,
-    DifficultySelector,
-    ToggleSwitch
-} from '@/src/components/global';
+import { Pressable } from '@/src/components/ui/pressable';
+import { ToggleSwitch } from '@/src/components/global';
+import LogView from './LogView';
+import RecipeView from './RecipeView';
 import { createCameraHandlers } from '@/src/utils/camera';
+import uploadImageUri from '@/src/utils/storage';
+import { supabase } from '@/src/lib/supabase';
+import fetchLocations from '@/src/api/location';
+import { fetchCocktails } from '@/src/api/cocktail';
+import type { DBCocktail } from '@/src/api/cocktail';
+import { colors } from '@/src/theme/colors';
 
 type ViewType = 'log' | 'recipe';
 
@@ -23,12 +22,132 @@ export const AddScreen = () => {
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
     const [isAtHome, setIsAtHome] = useState(false);
-    const [shareWith, setShareWith] = useState<'private' | 'friends'>('private');
+    const [shareWith, setShareWith] = useState<'private' | 'friends' | 'public'>('private');
     const [selectedDifficulty, setSelectedDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [locationQuery, setLocationQuery] = useState('');
+    const [suggestionsVisible, setSuggestionsVisible] = useState(false);
+    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
     const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
+
+    React.useEffect(() => {
+        let mounted = true;
+        (async () => {
+            const data = await fetchLocations();
+            if (!mounted) return;
+            setLocations(data.map(l => ({ id: l.id, name: l.name })));
+        })();
+        (async () => {
+            const data = await fetchCocktails();
+            if (!mounted) return;
+            setCocktails(data.map((c: DBCocktail) => ({ id: c.id, name: c.name })));
+        })();
+        return () => { mounted = false };
+    }, []);
+
+    const [isUploading, setIsUploading] = useState(false);
+    const [cocktails, setCocktails] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [cocktailQuery, setCocktailQuery] = useState('');
+    const [cocktailSuggestionsVisible, setCocktailSuggestionsVisible] = useState(false);
+    const [selectedCocktailId, setSelectedCocktailId] = useState<string | null>(null);
+    const [caption, setCaption] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalMessage, setModalMessage] = useState<string | null>(null);
+
+    const handleLogCocktail = async () => {
+        try {
+            setIsUploading(true);
+
+            // Ensure user is signed in to satisfy row-level security policies
+            const {
+                data: { user },
+                error: userErr,
+            } = await supabase.auth.getUser();
+
+            if (userErr) {
+                console.error('Error fetching user', userErr);
+                alert('Authentication error. Please sign in and try again.');
+                return;
+            }
+
+            if (!user) {
+                alert('You must be signed in to upload images. Please sign in and try again.');
+                return;
+            }
+
+            // validate required fields
+            const missing: string[] = [];
+            if (!selectedCocktailId) missing.push('cocktail');
+            if (!rating || rating <= 0) missing.push('rating');
+            if (!caption || caption.trim().length === 0) missing.push('review');
+            if (!isAtHome && !selectedLocationId) missing.push('location');
+
+            if (missing.length > 0) {
+                alert(`Please fill required fields: ${missing.join(', ')}`);
+                return;
+            }
+
+            let uploadedUrl: string | null = null;
+            if (photoUri) {
+                // upload into a user-scoped folder so permissions can be enforced per-user
+                uploadedUrl = await uploadImageUri(photoUri, user.id);
+                console.log('Uploaded image URL:', uploadedUrl);
+            }
+
+            // convert rating with half-stars into an integer smallint representation (store halves as *2)
+            const storedRating = Math.round(rating * 2);
+
+            // save a DrinkLog for this user including the uploaded image URL
+            const { data: insertData, error: insertError } = await supabase
+                .from('DrinkLog')
+                .insert([
+                    {
+                        user_id: user.id,
+                        cocktail_id: selectedCocktailId,
+                        rating: storedRating,
+                        caption: caption.trim(),
+                        location_id: isAtHome ? null : selectedLocationId,
+                        visibility: shareWith,
+                        image_url: uploadedUrl,
+                        created_at: new Date().toISOString(),
+                    },
+                ]);
+
+            if (insertError) {
+                console.error('Insert error', insertError);
+                alert('Saved image but failed to create log entry. See console.');
+                return;
+            }
+
+            // show confirmation modal and clear form
+            setModalMessage('Drink logged successfully');
+            setModalVisible(true);
+            // clear form fields
+            setCocktailQuery('');
+            setSelectedCocktailId(null);
+            setCaption('');
+            setRating(0);
+            setPhotoUri(null);
+            setLocationQuery('');
+            setSelectedLocationId(null);
+            setIsAtHome(false);
+            setShareWith('private');
+            setCocktailSuggestionsVisible(false);
+            setSuggestionsVisible(false);
+
+            // user will dismiss the modal manually
+        } catch (e) {
+            console.error('Error logging cocktail', e);
+            alert('Upload failed. See console for details.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0 && (isAtHome || !!selectedLocationId);
 
     return (
         <Box className="flex-1 bg-neutral-50">
@@ -53,207 +172,75 @@ export const AddScreen = () => {
                 }}
             >
                 {activeView === 'log' ? (
-                    <Box className="flex-1 space-y-6">
-                        {/* Cocktail Name */}
-                        <TextInputField
-                            label="Cocktail Name"
-                            required
-                            placeholder="What cocktail did you drink?"
-                        />
-
-                        {/* Photo Upload */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Photo</Text>
-                            <ImageUploadBox
-                                onCameraPress={handleCameraPress}
-                                onGalleryPress={handleGalleryPress}
-                            />
-                            {photoUri && (
-                                <Box className="mt-3 rounded-xl overflow-hidden">
-                                    <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
-                                </Box>
-                            )}
-                        </Box>
-
-                        {/* Rating */}
-                        <Box className="space-y-2 bg-white p-4 rounded-xl border border-gray-200">
-                            <Text className="text-sm text-neutral-950">Rating</Text>
-                            <Center>
-                                <RatingStars value={rating} onChange={setRating} />
-                            </Center>
-                        </Box>
-
-                        {/* Review */}
-                        <TextInputField
-                            label="Review (Optional)"
-                            placeholder="How was your drink? Tell us more!"
-                            multiline
-                            numberOfLines={3}
-                        />
-
-                        {/* Location */}
-                        <Box className="space-y-2">
-                            <TextInputField
-                                label="Where did you drink it?"
-                                required
-                                placeholder="Bar name, restaurant..."
-                                icon={<MapPin size={20} color="#6B7280" />}
-                            />
-                            <TouchableOpacity
-                                className="flex-row items-center space-x-3 bg-white p-4 rounded-xl border border-gray-200"
-                                onPress={() => setIsAtHome(!isAtHome)}
-                            >
-                                <Box className={`w-4 h-4 rounded border items-center justify-center ${isAtHome ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
-                                    {isAtHome && (
-                                        <Text className="text-white text-xs">✓</Text>
-                                    )}
-                                </Box>
-                                <Text className="text-base">At Home</Text>
-                            </TouchableOpacity>
-                        </Box>
-
-                        {/* Tag Friends Button */}
-                        <TouchableOpacity className="flex-row items-center justify-center space-x-2 bg-gray-100 py-3 rounded-xl border border-gray-200">
-                            <Text className="text-base text-gray-600">👥 Tag friends you were drinking with</Text>
-                        </TouchableOpacity>
-
-                        {/* Share With */}
-                        <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                            <Text className="text-sm text-neutral-950 mb-3">Share With</Text>
-                            <Box className="space-y-2">
-                                <RadioOption
-                                    selected={shareWith === 'private'}
-                                    onPress={() => setShareWith('private')}
-                                    icon="👤"
-                                    title="Just Me"
-                                    description="Only visible on your profile"
-                                />
-                                <RadioOption
-                                    selected={shareWith === 'friends'}
-                                    onPress={() => setShareWith('friends')}
-                                    icon="👥"
-                                    title="All Friends"
-                                    description="Share on feed with all friends"
-                                />
-                            </Box>
-                        </Box>
-
-                        {/* Submit Button */}
-                        <PrimaryButton title="Log Cocktail" onPress={() => console.log('Log cocktail')} />
-                    </Box>
+                    <LogView
+                        cocktailQuery={cocktailQuery}
+                        setCocktailQuery={setCocktailQuery}
+                        cocktails={cocktails}
+                        cocktailSuggestionsVisible={cocktailSuggestionsVisible}
+                        setCocktailSuggestionsVisible={setCocktailSuggestionsVisible}
+                        selectedCocktailId={selectedCocktailId}
+                        setSelectedCocktailId={setSelectedCocktailId}
+                        handleCameraPress={handleCameraPress}
+                        handleGalleryPress={handleGalleryPress}
+                        photoUri={photoUri}
+                        rating={rating}
+                        setRating={setRating}
+                        caption={caption}
+                        setCaption={setCaption}
+                        locationQuery={locationQuery}
+                        setLocationQuery={setLocationQuery}
+                        suggestionsVisible={suggestionsVisible}
+                        setSuggestionsVisible={setSuggestionsVisible}
+                        locations={locations}
+                        selectedLocationId={selectedLocationId}
+                        setSelectedLocationId={setSelectedLocationId}
+                        isAtHome={isAtHome}
+                        setIsAtHome={setIsAtHome}
+                        shareWith={shareWith}
+                        setShareWith={setShareWith}
+                        isUploading={isUploading}
+                        handleLogCocktail={handleLogCocktail}
+                        canSubmit={canSubmit}
+                    />
                 ) : (
-                    // Recipe Creation View
-                    <Box className="flex-1 space-y-6">
-                        {/* Recipe Name */}
-                        <TextInputField
-                            label="Recipe Name"
-                            required
-                            placeholder="Name your cocktail recipe"
-                        />
-
-                        {/* Recipe Photo */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Photo</Text>
-                            <ImageUploadBox
-                                onCameraPress={handleCameraPress}
-                                onGalleryPress={handleGalleryPress}
-                            />
-                            {photoUri && (
-                                <Box className="mt-3 rounded-xl overflow-hidden">
-                                    <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
-                                </Box>
-                            )}
-                        </Box>
-
-                        {/* Ingredients */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Ingredients *</Text>
-                            <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                                <Box className="space-y-3">
-                                    <Box className="flex-col space-y-2">
-                                        <TouchableOpacity
-                                            className="w-full p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
-                                        >
-                                            <Text className="text-neutral-600">Select ingredient</Text>
-                                            <Text>▼</Text>
-                                        </TouchableOpacity>
-                                        <Box className="flex-row space-x-2">
-                                            <TextInputField
-                                                placeholder="Amount"
-                                                keyboardType="numeric"
-                                            />
-                                            <TouchableOpacity
-                                                className="flex-1 p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
-                                            >
-                                                <Text className="text-neutral-600">Unit</Text>
-                                                <Text>▼</Text>
-                                            </TouchableOpacity>
-                                        </Box>
-                                    </Box>
-                                </Box>
-                                <TouchableOpacity
-                                    className="flex-row items-center justify-center py-2 mt-2"
-                                >
-                                    <Text className="text-primary-500">+ Add Ingredient</Text>
-                                </TouchableOpacity>
-                            </Box>
-                        </Box>
-
-                        {/* Instructions */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Instructions *</Text>
-                            <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                                <Box className="flex-row items-start space-x-3">
-                                    <Text className="text-neutral-400 mt-3">1.</Text>
-                                    <TextInputField
-                                        placeholder="Add step"
-                                        multiline
-                                        numberOfLines={2}
-                                    />
-                                </Box>
-                                <TouchableOpacity className="flex-row items-center justify-center py-2">
-                                    <Text className="text-primary-500">+ Add Step</Text>
-                                </TouchableOpacity>
-                            </Box>
-                        </Box>
-
-                        {/* Difficulty */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Difficulty</Text>
-                            <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                                <DifficultySelector
-                                    selected={selectedDifficulty}
-                                    onChange={setSelectedDifficulty}
-                                />
-                            </Box>
-                        </Box>
-
-                        {/* Share With */}
-                        <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                            <Text className="text-sm text-neutral-950 mb-3">Share With</Text>
-                            <Box className="space-y-2">
-                                <RadioOption
-                                    selected={shareWith === 'private'}
-                                    onPress={() => setShareWith('private')}
-                                    icon="👤"
-                                    title="Just Me"
-                                    description="Only visible on your profile"
-                                />
-                                <RadioOption
-                                    selected={shareWith === 'friends'}
-                                    onPress={() => setShareWith('friends')}
-                                    icon="👥"
-                                    title="All Friends"
-                                    description="Share on feed with all friends"
-                                />
-                            </Box>
-                        </Box>
-
-                        {/* Submit Button */}
-                        <PrimaryButton title="Create Recipe" onPress={() => console.log('Create recipe')} />
-                    </Box>
+                    <RecipeView
+                        handleCameraPress={handleCameraPress}
+                        handleGalleryPress={handleGalleryPress}
+                        photoUri={photoUri}
+                        selectedDifficulty={selectedDifficulty}
+                        setSelectedDifficulty={setSelectedDifficulty}
+                        shareWith={shareWith}
+                        setShareWith={setShareWith}
+                    />
                 )}
             </ScrollView>
+
+            {/* Confirmation Modal (re-uses the pattern from Settings) */}
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View className="flex-1 bg-black/50 items-center justify-center p-4">
+                    <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
+                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                            {modalMessage ?? 'Done'}
+                        </Text>
+                        <Text className="text-neutral-600 mb-6 text-center">Your drink has been logged.</Text>
+                        <View>
+                            <Pressable
+                                onPress={() => setModalVisible(false)}
+                                className="py-3 rounded-xl"
+                                style={{ backgroundColor: colors.primary[500] }}
+                            >
+                                <Text className="text-white text-center font-medium">OK</Text>
+                            </Pressable>
+                        </View>
+                    </Box>
+                </View>
+            </Modal>
         </Box>
     );
 };
+

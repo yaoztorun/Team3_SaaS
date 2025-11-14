@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { ScrollView, TextInput, KeyboardAvoidingView, Platform, View } from 'react-native';
+import { ScrollView, TextInput, KeyboardAvoidingView, Platform, View, ActivityIndicator } from 'react-native';
 import { Send, ChevronLeft, Bot } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { useNavigation } from '@react-navigation/native';
+import { getGeminiModel, COCKTAIL_ASSISTANT_PROMPT } from '@/src/config/gemini';
 
 // Example suggested questions that appear below the welcome message
 const suggestedQuestions = [
@@ -22,42 +23,148 @@ interface Message {
     timestamp: string;
 }
 
+// Helper function to clean and format AI responses
+const formatAIResponse = (text: string): string => {
+    return text
+        // Remove markdown bold/italic markers
+        .replace(/\*\*\*/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '•') // Convert asterisks to bullets
+        // Remove excessive dashes
+        .replace(/---+/g, '')
+        .replace(/===+/g, '')
+        // Clean up spacing
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+};
+
 export const AIAssistant = () => {
     const navigation = useNavigation();
+    const scrollViewRef = useRef<ScrollView>(null);
+    const chatRef = useRef<any>(null); // Store chat instance to maintain conversation
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 1,
             text: "Hi! I'm your cocktail assistant. Ask me anything about cocktails, recipes, party planning, or mixology tips!",
             isUser: false,
-            timestamp: "05:23"
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         }
     ]);
     const [inputText, setInputText] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleSend = () => {
-        if (!inputText.trim()) return;
+    // Initialize chat once when component mounts
+    useEffect(() => {
+        const model = getGeminiModel();
+        chatRef.current = model.startChat({
+            history: [
+                {
+                    role: 'user',
+                    parts: [{ text: COCKTAIL_ASSISTANT_PROMPT }],
+                },
+                {
+                    role: 'model',
+                    parts: [{ text: 'Understood! I\'m ready to help with all your cocktail questions.' }],
+                },
+            ],
+            generationConfig: {
+                maxOutputTokens: 1000,
+                temperature: 0.9,
+            },
+        });
+    }, []);
 
-        // Add user message
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+    }, [messages]);
+
+    const handleSend = async () => {
+        if (!inputText.trim() || isLoading) return;
+
+        const userMessage = inputText.trim();
         const newMessage: Message = {
-            id: messages.length + 1,
-            text: inputText.trim(),
+            id: Date.now(),
+            text: userMessage,
             isUser: true,
             timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
 
         setMessages(prev => [...prev, newMessage]);
         setInputText('');
+        setIsLoading(true);
 
-        // Simulate AI response (in a real app, this would be an API call)
-        setTimeout(() => {
-            const aiResponse: Message = {
-                id: messages.length + 2,
-                text: "I'm a placeholder response. In the real version, I'll provide helpful cocktail-related answers!",
-                isUser: false,
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            setMessages(prev => [...prev, aiResponse]);
-        }, 1000);
+        // Retry logic for temporary failures
+        const maxRetries = 3;
+        let attempt = 0;
+
+        while (attempt < maxRetries) {
+            try {
+                // Use the existing chat instance to maintain conversation history
+                if (!chatRef.current) {
+                    throw new Error('Chat not initialized');
+                }
+
+                // Send message to the ongoing conversation
+                const result = await chatRef.current.sendMessage(userMessage);
+                const response = result.response;
+                const aiText = formatAIResponse(response.text());
+
+                // Add AI response to messages
+                const aiResponse: Message = {
+                    id: Date.now() + 1,
+                    text: aiText,
+                    isUser: false,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                
+                setMessages(prev => [...prev, aiResponse]);
+                setIsLoading(false);
+                return; // Success - exit function
+                
+            } catch (error: any) {
+                attempt++;
+                console.error(`Gemini API Error (attempt ${attempt}/${maxRetries}):`, error);
+                
+                // Check if it's a temporary error that should be retried
+                const is503Error = error?.message?.includes('overloaded') || error?.message?.includes('503');
+                const is429Error = error?.message?.includes('429');
+                
+                if ((is503Error || is429Error) && attempt < maxRetries) {
+                    // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+                    const waitTime = Math.pow(2, attempt - 1) * 1000;
+                    console.log(`Retrying in ${waitTime}ms...`);
+                    await new Promise(resolve => setTimeout(resolve, waitTime));
+                    continue; // Retry
+                }
+                
+                // If all retries failed or it's a different error, show error message
+                let errorText = "Sorry, I'm having trouble connecting right now.";
+                
+                if (is503Error) {
+                    errorText = "The AI service is overloaded right now. I tried multiple times but couldn't connect. Please try again in a minute! 🔄";
+                } else if (is429Error) {
+                    errorText = "You've reached the rate limit. Please wait a moment before trying again.";
+                } else if (error?.message?.includes('404')) {
+                    errorText = "The AI model is not available. Please check your configuration.";
+                } else if (error?.message?.includes('401') || error?.message?.includes('API key')) {
+                    errorText = "There's an issue with the API key. Please check your configuration.";
+                }
+                
+                const errorMessage: Message = {
+                    id: Date.now() + 1,
+                    text: errorText,
+                    isUser: false,
+                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                };
+                
+                setMessages(prev => [...prev, errorMessage]);
+                setIsLoading(false);
+                return;
+            }
+        }
     };
 
     const handleSuggestedQuestion = (question: string) => {
@@ -87,6 +194,7 @@ export const AIAssistant = () => {
                 keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
             >
                 <ScrollView
+                    ref={scrollViewRef}
                     className="flex-1"
                     contentContainerStyle={{ padding: 16 }}
                 >
@@ -128,8 +236,22 @@ export const AIAssistant = () => {
                         </Box>
                     ))}
 
+                    {/* Loading Indicator */}
+                    {isLoading && (
+                        <Box className="mb-4 items-start">
+                            <Box className="flex-row items-start mb-1">
+                                <Box className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-3">
+                                    <Bot size={20} color="#009689" />
+                                </Box>
+                                <Box className="bg-white border border-gray-200 rounded-2xl p-4">
+                                    <ActivityIndicator size="small" color="#009689" />
+                                </Box>
+                            </Box>
+                        </Box>
+                    )}
+
                     {/* Suggested Questions (only show if only initial message) */}
-                    {messages.length === 1 && (
+                    {messages.length === 1 && !isLoading && (
                         <Box className="mt-4">
                             <Text className="text-sm text-[#4a5565] mb-3 ml-2">Try asking:</Text>
                             {suggestedQuestions.map((question, index) => (
@@ -172,12 +294,16 @@ export const AIAssistant = () => {
                                     : 'bg-gray-300'
                             }`}
                             style={{
-                                backgroundColor: inputText.trim() ? '#009689' : '#d1d5dc',
-                                opacity: inputText.trim() ? 1 : 0.5,
+                                backgroundColor: inputText.trim() && !isLoading ? '#009689' : '#d1d5dc',
+                                opacity: inputText.trim() && !isLoading ? 1 : 0.5,
                             }}
-                            disabled={!inputText.trim()}
+                            disabled={!inputText.trim() || isLoading}
                         >
-                            <Send size={18} color="#fff" />
+                            {isLoading ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                            ) : (
+                                <Send size={16} color="#fff" />
+                            )}
                         </Pressable>
                     </Box>
                 </Box>
