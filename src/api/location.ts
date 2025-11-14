@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-dimport type { Tables } from '../types/supabase';
+import type { Tables } from '../types/supabase';
 
 export type DBLocation = Tables<'Location'>;
 
