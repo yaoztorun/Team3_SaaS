@@ -1,12 +1,12 @@
 export type Location = {
     id: string;
     created_at?: string;
-    name: string;
-    street_name?: string;
-    street_nr?: string;
-    city?: string;
-    country?: string;
-    description?: string;
-    image_url?: string;
-    rating?: number;
+    name: string | null;
+    street_name?: string | null;
+    street_nr?: string | null;
+    city?: string | null;
+    country?: string | null;
+    description?: string | null;
+    image_url?: string | null;
+    rating?: number | null;
 };

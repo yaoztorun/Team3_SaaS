@@ -36,7 +36,7 @@ const BarCard = ({ bar, onPress }: { bar: Location; onPress: () => void }) => {
             </View>
             <Box className="p-4">
                 <HStack className="items-center justify-between mb-2">
-                    <Text className="text-xl font-semibold flex-1">{bar.name}</Text>
+                    <Text className="text-xl font-semibold flex-1">{bar.name || 'Unnamed Bar'}</Text>
                     {bar.rating !== null && bar.rating !== undefined && (
                         <HStack className="items-center ml-2">
                             <Star size={16} color="#fbbf24" fill="#fbbf24" />
@@ -70,7 +70,7 @@ export const BestBars = () => {
         if (!searchQuery.trim()) return bars;
         const query = searchQuery.toLowerCase();
         return bars.filter(bar => 
-            bar.name.toLowerCase().includes(query) ||
+            bar.name?.toLowerCase().includes(query) ||
             bar.city?.toLowerCase().includes(query) ||
             bar.country?.toLowerCase().includes(query)
         );
