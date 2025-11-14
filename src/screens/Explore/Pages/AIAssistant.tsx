@@ -146,11 +146,16 @@ export const AIAssistant = () => {
                 </ScrollView>
 
                 {/* Input Area */}
-                <Box className="bg-white border-t border-gray-200 px-4 py-4">
+                <Box className="bg-white border-t border-gray-200 px-4 py-8">
                     <Box className="flex-row items-center">
-                        <Box className="flex-1 bg-[#f3f3f5] rounded-lg px-3 py-2 mr-2">
+                        <Box className="flex-1 bg-[#f3f3f5] rounded-lg px-3 py-3 mr-2">
                             <TextInput
-                                className="text-sm text-neutral-900 min-h-[36px]"
+                                className="text-sm text-neutral-900"
+                                style={{
+                                    minHeight: 44,
+                                    maxHeight: 100,
+                                    outlineStyle: 'none'
+                                } as any}
                                 placeholder="Ask me anything..."
                                 placeholderTextColor="#717182"
                                 value={inputText}
@@ -161,7 +166,7 @@ export const AIAssistant = () => {
                         </Box>
                         <Pressable
                             onPress={handleSend}
-                            className={`w-10 h-10 rounded-lg items-center justify-center ${
+                            className={`w-11 h-11 rounded-lg items-center justify-center ${
                                 inputText.trim()
                                     ? 'bg-gradient-to-r from-[#009689] to-[#00786f]'
                                     : 'bg-gray-300'
@@ -172,7 +177,7 @@ export const AIAssistant = () => {
                             }}
                             disabled={!inputText.trim()}
                         >
-                            <Send size={16} color="#fff" />
+                            <Send size={18} color="#fff" />
                         </Pressable>
                     </Box>
                 </Box>

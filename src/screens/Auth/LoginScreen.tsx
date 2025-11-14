@@ -3,6 +3,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
@@ -20,6 +21,7 @@ const LoginScreen: React.FC = () => {
     const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isSignUpHovered, setIsSignUpHovered] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
 
@@ -62,7 +64,7 @@ const LoginScreen: React.FC = () => {
         >
             <Box className="p-6">
                 {/* Logo and Welcome Text */}
-                <Box className="items-center mt-12">
+                <Box className="items-center">
                     {/* logo.png not present in repo; using a simple placeholder */}
                     <Box
                         style={{
@@ -102,6 +104,7 @@ const LoginScreen: React.FC = () => {
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
+                            onSubmitEditing={handleLogin}
                         />
                     </Box>
 
@@ -120,19 +123,29 @@ const LoginScreen: React.FC = () => {
                     />
 
                     {/* Forgot Password */}
-                    <Pressable className="mb-8">
+                    <Pressable className="mt-6 mb-4">
                         <Text className="text-center text-primary-500 font-medium">
                             Forgot Password?
                         </Text>
                     </Pressable>
 
                     {/* Sign Up Link */}
-                    <View className="flex-row justify-center items-center">
+                    <View className="flex-row justify-center items-center mb-2">
                         <Text className="text-neutral-600">
                             Don't have an account?{' '}
                         </Text>
-                        <Pressable onPress={handleRegister}>
-                            <Text className="text-primary-500 font-medium">
+                        <Pressable 
+                            onPress={handleRegister}
+                            onHoverIn={() => setIsSignUpHovered(true)}
+                            onHoverOut={() => setIsSignUpHovered(false)}
+                        >
+                            <Text 
+                                className="font-bold"
+                                style={{
+                                    color: '#009689',
+                                    textDecorationLine: isSignUpHovered ? 'underline' : 'none',
+                                }}
+                            >
                                 Sign Up
                             </Text>
                         </Pressable>
@@ -140,7 +153,7 @@ const LoginScreen: React.FC = () => {
                 </Box>
 
                 {/* Google Login Button */}
-                <Box className="mt-8">
+                <Box className="mt-0">
                     <GoogleSignInButton 
                         onPress={handleGoogleLogin}
                     />
