@@ -10,7 +10,6 @@ const Stack = createStackNavigator<RootStackParamList>();
 export const RootStack = () => {
     return (
         <Stack.Navigator screenOptions={globalScreenOptions}>
-            <Stack.Screen name="Auth" component={AuthStack} />
             <Stack.Screen name="Main" component={BottomTabs} />
         </Stack.Navigator>
     );

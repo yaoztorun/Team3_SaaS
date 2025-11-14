@@ -7,8 +7,12 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { supabase } from '@/src/lib/supabase';
+import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
+//TODO: Scrollability screen
 
 const LoginScreen: React.FC = () => {
     const navigation = useNavigation<LoginScreenNavigationProp>();
@@ -16,14 +20,34 @@ const LoginScreen: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
-    const handleLogin = () => {
-        // TODO: Implement login logic (set auth state / token)
-        rootNavigation.navigate('Main', { screen: 'Home' });
+    const [message, setMessage] = useState<string | null>(null);
+
+    const handleLogin = async () => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+        if (error) setMessage(error.message);
+        else {
+            setMessage('Successfully logged in! Redirecting...');
+            setTimeout(() => setMessage(null), 2000);
+        }
     };
 
     const handleRegister = () => {
         navigation.navigate('Register');
     };
+
+    const handleGoogleLogin = async () => {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+            redirectTo: window.location.origin,
+            },
+        });
+        if (error) setMessage(error.message);
+    };
+
 
     return (
         <KeyboardAvoidingView 
@@ -75,6 +99,14 @@ const LoginScreen: React.FC = () => {
                         />
                     </Box>
 
+                    {message && (
+                        <Text
+                            className={`text-center mb-4 ${message.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'}`}
+                        >
+                            {message}
+                        </Text>
+                    )}
+
                     {/* Login Button */}
                     <PrimaryButton 
                         title="Sign In" 
@@ -100,6 +132,11 @@ const LoginScreen: React.FC = () => {
                         </Pressable>
                     </View>
                 </Box>
+
+                {/* Google Login Button */}
+                    <GoogleSignInButton 
+                        onPress={handleGoogleLogin}
+                    />
 
                 {/* Footer space for keyboard */}
                 <Box className="h-6" />
