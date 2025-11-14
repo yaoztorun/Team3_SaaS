@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { Search } from 'lucide-react-native';
 
@@ -13,8 +13,20 @@ export const SearchBar: React.FC<SearchBarProps> = ({
     onChangeText, 
     placeholder = "Search..." 
 }) => {
+    const [isFocused, setIsFocused] = useState(false);
+
     return (
-        <View className="bg-white rounded-lg border border-gray-200 flex-row items-center px-3 py-2">
+        <View 
+            className="bg-white rounded-lg border flex-row items-center px-3 py-2" 
+            style={{ 
+                shadowColor: '#000', 
+                shadowOffset: { width: 0, height: 1 }, 
+                shadowOpacity: 0.05, 
+                shadowRadius: 2, 
+                elevation: 1,
+                borderColor: isFocused ? '#9CA3AF' : '#E5E7EB',
+            }}
+        >
             <Search size={20} color="#6B7280" />
             <TextInput 
                 className="flex-1 ml-2 text-base"
@@ -22,6 +34,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({
                 onChangeText={onChangeText}
                 placeholder={placeholder}
                 placeholderTextColor="#9CA3AF"
+                style={{ outlineStyle: 'none' } as any}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
             />
         </View>
     );

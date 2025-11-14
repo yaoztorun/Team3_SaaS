@@ -3,6 +3,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -20,6 +21,7 @@ const RegisterScreen: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [isSignInHovered, setIsSignInHovered] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
 
@@ -130,12 +132,22 @@ const RegisterScreen: React.FC = () => {
                     />
 
                     {/* Sign In Link */}
-                    <View className="flex-row justify-center items-center mb-6">
+                    <View className="flex-row justify-center items-center mt-6 mb-3">
                         <Text className="text-neutral-600">
                             Already have an account?{' '}
                         </Text>
-                        <Pressable onPress={handleLogin}>
-                            <Text className="text-primary-500 font-medium">
+                        <Pressable 
+                            onPress={handleLogin}
+                            onHoverIn={() => setIsSignInHovered(true)}
+                            onHoverOut={() => setIsSignInHovered(false)}
+                        >
+                            <Text 
+                                className="font-bold"
+                                style={{
+                                    color: '#009689',
+                                    textDecorationLine: isSignInHovered ? 'underline' : 'none',
+                                }}
+                            >
                                 Sign In
                             </Text>
                         </Pressable>
@@ -143,7 +155,7 @@ const RegisterScreen: React.FC = () => {
                 </Box>
 
                 {/* Terms and Privacy */}
-                <Text className="text-center text-neutral-500 text-sm mb-6">
+                <Text className="text-center text-neutral-500 text-sm mb-6 mt-2">
                     By signing up, you agree to our{' '}
                     <Text className="text-primary-500">Terms of Service</Text>
                     {' '}and{' '}

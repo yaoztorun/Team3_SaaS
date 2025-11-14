@@ -16,7 +16,7 @@ export const EventCard = ({ title, dateTime, attending, price, onPress }: EventC
     return (
         <Pressable
             onPress={onPress}
-            className="w-64 bg-white border border-gray-200 rounded-2xl p-4"
+            className="w-64 bg-white border-2 border-[#00BBA7] rounded-2xl p-4"
         >
             <Box className="flex-row items-start justify-between mb-2">
                 <Box className="flex-1">

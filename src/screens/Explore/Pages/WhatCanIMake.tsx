@@ -88,25 +88,18 @@ export const WhatCanIMake = () => {
                                     onPress={() => toggle(ing)}
                                     className="mr-2 mb-3"
                                 >
-                                    <LinearGradient
-                                        colors={isSelected ? [colors.primary[400], colors.primary[600]] : ['#fff', '#fff']}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
+                                    <Box
                                         style={{
-                                            paddingHorizontal: 12,
-                                            paddingVertical: 8,
+                                            backgroundColor: isSelected ? '#E0F7F4' : '#fff',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 14,
                                             borderRadius: 999,
-                                            borderWidth: isSelected ? 0 : 1,
-                                            borderColor: isSelected ? 'transparent' : '#E5E7EB',
-                                            flexDirection: 'row',
-                                            alignItems: 'center',
+                                            borderWidth: 1,
+                                            borderColor: isSelected ? '#00BBA7' : '#D1D5DB',
                                         }}
                                     >
-                                        {isSelected ? (
-                                            <Check size={14} color="#fff" />
-                                        ) : null}
-                                        <Text className={isSelected ? 'text-white ml-2' : 'text-gray-700'}>{ing}</Text>
-                                    </LinearGradient>
+                                        <Text style={{ color: isSelected ? '#00BBA7' : '#374151', fontSize: 16 }}>{ing}</Text>
+                                    </Box>
                                 </Pressable>
                             );
                         })}
