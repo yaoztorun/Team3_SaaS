@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
-import { ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, TouchableOpacity, Image } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
 import { TopBar } from '@/src/screens/navigation/TopBar';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from './ProfileStack';
 import { spacing } from '@/src/theme/spacing';
+import { useAuth } from '@/src/hooks/useAuth';
+import { fetchProfile } from '@/src/api/profile';
+import type { Profile } from '@/src/types/profile';
 
 type View = 'logged-drinks' | 'stats';
 
@@ -17,6 +20,24 @@ export const ProfileScreen = () => {
     const navigation = useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
     const [currentView, setCurrentView] = useState<View>('logged-drinks');
     const [isOwnRecipes, setIsOwnRecipes] = useState(false);
+    const { user } = useAuth();
+    const [profile, setProfile] = useState<Profile | null>(null);
+    const [loadingProfile, setLoadingProfile] = useState(true);
+
+    const loadProfile = async () => {
+        if (user?.id) {
+            setLoadingProfile(true);
+            const profileData = await fetchProfile(user.id);
+            setProfile(profileData);
+            setLoadingProfile(false);
+        }
+    };
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadProfile();
+        }, [user])
+    );
 
     // Dummy data
     const userStats = {
@@ -50,12 +71,28 @@ export const ProfileScreen = () => {
             {/* User Profile Card */}
             <Box className="mx-4 mt-4 p-6 bg-white rounded-2xl">
                 <HStack className="mb-4">
-                    <Center className="h-20 w-20 rounded-full bg-teal-500">
-                        <Text className="text-2xl text-white">JD</Text>
-                    </Center>
+                    {profile?.avatar_url ? (
+                        <Box className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
+                            <Image 
+                                source={{ uri: profile.avatar_url }} 
+                                style={{ width: 80, height: 80 }}
+                                resizeMode="cover"
+                            />
+                        </Box>
+                    ) : (
+                        <Center className="h-20 w-20 rounded-full bg-teal-500">
+                            <Text className="text-2xl text-white">
+                                {profile?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?'}
+                            </Text>
+                        </Center>
+                    )}
                     <Box className="ml-4 flex-1">
-                        <Text className="text-xl font-semibold text-neutral-900">John Doe</Text>
-                        <Text className="text-base text-neutral-600">Cocktail Enthusiast</Text>
+                        <Text className="text-xl font-semibold text-neutral-900">
+                            {loadingProfile ? 'Loading...' : (profile?.full_name || user?.email?.split('@')[0] || 'User')}
+                        </Text>
+                        <Text className="text-base text-neutral-600">
+                            {profile?.email || user?.email || 'Cocktail Enthusiast'}
+                        </Text>
                     </Box>
                 </HStack>
                 <Pressable 

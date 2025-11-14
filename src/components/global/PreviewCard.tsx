@@ -47,10 +47,10 @@ export const PreviewCard = ({
         return (
             <Pressable
                 onPress={onPress}
-                className="w-32 bg-white border-2 border-[#00bba7] rounded-2xl p-4"
+                className="w-32 h-32 bg-white border-2 border-[#00bba7] rounded-2xl p-4"
             >
                 <Text className="text-4xl mb-2">{emoji}</Text>
-                <Text className="text-sm text-neutral-900 mb-2">{title}</Text>
+                <Text className="text-sm text-neutral-900 mb-2" numberOfLines={2}>{title}</Text>
                 {rating && (
                     <Box className="flex-row items-center">
                         <Text className="text-xs text-[#009689] mr-1">⭐</Text>
