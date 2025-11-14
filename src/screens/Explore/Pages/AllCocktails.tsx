@@ -2,11 +2,12 @@
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { PageHeader } from '../components/PageHeader';
-import { FlatList, TextInput, TouchableOpacity, Image, View, Platform } from 'react-native';
+import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
 import { fetchCocktails, DBCocktail } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { FilterChip } from '@/src/components/global';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -203,24 +204,23 @@ export const AllCocktails = () => {
 const ScrollViewHorizontal = ({ categories, active, onChange }: { categories: string[]; active: string; onChange: (v: string) => void }) => {
     return (
         <View className="mt-3">
-            <View style={{ flexDirection: 'row' }}>
-                {categories.map(cat => (
-                    <TouchableOpacity
-                        key={cat}
-                        onPress={() => onChange(cat)}
-                        className={`h-7 min-w-[60px] items-center justify-center px-3 rounded-full mr-2 ${active === cat ? 'bg-[#00BBA7]' : 'bg-[#F3F3F5]'}`}
-                        style={{
-                            shadowColor: '#000',
-                            shadowOpacity: active === cat ? 0.2 : 0.05,
-                            shadowRadius: active === cat ? 4 : 2,
-                            shadowOffset: { width: 0, height: 2 },
-                            elevation: active === cat ? 3 : 1,
-                        }}
-                    >
-                        <Text className={`text-sm ${active === cat ? 'text-white' : 'text-neutral-600'}`}>{cat}</Text>
-                    </TouchableOpacity>
-                ))}
-            </View>
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ flexGrow: 0 }}
+            >
+                <View style={{ flexDirection: 'row' }}>
+                    {categories.map(cat => (
+                        <View key={cat} className="mr-2">
+                            <FilterChip
+                                label={cat}
+                                selected={active === cat}
+                                onPress={() => onChange(cat)}
+                            />
+                        </View>
+                    ))}
+                </View>
+            </ScrollView>
         </View>
     );
 };

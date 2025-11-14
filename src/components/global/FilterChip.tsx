@@ -17,7 +17,7 @@ export const FilterChip: React.FC<FilterChipProps> = ({
         <TouchableOpacity 
             className={`px-4 py-2 rounded-full border ${
                 selected 
-                    ? 'bg-primary-500 border-primary-500' 
+                    ? 'bg-[#00BBA7] border-[#00BBA7]' 
                     : 'bg-white border-gray-300'
             }`}
             onPress={onPress}

@@ -22,7 +22,7 @@ export const GoogleSignInButton: React.FC<Props> = ({ onPress }) => {
         maxWidth: 200,
         width: '100%',
         alignSelf: 'center',
-        marginTop: 16,
+        marginTop: 8,
       }}
     >
       {/* Google Icon */}
