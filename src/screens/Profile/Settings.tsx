@@ -17,6 +17,7 @@ const Settings: React.FC = () => {
     const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
+    const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
 
     
     const handleLogout = async () => {
@@ -28,7 +29,29 @@ const Settings: React.FC = () => {
         }
     };
 
-    // TODO: Delete account option implementation
+    const handleDeleteAccount = async () => {
+        setShowDeleteAccountDialog(false);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+        console.error("No session found.");
+        return;
+        }
+
+        const { data, error } = await supabase.functions.invoke("delete-user", {
+            headers: {
+            Authorization: `Bearer ${session?.access_token}`
+            }
+        });
+        
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        await supabase.auth.signOut();
+    };
+
     
     const [pushNotifications, setPushNotifications] = useState(true);
     const [friendRequests, setFriendRequests] = useState(true);
@@ -159,7 +182,11 @@ const Settings: React.FC = () => {
                     >
                         <Text className="text-sm text-neutral-800">Log Out</Text>
                     </Pressable>
-                    <Pressable className="py-3">
+
+                    <Pressable 
+                        className="py-3" 
+                        onPress={() => setShowDeleteAccountDialog(true)}
+                    >
                         <Text className="text-sm text-red-500">Delete Account</Text>
                     </Pressable>
                     {logoutMessage && (
@@ -206,6 +233,47 @@ const Settings: React.FC = () => {
                             >
                                 <Text className="text-white text-center font-medium">
                                     Log Out
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </Box>
+                </View>
+            </Modal>
+
+            {/* TODO: Delete account confirmation dialog */}
+            <Modal
+                visible={showDeleteAccountDialog}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDeleteAccountDialog(false)}
+            >
+                <View className="flex-1 bg-black/50 items-center justify-center p-4">
+                    <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
+                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                            Delete Account
+                        </Text>
+                        <Text 
+                            className="text-neutral-600 mb-6 text-center font-bold"
+                            style={{ color: colors.red}}
+                        >
+                            Are you sure you want to delete your account? This action cannot be undone!
+                        </Text>
+                        <View className="flex-row gap-3">
+                            <Pressable
+                                onPress={() => setShowDeleteAccountDialog(false)}
+                                className="flex-1 py-3 rounded-xl bg-neutral-100"
+                            >
+                                <Text className="text-neutral-900 text-center font-medium">
+                                    Cancel
+                                </Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleDeleteAccount}
+                                className="flex-1 py-3 rounded-xl"
+                                style={{ backgroundColor: colors.red }}
+                            >
+                                <Text className="text-white text-center font-medium">
+                                    Delete Account
                                 </Text>
                             </Pressable>
                         </View>
