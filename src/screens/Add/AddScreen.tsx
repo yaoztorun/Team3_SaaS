@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { ScrollView, TouchableOpacity, Platform, Image as RNImage } from 'react-native';
+import { ScrollView, TouchableOpacity, Platform, Image as RNImage, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Center } from '@/src/components/ui/center';
+import { Pressable } from '@/src/components/ui/pressable';
 import { MapPin } from 'lucide-react-native';
 import {
     PrimaryButton,
@@ -18,6 +19,10 @@ import {
 import { createCameraHandlers } from '@/src/utils/camera';
 import uploadImageUri from '@/src/utils/storage';
 import { supabase } from '@/src/lib/supabase';
+import fetchLocations from '@/src/api/location';
+import { fetchCocktails } from '@/src/api/cocktail';
+import type { DBCocktail } from '@/src/api/cocktail';
+import { colors } from '@/src/theme/colors';
 
 type ViewType = 'log' | 'recipe';
 
@@ -25,14 +30,40 @@ export const AddScreen = () => {
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
     const [isAtHome, setIsAtHome] = useState(false);
-    const [shareWith, setShareWith] = useState<'private' | 'friends'>('private');
+    const [shareWith, setShareWith] = useState<'private' | 'friends' | 'public'>('private');
     const [selectedDifficulty, setSelectedDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [locationQuery, setLocationQuery] = useState('');
+    const [suggestionsVisible, setSuggestionsVisible] = useState(false);
+    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
     const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
 
+    React.useEffect(() => {
+        let mounted = true;
+        (async () => {
+            const data = await fetchLocations();
+            if (!mounted) return;
+            setLocations(data.map(l => ({ id: l.id, name: l.name })));
+        })();
+        (async () => {
+            const data = await fetchCocktails();
+            if (!mounted) return;
+            setCocktails(data.map((c: DBCocktail) => ({ id: c.id, name: c.name })));
+        })();
+        return () => { mounted = false };
+    }, []);
+
     const [isUploading, setIsUploading] = useState(false);
+    const [cocktails, setCocktails] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [cocktailQuery, setCocktailQuery] = useState('');
+    const [cocktailSuggestionsVisible, setCocktailSuggestionsVisible] = useState(false);
+    const [selectedCocktailId, setSelectedCocktailId] = useState<string | null>(null);
+    const [caption, setCaption] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalMessage, setModalMessage] = useState<string | null>(null);
 
     const handleLogCocktail = async () => {
         try {
@@ -55,6 +86,18 @@ export const AddScreen = () => {
                 return;
             }
 
+            // validate required fields
+            const missing: string[] = [];
+            if (!selectedCocktailId) missing.push('cocktail');
+            if (!rating || rating <= 0) missing.push('rating');
+            if (!caption || caption.trim().length === 0) missing.push('review');
+            if (!isAtHome && !selectedLocationId) missing.push('location');
+
+            if (missing.length > 0) {
+                alert(`Please fill required fields: ${missing.join(', ')}`);
+                return;
+            }
+
             let uploadedUrl: string | null = null;
             if (photoUri) {
                 // upload into a user-scoped folder so permissions can be enforced per-user
@@ -62,17 +105,20 @@ export const AddScreen = () => {
                 console.log('Uploaded image URL:', uploadedUrl);
             }
 
-            // Example: save a DrinkLog for this user including the uploaded image URL
+            // convert rating with half-stars into an integer smallint representation (store halves as *2)
+            const storedRating = Math.round(rating * 2);
+
+            // save a DrinkLog for this user including the uploaded image URL
             const { data: insertData, error: insertError } = await supabase
                 .from('DrinkLog')
                 .insert([
                     {
                         user_id: user.id,
-                        cocktail_id: null,
-                        rating: rating || null,
-                        caption: '',
-                        location_id: null,
-                        visibility: 'public',
+                        cocktail_id: selectedCocktailId,
+                        rating: storedRating,
+                        caption: caption.trim(),
+                        location_id: isAtHome ? null : selectedLocationId,
+                        visibility: shareWith,
                         image_url: uploadedUrl,
                         created_at: new Date().toISOString(),
                     },
@@ -84,7 +130,23 @@ export const AddScreen = () => {
                 return;
             }
 
-            alert('Drink logged successfully');
+            // show confirmation modal and clear form
+            setModalMessage('Drink logged successfully');
+            setModalVisible(true);
+            // clear form fields
+            setCocktailQuery('');
+            setSelectedCocktailId(null);
+            setCaption('');
+            setRating(0);
+            setPhotoUri(null);
+            setLocationQuery('');
+            setSelectedLocationId(null);
+            setIsAtHome(false);
+            setShareWith('private');
+            setCocktailSuggestionsVisible(false);
+            setSuggestionsVisible(false);
+
+            // user will dismiss the modal manually
         } catch (e) {
             console.error('Error logging cocktail', e);
             alert('Upload failed. See console for details.');
@@ -92,6 +154,8 @@ export const AddScreen = () => {
             setIsUploading(false);
         }
     };
+
+    const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0 && (isAtHome || !!selectedLocationId);
 
     return (
         <Box className="flex-1 bg-neutral-50">
@@ -121,8 +185,41 @@ export const AddScreen = () => {
                         <TextInputField
                             label="Cocktail Name"
                             required
-                            placeholder="What cocktail did you drink?"
+                            placeholder="Select a cocktail"
+                            value={cocktailQuery}
+                            onChangeText={(t) => {
+                                setCocktailQuery(t);
+                                setSelectedCocktailId(null);
+                                setCocktailSuggestionsVisible(!!t);
+                            }}
+                            onFocus={() => setCocktailSuggestionsVisible(!!cocktailQuery)}
                         />
+
+                        {cocktailSuggestionsVisible && cocktailQuery.length > 0 && (
+                            <Box className="bg-white rounded-lg border border-gray-200 mt-2">
+                                {cocktails
+                                    .filter(c => c.name && c.name.toLowerCase().includes(cocktailQuery.toLowerCase()))
+                                    .slice(0, 6)
+                                    .map(c => (
+                                        <TouchableOpacity
+                                            key={c.id}
+                                            className="px-4 py-3 border-b border-gray-100"
+                                            onPress={() => {
+                                                setCocktailQuery(c.name || '');
+                                                setSelectedCocktailId(c.id);
+                                                setCocktailSuggestionsVisible(false);
+                                            }}
+                                        >
+                                            <Text>{c.name}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                {cocktails.filter(c => c.name && c.name.toLowerCase().includes(cocktailQuery.toLowerCase())).length === 0 && (
+                                    <Box className="px-4 py-3">
+                                        <Text className="text-neutral-400">No cocktails found</Text>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
 
                         {/* Photo Upload */}
                         <Box className="space-y-2">
@@ -146,12 +243,15 @@ export const AddScreen = () => {
                             </Center>
                         </Box>
 
-                        {/* Review */}
+                        {/* Review / Comment */}
                         <TextInputField
-                            label="Review (Optional)"
+                            label="Review"
+                            required
                             placeholder="How was your drink? Tell us more!"
                             multiline
                             numberOfLines={3}
+                            value={caption}
+                            onChangeText={setCaption}
                         />
 
                         {/* Location */}
@@ -161,10 +261,51 @@ export const AddScreen = () => {
                                 required
                                 placeholder="Bar name, restaurant..."
                                 icon={<MapPin size={20} color="#6B7280" />}
+                                value={locationQuery}
+                                onChangeText={(text) => {
+                                    setLocationQuery(text);
+                                    setSelectedLocationId(null);
+                                    setSuggestionsVisible(!!text);
+                                }}
+                                onFocus={() => setSuggestionsVisible(!!locationQuery)}
                             />
+
+                            {suggestionsVisible && locationQuery.length > 0 && (
+                                <Box className="bg-white rounded-lg border border-gray-200 mt-2">
+                                    {locations
+                                        .filter(l => l.name && l.name.toLowerCase().includes(locationQuery.toLowerCase()))
+                                        .slice(0, 6)
+                                        .map(l => (
+                                            <TouchableOpacity
+                                                key={l.id}
+                                                className="px-4 py-3 border-b border-gray-100"
+                                                onPress={() => {
+                                                    setLocationQuery(l.name || '');
+                                                    setSelectedLocationId(l.id);
+                                                    setSuggestionsVisible(false);
+                                                }}
+                                            >
+                                                <Text>{l.name}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    {locations.filter(l => l.name && l.name.toLowerCase().includes(locationQuery.toLowerCase())).length === 0 && (
+                                        <Box className="px-4 py-3">
+                                            <Text className="text-neutral-400">No locations found</Text>
+                                        </Box>
+                                    )}
+                                </Box>
+                            )}
                             <TouchableOpacity
                                 className="flex-row items-center space-x-3 bg-white p-4 rounded-xl border border-gray-200"
-                                onPress={() => setIsAtHome(!isAtHome)}
+                                onPress={() => {
+                                    const newVal = !isAtHome;
+                                    setIsAtHome(newVal);
+                                    if (newVal) {
+                                        // clear location selection when setting At Home
+                                        setLocationQuery('');
+                                        setSelectedLocationId(null);
+                                    }
+                                }}
                             >
                                 <Box className={`w-4 h-4 rounded border items-center justify-center ${isAtHome ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
                                     {isAtHome && (
@@ -198,11 +339,22 @@ export const AddScreen = () => {
                                     title="All Friends"
                                     description="Share on feed with all friends"
                                 />
+                                <RadioOption
+                                    selected={shareWith === 'public'}
+                                    onPress={() => setShareWith('public')}
+                                    icon="🌍"
+                                    title="Public"
+                                    description="Visible to everyone"
+                                />
                             </Box>
                         </Box>
 
                         {/* Submit Button */}
-                        <PrimaryButton title={isUploading ? 'Uploading…' : 'Log Cocktail'} onPress={handleLogCocktail} disabled={isUploading} />
+                        <PrimaryButton title={isUploading ? 'Uploading…' : 'Log Cocktail'} onPress={handleLogCocktail} disabled={!canSubmit || isUploading} />
+                        {!canSubmit && (
+                            <Text className="text-sm text-red-500 mt-2">Please complete all required fields: cocktail, rating, review, and location or At Home.</Text>
+                        )}
+                        {/* confirmation modal is rendered at root level */}
                     </Box>
                 ) : (
                     // Recipe Creation View
@@ -317,6 +469,33 @@ export const AddScreen = () => {
                     </Box>
                 )}
             </ScrollView>
+
+            {/* Confirmation Modal (re-uses the pattern from Settings) */}
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View className="flex-1 bg-black/50 items-center justify-center p-4">
+                    <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
+                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                            {modalMessage ?? 'Done'}
+                        </Text>
+                        <Text className="text-neutral-600 mb-6 text-center">Your drink has been logged.</Text>
+                        <View>
+                            <Pressable
+                                onPress={() => setModalVisible(false)}
+                                className="py-3 rounded-xl"
+                                style={{ backgroundColor: colors.primary[500] }}
+                            >
+                                <Text className="text-white text-center font-medium">OK</Text>
+                            </Pressable>
+                        </View>
+                    </Box>
+                </View>
+            </Modal>
         </Box>
     );
 };
+
