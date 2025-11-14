@@ -1,16 +1,20 @@
 import { supabase } from '../lib/supabase';
-import { Location } from '../types/location';
+dimport type { Tables } from '../types/supabase';
 
-export async function fetchLocations(): Promise<Location[]> {
-    const { data, error } = await supabase
-        .from('Location')
-        .select('*')
-        .order('name', { ascending: true });
+export type DBLocation = Tables<'Location'>;
 
-    if (error) {
-        console.error('Error fetching locations:', error);
-        return [];
-    }
+export async function fetchLocations(): Promise<DBLocation[]> {
+        const { data, error } = await supabase
+                .from('Location')
+                .select('*')
+                .order('name', { ascending: true });
 
-    return data as Location[];
+        if (error) {
+                console.error('Error fetching locations:', error);
+                return [];
+        }
+
+        return (data ?? []) as DBLocation[];
 }
+
+export default fetchLocations;
