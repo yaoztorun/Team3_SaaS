@@ -10,7 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Search, ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
 import { PreviewCard, EventCard } from '@/src/components/global';
 import { fetchLocations } from '@/src/api/location';
-import type { Location } from '@/src/types/location';
+import type { DBLocation } from '@/src/api/location';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -25,7 +25,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 export const ExploreScreen = () => {
     const navigation = useNavigation<NavigationProp>();
-    const [bars, setBars] = useState<Location[]>([]);
+    const [bars, setBars] = useState<DBLocation[]>([]);
     const [loadingBars, setLoadingBars] = useState(true);
 
     useEffect(() => {
@@ -33,15 +33,20 @@ export const ExploreScreen = () => {
             setLoadingBars(true);
             const data = await fetchLocations();
             if (data && data.length > 0) {
-                // Show top 3 rated bars, or first 3 if no ratings
-                const sortedBars = data
-                    .filter((bar: Location) => bar.rating !== null && bar.rating !== undefined)
-                    .sort((a: Location, b: Location) => (b.rating || 0) - (a.rating || 0))
+                // Show top 3 rated bars (where rating is a number), or fill with unrated ones
+                const ratedBars = data.filter((bar: DBLocation) => {
+                    const r = (bar as any).rating;
+                    return typeof r === 'number';
+                });
+                const sortedBars = ratedBars
+                    .sort((a: DBLocation, b: DBLocation) => (((b as any).rating ?? 0) - ((a as any).rating ?? 0)))
                     .slice(0, 3);
-                
-                // If we don't have 3 rated bars, fill with unrated ones
+
                 if (sortedBars.length < 3) {
-                    const unratedBars = data.filter((bar: Location) => bar.rating === null || bar.rating === undefined).slice(0, 3 - sortedBars.length);
+                    const unratedBars = data.filter((bar: DBLocation) => {
+                        const r = (bar as any).rating;
+                        return typeof r !== 'number';
+                    }).slice(0, 3 - sortedBars.length);
                     setBars([...sortedBars, ...unratedBars]);
                 } else {
                     setBars(sortedBars);
@@ -196,8 +201,8 @@ export const ExploreScreen = () => {
                                 <Box key={bar.id} className={index < bars.length - 1 ? "mr-3" : ""}>
                                     <PreviewCard
                                         emoji="🍸"
-                                        title={bar.name}
-                                        rating={bar.rating || undefined}
+                                        title={bar.name ?? 'Unknown'}
+                                        rating={(bar as any).rating ?? undefined}
                                         variant="bar"
                                         onPress={() => navigateToSection('BestBars')}
                                     />
