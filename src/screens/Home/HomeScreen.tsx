@@ -13,6 +13,9 @@ import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
 import { FeedPostCard } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
+import { useAuth } from '@/src/hooks/useAuth';
+import { getLikesForLogs, toggleLike } from '@/src/api/likes';
+import { getCommentCountsForLogs } from '@/src/api/comments';
 
 type FeedFilter = 'friends' | 'for-you';
 
@@ -77,7 +80,7 @@ const getInitials = (name: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// ---------- carousel setup (no images, no Animated) ----------
+// ---------- carousel (emoji only) ----------
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -98,7 +101,7 @@ const COCKTAILS: CarouselItem[] = [
   { id: 'whiskey-sour', name: 'Whiskey Sour', emoji: '🥃' },
 ];
 
-// ---------- dummy data (for when DB is empty) ----------
+// ---------- dummy data (when DB is empty / no user) ----------
 
 const DUMMY_POSTS_FRIENDS: FeedPost[] = [
   {
@@ -135,11 +138,14 @@ const DUMMY_POSTS_FOR_YOU: FeedPost[] = [
 // ---------- component ----------
 
 export const HomeScreen: React.FC = () => {
+  const { user } = useAuth();
+
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('friends');
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // carousel state
   const [activeIndex, setActiveIndex] = useState(0);
 
   const handleCarouselScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -148,26 +154,18 @@ export const HomeScreen: React.FC = () => {
     setActiveIndex(index);
   };
 
+  // load feed + likes + comment counts
   useEffect(() => {
     const loadFeed = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) throw userError;
-
-        // not logged in -> show dummy data
+        // no user logged in -> just show dummy data
         if (!user) {
-          if (feedFilter === 'friends') {
-            setFeedPosts(DUMMY_POSTS_FRIENDS);
-          } else {
-            setFeedPosts(DUMMY_POSTS_FOR_YOU);
-          }
+          setFeedPosts(
+            feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
+          );
           return;
         }
 
@@ -189,12 +187,10 @@ export const HomeScreen: React.FC = () => {
             else if (row.friend_id === user.id) friendIds.add(row.user_id);
           });
 
-          // include own logs
-          friendIds.add(user.id);
+          friendIds.add(user.id); // include own logs
 
           const idsArray = Array.from(friendIds);
           if (idsArray.length === 0) {
-            // no friends yet -> dummy
             setFeedPosts(DUMMY_POSTS_FRIENDS);
             return;
           }
@@ -262,12 +258,33 @@ export const HomeScreen: React.FC = () => {
           rawLogs = (data ?? []) as any[];
         }
 
+        if (rawLogs.length === 0) {
+          setFeedPosts(
+            feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
+          );
+          return;
+        }
+
+        // 🔹 add likes + comment counts
+        const logIds = rawLogs.map((r) => r.id as string);
+
+        const { counts: likeCounts, likedByMe } = await getLikesForLogs(
+          logIds,
+          user.id,
+        );
+
+        const commentCounts = await getCommentCountsForLogs(logIds);
+
         const mapped: FeedPost[] = rawLogs.map((raw) => {
           const log = raw as DbDrinkLog;
           const fullName = log.Profile?.full_name ?? 'Unknown user';
           const initials = getInitials(fullName);
           const cocktailName = log.Cocktail?.name ?? 'Unknown cocktail';
           const imageUrl = log.image_url ?? log.Cocktail?.image_url ?? '';
+
+          const likes = likeCounts.get(log.id) ?? 0;
+          const comments = commentCounts.get(log.id) ?? 0;
+          const isLiked = likedByMe.has(log.id);
 
           return {
             id: log.id,
@@ -277,25 +294,17 @@ export const HomeScreen: React.FC = () => {
             cocktailName,
             rating: log.rating ?? 0,
             imageUrl,
-            likes: 0,
-            comments: 0,
+            likes,
+            comments,
             caption: log.caption ?? '',
-            isLiked: false,
+            isLiked,
           };
         });
 
-        // if DB has no logs yet, still show dummy so you see *something*
-        if (mapped.length === 0) {
-          setFeedPosts(
-            feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
-          );
-        } else {
-          setFeedPosts(mapped);
-        }
+        setFeedPosts(mapped);
       } catch (err: any) {
         console.error('Error loading feed:', err);
         setError(err.message ?? 'Something went wrong loading the feed.');
-        // show dummy so screen isn’t empty
         setFeedPosts(
           feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
         );
@@ -305,7 +314,36 @@ export const HomeScreen: React.FC = () => {
     };
 
     loadFeed();
-  }, [feedFilter]);
+  }, [feedFilter, user]);
+
+  // like toggle
+  const handleToggleLike = async (postId: string) => {
+    if (!user?.id) return;
+
+    const existing = feedPosts.find((p) => p.id === postId);
+    if (!existing) return;
+
+    const prevLiked = existing.isLiked;
+
+    // optimistic UI
+    setFeedPosts((prev) =>
+      prev.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              isLiked: !p.isLiked,
+              likes: p.likes + (p.isLiked ? -1 : 1),
+            }
+          : p,
+      ),
+    );
+
+    const result = await toggleLike(postId, user.id, prevLiked);
+    if (!result.success) {
+      // revert if error
+      setFeedPosts((prev) => prev.map((p) => (p.id === postId ? existing : p)));
+    }
+  };
 
   return (
     <Box className="flex-1 bg-neutral-50">
@@ -443,7 +481,14 @@ export const HomeScreen: React.FC = () => {
         {/* Feed list */}
         {feedPosts.map((post) => (
           <Box key={post.id} className="mb-4">
-            <FeedPostCard {...post} />
+            <FeedPostCard
+              {...post}
+              onToggleLike={() => handleToggleLike(post.id)}
+              onPressComments={() => {
+                // later: open comments modal for post.id
+                console.log('open comments for', post.id);
+              }}
+            />
           </Box>
         ))}
       </ScrollView>
