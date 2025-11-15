@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { ScrollView, ActivityIndicator } from 'react-native';
+import {
+  ScrollView,
+  ActivityIndicator,
+  Dimensions,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+} from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
@@ -71,6 +77,27 @@ const getInitials = (name: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
+// ---------- carousel setup (no images, no Animated) ----------
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+type CarouselItem = {
+  id: string;
+  name: string;
+  emoji: string;
+};
+
+const CAROUSEL_ITEM_WIDTH = 160;
+const CAROUSEL_SPACING = 16;
+const SNAP_INTERVAL = CAROUSEL_ITEM_WIDTH + CAROUSEL_SPACING;
+
+const COCKTAILS: CarouselItem[] = [
+  { id: 'mojito', name: 'Mojito', emoji: '🍃' },
+  { id: 'margarita', name: 'Margarita', emoji: '🍋' },
+  { id: 'mai-tai', name: 'Mai Tai', emoji: '🍹' },
+  { id: 'whiskey-sour', name: 'Whiskey Sour', emoji: '🥃' },
+];
+
 // ---------- dummy data (for when DB is empty) ----------
 
 const DUMMY_POSTS_FRIENDS: FeedPost[] = [
@@ -112,6 +139,14 @@ export const HomeScreen: React.FC = () => {
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleCarouselScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / SNAP_INTERVAL);
+    setActiveIndex(index);
+  };
 
   useEffect(() => {
     const loadFeed = async () => {
@@ -284,6 +319,72 @@ export const HomeScreen: React.FC = () => {
           paddingBottom: spacing.screenBottom,
         }}
       >
+        {/* Popular Right Now – Emoji Carousel */}
+        <Box className="mb-6">
+          <Text className="text-lg font-medium text-neutral-900 mb-3">
+            Popular Right Now
+          </Text>
+
+          <Box className="h-64">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              snapToInterval={SNAP_INTERVAL}
+              decelerationRate="fast"
+              scrollEventThrottle={16}
+              contentContainerStyle={{
+                paddingHorizontal: (SCREEN_WIDTH - CAROUSEL_ITEM_WIDTH) / 2,
+                alignItems: 'center',
+              }}
+              onScroll={handleCarouselScroll}
+            >
+              {COCKTAILS.map((item, index) => {
+                const isCenter = index === activeIndex;
+                return (
+                  <Box
+                    key={item.id}
+                    style={{
+                      width: CAROUSEL_ITEM_WIDTH,
+                      marginRight: CAROUSEL_SPACING,
+                    }}
+                  >
+                    <Box
+                      className="items-center justify-center bg-white rounded-3xl"
+                      style={{
+                        paddingVertical: 32,
+                        paddingHorizontal: 12,
+                        shadowColor: '#000',
+                        shadowOpacity: isCenter ? 0.2 : 0.05,
+                        shadowOffset: { width: 0, height: 6 },
+                        shadowRadius: 12,
+                        elevation: isCenter ? 5 : 1,
+                        opacity: isCenter ? 1 : 0.4,
+                      }}
+                    >
+                      <Text className="text-4xl mb-2">{item.emoji}</Text>
+                      <Text className="text-base font-semibold text-neutral-900">
+                        {item.name}
+                      </Text>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </ScrollView>
+
+            {/* Dots */}
+            <Box className="flex-row justify-center mt-4">
+              {COCKTAILS.map((_, index) => (
+                <Box
+                  key={index}
+                  className={`h-2 rounded-full mx-1 ${
+                    activeIndex === index ? 'w-6 bg-[#9810fa]' : 'w-2 bg-[#d1d5dc]'
+                  }`}
+                />
+              ))}
+            </Box>
+          </Box>
+        </Box>
+
         {/* Feed header + toggle */}
         <Box className="flex-row items-center justify-between mb-4">
           <Text className="text-base font-medium text-neutral-900">Feed</Text>
