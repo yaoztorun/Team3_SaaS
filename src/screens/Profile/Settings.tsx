@@ -3,26 +3,55 @@ import { ScrollView, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { Button } from '@/src/components/ui/button';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/src/screens/navigation/types';
-import { LinearGradient } from 'expo-linear-gradient';
+import { PrimaryButton } from '@/src/components/global';
 import { colors } from '@/src/theme/colors';
+import { supabase } from '@/src/lib/supabase';
 
 const Settings: React.FC = () => {
     const navigation = useNavigation();
     const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+    const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
+    const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+
     
-    const handleLogout = () => {
+    const handleLogout = async () => {
         setShowLogoutDialog(false);
-        // TODO: Clear auth state (e.g. supabase.auth.signOut())
-        // Navigate to Auth -> Login
-        rootNavigation.navigate('Auth', { screen: 'Login' });
+
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            setLogoutMessage(error.message);
+        }
     };
+
+    const handleDeleteAccount = async () => {
+        setShowDeleteAccountDialog(false);
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+        console.error("No session found.");
+        return;
+        }
+
+        const { data, error } = await supabase.functions.invoke("delete-user", {
+            headers: {
+            Authorization: `Bearer ${session?.access_token}`
+            }
+        });
+        
+        if (error) {
+            console.error(error);
+            return;
+        }
+
+        await supabase.auth.signOut();
+    };
+
     
     const [pushNotifications, setPushNotifications] = useState(true);
     const [friendRequests, setFriendRequests] = useState(true);
@@ -153,21 +182,24 @@ const Settings: React.FC = () => {
                     >
                         <Text className="text-sm text-neutral-800">Log Out</Text>
                     </Pressable>
-                    <Pressable className="py-3">
+
+                    <Pressable 
+                        className="py-3" 
+                        onPress={() => setShowDeleteAccountDialog(true)}
+                    >
                         <Text className="text-sm text-red-500">Delete Account</Text>
                     </Pressable>
+                    {logoutMessage && (
+                        <Text className="text-center text-red-500 mb-4">
+                            {logoutMessage}
+                        </Text>
+                    )}
                 </Box>
 
-                <Pressable onPress={() => navigation.goBack()} className="rounded-xl shadow overflow-hidden">
-                    <LinearGradient
-                        colors={[colors.primary[400], colors.primary[600]]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
-                    >
-                        <Text className="text-white text-base font-semibold">Save Settings</Text>
-                    </LinearGradient>
-                </Pressable>
+                <PrimaryButton
+                    title="Save Settings"
+                    onPress={() => navigation.goBack()}
+                />
             </ScrollView>
 
             {/* Logout Confirmation Dialog */}
@@ -201,6 +233,47 @@ const Settings: React.FC = () => {
                             >
                                 <Text className="text-white text-center font-medium">
                                     Log Out
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </Box>
+                </View>
+            </Modal>
+
+            {/* TODO: Delete account confirmation dialog */}
+            <Modal
+                visible={showDeleteAccountDialog}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowDeleteAccountDialog(false)}
+            >
+                <View className="flex-1 bg-black/50 items-center justify-center p-4">
+                    <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
+                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                            Delete Account
+                        </Text>
+                        <Text 
+                            className="text-neutral-600 mb-6 text-center font-bold"
+                            style={{ color: colors.red}}
+                        >
+                            Are you sure you want to delete your account? This action cannot be undone!
+                        </Text>
+                        <View className="flex-row gap-3">
+                            <Pressable
+                                onPress={() => setShowDeleteAccountDialog(false)}
+                                className="flex-1 py-3 rounded-xl bg-neutral-100"
+                            >
+                                <Text className="text-neutral-900 text-center font-medium">
+                                    Cancel
+                                </Text>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleDeleteAccount}
+                                className="flex-1 py-3 rounded-xl"
+                                style={{ backgroundColor: colors.red }}
+                            >
+                                <Text className="text-white text-center font-medium">
+                                    Delete Account
                                 </Text>
                             </Pressable>
                         </View>

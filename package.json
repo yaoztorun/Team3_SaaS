@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "pwa": "npx expo export -p web && npx workbox-cli generateSW workbox-config.js && serve dist"
   },
   "dependencies": {
     "@expo/html-elements": "^0.10.1",
@@ -14,15 +15,20 @@
     "@gluestack-ui/core": "^3.0.10",
     "@gluestack-ui/themed": "^1.1.73",
     "@gluestack-ui/utils": "^3.0.11",
+    "@google/generative-ai": "^0.24.1",
     "@legendapp/motion": "^2.3.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "^8.5.0",
     "@react-navigation/bottom-tabs": "^7.7.3",
     "@react-navigation/native": "^7.1.19",
     "@react-navigation/native-stack": "^7.6.2",
+    "@react-navigation/stack": "^7.6.3",
     "@supabase/supabase-js": "^2.76.1",
     "expo": "~54.0.13",
+    "expo-blur": "^15.0.7",
+    "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
+    "expo-media-library": "~18.2.0",
     "expo-status-bar": "~3.0.8",
     "lucide-react-native": "^0.552.0",
     "memoize-one": "^6.0.0",
@@ -51,6 +57,7 @@
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-preset-expo": "^54.0.4",
     "react-refresh": "^0.18.0",
+    "supabase": "^2.58.5",
     "typescript": "~5.9.2",
     "workbox-cli": "^7.3.0"
   },

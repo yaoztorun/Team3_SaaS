@@ -1,128 +1,166 @@
-import React, { useState } from 'react';
-import { ScrollView, View, TextInput, TouchableOpacity, Pressable } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ScrollView, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { Center } from '@/src/components/ui/center';
-import { HStack } from '@/src/components/ui/hstack';
+import { Pressable } from '@/src/components/ui/pressable';
+import { ToggleSwitch } from '@/src/components/global';
+import LogView from './LogView';
+import RecipeView from './RecipeView';
+import { createCameraHandlers } from '@/src/utils/camera';
+import uploadImageUri from '@/src/utils/storage';
+import { supabase } from '@/src/lib/supabase';
+import fetchLocations from '@/src/api/location';
+import { fetchCocktails } from '@/src/api/cocktail';
+import type { DBCocktail } from '@/src/api/cocktail';
+import { colors } from '@/src/theme/colors';
 
 type ViewType = 'log' | 'recipe';
 
 export const AddScreen = () => {
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
-    const [hoverRating, setHoverRating] = useState(0);
-    const [isHovering, setIsHovering] = useState(false);
     const [isAtHome, setIsAtHome] = useState(false);
-    const [shareWith, setShareWith] = useState<'private' | 'friends'>('private');
+    const [shareWith, setShareWith] = useState<'private' | 'friends' | 'public'>('private');
     const [selectedDifficulty, setSelectedDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
+    const [photoUri, setPhotoUri] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
+    const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [locationQuery, setLocationQuery] = useState('');
+    const [suggestionsVisible, setSuggestionsVisible] = useState(false);
+    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
 
-    const handleStarInteraction = (value: number, isHover: boolean = false) => {
-        if (isHover) {
-            setHoverRating(value);
-        } else {
-            setRating(value);
-            setHoverRating(0);
+    const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
+
+    React.useEffect(() => {
+        let mounted = true;
+        (async () => {
+            const data = await fetchLocations();
+            if (!mounted) return;
+            setLocations(data.map(l => ({ id: l.id, name: l.name })));
+        })();
+        (async () => {
+            const data = await fetchCocktails();
+            if (!mounted) return;
+            setCocktails(data.map((c: DBCocktail) => ({ id: c.id, name: c.name })));
+        })();
+        return () => { mounted = false };
+    }, []);
+
+    const [isUploading, setIsUploading] = useState(false);
+    const [cocktails, setCocktails] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [cocktailQuery, setCocktailQuery] = useState('');
+    const [cocktailSuggestionsVisible, setCocktailSuggestionsVisible] = useState(false);
+    const [selectedCocktailId, setSelectedCocktailId] = useState<string | null>(null);
+    const [caption, setCaption] = useState('');
+    const [modalVisible, setModalVisible] = useState(false);
+    const [modalMessage, setModalMessage] = useState<string | null>(null);
+
+    const handleLogCocktail = async () => {
+        try {
+            setIsUploading(true);
+
+            // Ensure user is signed in to satisfy row-level security policies
+            const {
+                data: { user },
+                error: userErr,
+            } = await supabase.auth.getUser();
+
+            if (userErr) {
+                console.error('Error fetching user', userErr);
+                alert('Authentication error. Please sign in and try again.');
+                return;
+            }
+
+            if (!user) {
+                alert('You must be signed in to upload images. Please sign in and try again.');
+                return;
+            }
+
+            // validate required fields
+            const missing: string[] = [];
+            if (!selectedCocktailId) missing.push('cocktail');
+            if (!rating || rating <= 0) missing.push('rating');
+            if (!caption || caption.trim().length === 0) missing.push('review');
+            if (!isAtHome && !selectedLocationId) missing.push('location');
+
+            if (missing.length > 0) {
+                alert(`Please fill required fields: ${missing.join(', ')}`);
+                return;
+            }
+
+            let uploadedUrl: string | null = null;
+            if (photoUri) {
+                // upload into a user-scoped folder so permissions can be enforced per-user
+                uploadedUrl = await uploadImageUri(photoUri, user.id);
+                console.log('Uploaded image URL:', uploadedUrl);
+            }
+
+            // convert rating with half-stars into an integer smallint representation (store halves as *2)
+            const storedRating = Math.round(rating * 2);
+
+            // save a DrinkLog for this user including the uploaded image URL
+            const { data: insertData, error: insertError } = await supabase
+                .from('DrinkLog')
+                .insert([
+                    {
+                        user_id: user.id,
+                        cocktail_id: selectedCocktailId,
+                        rating: storedRating,
+                        caption: caption.trim(),
+                        location_id: isAtHome ? null : selectedLocationId,
+                        visibility: shareWith,
+                        image_url: uploadedUrl,
+                        created_at: new Date().toISOString(),
+                    },
+                ]);
+
+            if (insertError) {
+                console.error('Insert error', insertError);
+                alert('Saved image but failed to create log entry. See console.');
+                return;
+            }
+
+            // show confirmation modal and clear form
+            setModalMessage('Drink logged successfully');
+            setModalVisible(true);
+            // clear form fields
+            setCocktailQuery('');
+            setSelectedCocktailId(null);
+            setCaption('');
+            setRating(0);
+            setPhotoUri(null);
+            setLocationQuery('');
+            setSelectedLocationId(null);
+            setIsAtHome(false);
+            setShareWith('private');
+            setCocktailSuggestionsVisible(false);
+            setSuggestionsVisible(false);
+
+            // user will dismiss the modal manually
+        } catch (e) {
+            console.error('Error logging cocktail', e);
+            alert('Upload failed. See console for details.');
+        } finally {
+            setIsUploading(false);
         }
     };
 
-    const renderRatingStars = () => {
-        const displayRating = isHovering ? hoverRating : rating;
-        
-        return (
-            <HStack space="sm">
-                {[1, 2, 3, 4, 5].map((star) => (
-                    <Box key={star} className="relative">
-                        {/* Full star background */}
-                        <Text className="text-2xl text-gray-200">★</Text>
-                        {/* Left half of star */}
-                        <Pressable
-                            className="absolute top-0 left-0 w-1/2 h-full overflow-hidden"
-                            onPress={() => handleStarInteraction(star - 0.5)}
-                            onHoverIn={() => {
-                                setIsHovering(true);
-                                handleStarInteraction(star - 0.5, true);
-                            }}
-                            onHoverOut={() => setIsHovering(false)}
-                            onTouchMove={(e) => {
-                                const element = e.target as any;
-                                const rect = element.getBoundingClientRect();
-                                const x = e.nativeEvent.pageX - rect.left;
-                                const width = rect.width;
-                                const starValue = star - (x < width / 2 ? 0.5 : 0);
-                                handleStarInteraction(starValue, true);
-                            }}
-                            onTouchEnd={() => {
-                                setRating(hoverRating);
-                                setHoverRating(0);
-                                setIsHovering(false);
-                            }}
-                        >
-                            <Text className={`text-2xl ${displayRating >= star - 0.5 ? 'text-yellow-400' : 'text-gray-200'}`}>
-                                ★
-                            </Text>
-                        </Pressable>
-                        {/* Right half of star */}
-                        <Pressable
-                            className="absolute top-0 right-0 w-1/2 h-full overflow-hidden"
-                            onPress={() => handleStarInteraction(star)}
-                            onHoverIn={() => {
-                                setIsHovering(true);
-                                handleStarInteraction(star, true);
-                            }}
-                            onHoverOut={() => setIsHovering(false)}
-                            onTouchMove={(e) => {
-                                const element = e.target as any;
-                                const rect = element.getBoundingClientRect();
-                                const x = e.nativeEvent.pageX - rect.left;
-                                const width = rect.width;
-                                const starValue = star - (x < width / 2 ? 0.5 : 0);
-                                handleStarInteraction(starValue, true);
-                            }}
-                            onTouchEnd={() => {
-                                setRating(hoverRating);
-                                setHoverRating(0);
-                                setIsHovering(false);
-                            }}
-                        >
-                            <Text className={`text-2xl ${displayRating >= star ? 'text-yellow-400' : 'text-gray-200'}`}
-                                  style={{ marginLeft: -10 }}>
-                                ★
-                            </Text>
-                        </Pressable>
-                    </Box>
-                ))}
-            </HStack>
-        );
-    };
+    const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0 && (isAtHome || !!selectedLocationId);
 
     return (
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="Log your drink!" streakCount={7} cocktailCount={42} />
-            
+
             {/* View Toggle */}
             <Box className="px-4 py-2 bg-white border-b border-gray-200">
-                <View className="bg-gray-200 rounded-[14px] p-1">
-                    <HStack className="h-[29px]">
-                        <Pressable 
-                            className={`flex-1 rounded-[14px] justify-center ${activeView === 'log' ? 'bg-[#00bba7]' : ''}`}
-                            onPress={() => setActiveView('log')}
-                        >
-                            <Text className={`text-center text-sm ${activeView === 'log' ? 'text-white' : 'text-neutral-950'}`}>
-                                Log Cocktail
-                            </Text>
-                        </Pressable>
-                        <Pressable 
-                            className={`flex-1 rounded-[14px] justify-center ${activeView === 'recipe' ? 'bg-[#00bba7]' : ''}`}
-                            onPress={() => setActiveView('recipe')}
-                        >
-                            <Text className={`text-center text-sm ${activeView === 'recipe' ? 'text-white' : 'text-neutral-950'}`}>
-                                Create Recipe
-                            </Text>
-                        </Pressable>
-                    </HStack>
-                </View>
+                <ToggleSwitch
+                    value={activeView === 'log' ? 'left' : 'right'}
+                    onChange={(val) => setActiveView(val === 'left' ? 'log' : 'recipe')}
+                    leftLabel="Log Cocktail"
+                    rightLabel="Create Recipe"
+                />
             </Box>
 
             <ScrollView
@@ -134,295 +172,75 @@ export const AddScreen = () => {
                 }}
             >
                 {activeView === 'log' ? (
-                    <Box className="flex-1 space-y-6">
-                        {/* Cocktail Name */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Cocktail Name *</Text>
-                            <TextInput 
-                                className="bg-white p-3 rounded-lg border border-gray-200"
-                                placeholder="What cocktail did you drink?"
-                            />
-                        </Box>
-
-                        {/* Photo Upload */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Photo</Text>
-                            <HStack space="md" className="w-full">
-                                <TouchableOpacity 
-                                    className="flex-1 h-48 rounded-xl border-2 border-[#00a294] items-center justify-center bg-[#e6faf7]"
-                                    activeOpacity={0.7}
-                                >
-                                    <Box className="items-center space-y-2">
-                                        <Box className="p-2">
-                                            <Text className="text-4xl">📸</Text>
-                                        </Box>
-                                        <Text className="text-[#00786f] font-medium">Camera</Text>
-                                    </Box>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    className="flex-1 h-48 rounded-xl border-2 border-[#00a294] items-center justify-center bg-[#e6faf7]"
-                                    activeOpacity={0.7}
-                                >
-                                    <Box className="items-center space-y-2">
-                                        <Box className="p-2">
-                                            <Text className="text-4xl">🖼️</Text>
-                                        </Box>
-                                        <Text className="text-[#00786f] font-medium">Upload Photo</Text>
-                                    </Box>
-                                </TouchableOpacity>
-                            </HStack>
-                        </Box>
-
-                        {/* Rating */}
-                        <Box className="space-y-2 bg-white p-4 rounded-xl border border-gray-200">
-                            <Text className="text-sm text-neutral-950">Rating</Text>
-                            <Center>
-                                {renderRatingStars()}
-                            </Center>
-                        </Box>
-
-                        {/* Review */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Review (Optional)</Text>
-                            <TextInput
-                                className="bg-white p-3 rounded-lg border border-gray-200 h-16"
-                                placeholder="How was your drink? Tell us more!"
-                                multiline={true}
-                                numberOfLines={3}
-                            />
-                        </Box>
-
-                        {/* Location */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Where did you drink it? *</Text>
-                            <TextInput
-                                className="bg-white p-3 rounded-lg border border-gray-200"
-                                placeholder="Bar name, restaurant..."
-                            />
-                            <TouchableOpacity 
-                                className="flex-row items-center space-x-3 bg-white p-4 rounded-xl border border-gray-200"
-                                onPress={() => setIsAtHome(!isAtHome)}
-                            >
-                                <Box className={`w-4 h-4 rounded border items-center justify-center ${isAtHome ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
-                                    {isAtHome && (
-                                        <Text className="text-white text-xs">✓</Text>
-                                    )}
-                                </Box>
-                                <Text className="text-base">At Home</Text>
-                            </TouchableOpacity>
-                        </Box>
-
-                        {/* Tag Friends Button */}
-                        <TouchableOpacity className="flex-row items-center justify-center space-x-2 bg-gray-100 py-3 rounded-xl border border-gray-200">
-                            <Text className="text-base text-gray-600">👥 Tag friends you were drinking with</Text>
-                        </TouchableOpacity>
-
-                        {/* Share With */}
-                        <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                            <Text className="text-sm text-neutral-950 mb-3">Share With</Text>
-                            <Box className="space-y-2">
-                                <TouchableOpacity 
-                                    className="flex-row items-center min-h-[68px] p-3 rounded-lg"
-                                    onPress={() => setShareWith('private')}
-                                >
-                                    <Box className="w-10 h-10 rounded-full bg-[#cbfbf1] items-center justify-center">
-                                        <Text className="text-base text-[#00786f]">👤</Text>
-                                    </Box>
-                                    <Box className="ml-6 flex-1">
-                                        <Text className="text-base text-neutral-900">Just Me</Text>
-                                        <Text className="text-sm text-[#6a7282]">Only visible on your profile</Text>
-                                    </Box>
-                                    <Box className="mr-2">
-                                        <Box className={`w-4 h-4 rounded-full border border-[#030213] ${shareWith === 'private' ? 'bg-[#030213]' : 'bg-[#f3f3f5]'}`} />
-                                    </Box>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    className="flex-row items-center min-h-[68px] p-3 rounded-lg"
-                                    onPress={() => setShareWith('friends')}
-                                >
-                                    <Box className="w-10 h-10 rounded-full bg-[#cbfbf1] items-center justify-center">
-                                        <Text className="text-base text-[#00786f]">👥</Text>
-                                    </Box>
-                                    <Box className="ml-6 flex-1">
-                                        <Text className="text-base text-neutral-900">All Friends</Text>
-                                        <Text className="text-sm text-[#6a7282]">Share on feed with all friends</Text>
-                                    </Box>
-                                    <Box className="mr-2">
-                                        <Box className={`w-4 h-4 rounded-full border ${shareWith === 'friends' ? 'bg-[#030213] border-[#030213]' : 'bg-[#f3f3f5] border-[rgba(0,0,0,0.1)]'}`} />
-                                    </Box>
-                                </TouchableOpacity>
-                            </Box>
-                        </Box>
-
-                        {/* Submit Button */}
-                        <TouchableOpacity className="bg-gradient-to-r from-[#009689] to-[#00786f] py-3 rounded-lg">
-                            <Text className="text-white text-center">Log Cocktail</Text>
-                        </TouchableOpacity>
-                    </Box>
+                    <LogView
+                        cocktailQuery={cocktailQuery}
+                        setCocktailQuery={setCocktailQuery}
+                        cocktails={cocktails}
+                        cocktailSuggestionsVisible={cocktailSuggestionsVisible}
+                        setCocktailSuggestionsVisible={setCocktailSuggestionsVisible}
+                        selectedCocktailId={selectedCocktailId}
+                        setSelectedCocktailId={setSelectedCocktailId}
+                        handleCameraPress={handleCameraPress}
+                        handleGalleryPress={handleGalleryPress}
+                        photoUri={photoUri}
+                        rating={rating}
+                        setRating={setRating}
+                        caption={caption}
+                        setCaption={setCaption}
+                        locationQuery={locationQuery}
+                        setLocationQuery={setLocationQuery}
+                        suggestionsVisible={suggestionsVisible}
+                        setSuggestionsVisible={setSuggestionsVisible}
+                        locations={locations}
+                        selectedLocationId={selectedLocationId}
+                        setSelectedLocationId={setSelectedLocationId}
+                        isAtHome={isAtHome}
+                        setIsAtHome={setIsAtHome}
+                        shareWith={shareWith}
+                        setShareWith={setShareWith}
+                        isUploading={isUploading}
+                        handleLogCocktail={handleLogCocktail}
+                        canSubmit={canSubmit}
+                    />
                 ) : (
-                    // Recipe Creation View
-                    <Box className="flex-1 space-y-6">
-                        {/* Recipe Name */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Recipe Name *</Text>
-                            <TextInput 
-                                className="bg-white p-3 rounded-lg border border-gray-200"
-                                placeholder="Name your cocktail recipe"
-                            />
-                        </Box>
-
-                        {/* Recipe Photo */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Photo</Text>
-                            <HStack space="md" className="w-full">
-                                <TouchableOpacity 
-                                    className="flex-1 h-48 rounded-xl border-2 border-[#00a294] items-center justify-center bg-[#e6faf7]"
-                                    activeOpacity={0.7}
-                                >
-                                    <Box className="items-center space-y-2">
-                                        <Box className="p-2">
-                                            <Text className="text-4xl">📸</Text>
-                                        </Box>
-                                        <Text className="text-[#00786f] font-medium">Camera</Text>
-                                    </Box>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    className="flex-1 h-48 rounded-xl border-2 border-[#00a294] items-center justify-center bg-[#e6faf7]"
-                                    activeOpacity={0.7}
-                                >
-                                    <Box className="items-center space-y-2">
-                                        <Box className="p-2">
-                                            <Text className="text-4xl">🖼️</Text>
-                                        </Box>
-                                        <Text className="text-[#00786f] font-medium">Upload Photo</Text>
-                                    </Box>
-                                </TouchableOpacity>
-                            </HStack>
-                        </Box>
-
-                        {/* Ingredients */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Ingredients *</Text>
-                            <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                                <Box className="space-y-3">
-                                    <Box className="flex-col space-y-2">
-                                        <TouchableOpacity 
-                                            className="w-full p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
-                                        >
-                                            <Text className="text-neutral-600">Select ingredient</Text>
-                                            <Text>▼</Text>
-                                        </TouchableOpacity>
-                                        <Box className="flex-row space-x-2">
-                                            <TextInput 
-                                                className="flex-1 p-3 rounded-lg border border-gray-200"
-                                                placeholder="Amount"
-                                                keyboardType="numeric"
-                                            />
-                                            <TouchableOpacity 
-                                                className="flex-1 p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
-                                            >
-                                                <Text className="text-neutral-600">Unit</Text>
-                                                <Text>▼</Text>
-                                            </TouchableOpacity>
-                                        </Box>
-                                    </Box>
-                                </Box>
-                                <TouchableOpacity 
-                                    className="flex-row items-center justify-center py-2 mt-2"
-                                >
-                                    <Text className="text-primary-500">+ Add Ingredient</Text>
-                                </TouchableOpacity>
-                            </Box>
-                        </Box>
-
-                        {/* Instructions */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Instructions *</Text>
-                            <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                                <Box className="flex-row items-start space-x-3">
-                                    <Text className="text-neutral-400 mt-3">1.</Text>
-                                    <TextInput 
-                                        className="flex-1 p-2 rounded-lg border border-gray-200"
-                                        placeholder="Add step"
-                                        multiline={true}
-                                        numberOfLines={2}
-                                    />
-                                </Box>
-                                <TouchableOpacity className="flex-row items-center justify-center py-2">
-                                    <Text className="text-primary-500">+ Add Step</Text>
-                                </TouchableOpacity>
-                            </Box>
-                        </Box>
-
-                        {/* Difficulty */}
-                        <Box className="space-y-2">
-                            <Text className="text-sm text-neutral-950">Difficulty</Text>
-                            <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                                <HStack space="md" className="justify-center">
-                                    {['Easy', 'Medium', 'Hard'].map((level) => (
-                                        <TouchableOpacity 
-                                            key={level}
-                                            onPress={() => setSelectedDifficulty(level as 'Easy' | 'Medium' | 'Hard')}
-                                            className="items-center px-4"
-                                        >
-                                            <Box className={`w-12 h-12 rounded-full items-center justify-center mb-2 ${selectedDifficulty === level ? 'bg-[#cbfbf1] border-2 border-[#00786f]' : 'bg-primary-50'}`}>
-                                                <Text className="text-xl">
-                                                    {level === 'Easy' ? '🥂' : level === 'Medium' ? '🍸' : '🍹'}
-                                                </Text>
-                                            </Box>
-                                            <Text className={`text-sm ${selectedDifficulty === level ? 'text-[#00786f] font-bold' : 'text-neutral-600'}`}>
-                                                {level}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </HStack>
-                            </Box>
-                        </Box>
-
-                        {/* Share With - reusing the same component as Log view */}
-                        <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                            <Text className="text-sm text-neutral-950 mb-3">Share With</Text>
-                            <Box className="space-y-2">
-                                <TouchableOpacity 
-                                    className="flex-row items-center min-h-[68px] p-3 rounded-lg"
-                                    onPress={() => setShareWith('private')}
-                                >
-                                    <Box className="w-10 h-10 rounded-full bg-[#cbfbf1] items-center justify-center">
-                                        <Text className="text-base text-[#00786f]">👤</Text>
-                                    </Box>
-                                    <Box className="ml-6 flex-1">
-                                        <Text className="text-base text-neutral-900">Just Me</Text>
-                                        <Text className="text-sm text-[#6a7282]">Only visible on your profile</Text>
-                                    </Box>
-                                    <Box className="mr-2">
-                                        <Box className={`w-4 h-4 rounded-full border border-[#030213] ${shareWith === 'private' ? 'bg-[#030213]' : 'bg-[#f3f3f5]'}`} />
-                                    </Box>
-                                </TouchableOpacity>
-                                <TouchableOpacity 
-                                    className="flex-row items-center min-h-[68px] p-3 rounded-lg"
-                                    onPress={() => setShareWith('friends')}
-                                >
-                                    <Box className="w-10 h-10 rounded-full bg-[#cbfbf1] items-center justify-center">
-                                        <Text className="text-base text-[#00786f]">👥</Text>
-                                    </Box>
-                                    <Box className="ml-6 flex-1">
-                                        <Text className="text-base text-neutral-900">All Friends</Text>
-                                        <Text className="text-sm text-[#6a7282]">Share on feed with all friends</Text>
-                                    </Box>
-                                    <Box className="mr-2">
-                                        <Box className={`w-4 h-4 rounded-full border ${shareWith === 'friends' ? 'bg-[#030213] border-[#030213]' : 'bg-[#f3f3f5] border-[rgba(0,0,0,0.1)]'}`} />
-                                    </Box>
-                                </TouchableOpacity>
-                            </Box>
-                        </Box>
-
-                        {/* Submit Button */}
-                        <TouchableOpacity className="bg-gradient-to-r from-[#009689] to-[#00786f] py-3 rounded-lg">
-                            <Text className="text-white text-center">Create Recipe</Text>
-                        </TouchableOpacity>
-                    </Box>
+                    <RecipeView
+                        handleCameraPress={handleCameraPress}
+                        handleGalleryPress={handleGalleryPress}
+                        photoUri={photoUri}
+                        selectedDifficulty={selectedDifficulty}
+                        setSelectedDifficulty={setSelectedDifficulty}
+                        shareWith={shareWith}
+                        setShareWith={setShareWith}
+                    />
                 )}
             </ScrollView>
+
+            {/* Confirmation Modal (re-uses the pattern from Settings) */}
+            <Modal
+                visible={modalVisible}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View className="flex-1 bg-black/50 items-center justify-center p-4">
+                    <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
+                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                            {modalMessage ?? 'Done'}
+                        </Text>
+                        <Text className="text-neutral-600 mb-6 text-center">Your drink has been logged.</Text>
+                        <View>
+                            <Pressable
+                                onPress={() => setModalVisible(false)}
+                                className="py-3 rounded-xl"
+                                style={{ backgroundColor: colors.primary[500] }}
+                            >
+                                <Text className="text-white text-center font-medium">OK</Text>
+                            </Pressable>
+                        </View>
+                    </Box>
+                </View>
+            </Modal>
         </Box>
     );
 };
+

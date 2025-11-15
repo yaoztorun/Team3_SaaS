@@ -1,28 +1,31 @@
 import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createStackNavigator } from '@react-navigation/stack';
 
 import { ExploreScreen } from './ExploreScreen';
 import { AllCocktails } from './Pages/AllCocktails';
 import { AIAssistant } from './Pages/AIAssistant';
 import { WhatCanIMake } from './Pages/WhatCanIMake';
-import { BestRated } from './Pages/BestRated';
+import { MatchingCocktails } from './Pages/MatchingCocktails';
+import { BestBars } from './Pages/BestBars';
 import { UpcomingEvents } from './Pages/UpcomingEvents';
 import { Shop } from './Pages/Shop';
+import { CocktailDetail } from './Pages/CocktailDetail';
+import { BarDetail } from './Pages/BarDetail';
+import { globalScreenOptions } from '@/src/theme/navigationTransitions';
 
-const Stack = createNativeStackNavigator();
+const Stack = createStackNavigator();
 
 export const ExploreStack = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
+    <Stack.Navigator screenOptions={globalScreenOptions}>
       <Stack.Screen name="ExploreScreen" component={ExploreScreen} />
       <Stack.Screen name="AllCocktails" component={AllCocktails} />
+      <Stack.Screen name="CocktailDetail" component={CocktailDetail} />
       <Stack.Screen name="AIAssistant" component={AIAssistant} />
       <Stack.Screen name="WhatCanIMake" component={WhatCanIMake} />
-      <Stack.Screen name="BestRated" component={BestRated} />
+      <Stack.Screen name="MatchingCocktails" component={MatchingCocktails} />
+      <Stack.Screen name="BestBars" component={BestBars} />
+      <Stack.Screen name="BarDetail" component={BarDetail} />
       <Stack.Screen name="UpcomingEvents" component={UpcomingEvents} />
       <Stack.Screen name="Shop" component={Shop} />
     </Stack.Navigator>

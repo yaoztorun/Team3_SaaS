@@ -2,38 +2,69 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { View, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '@/src/theme/colors';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
+import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { supabase } from '@/src/lib/supabase';
+import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
+import { spacing } from '@/src/theme/spacing';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
+
+//TODO: Scrollability screen
 
 const LoginScreen: React.FC = () => {
     const navigation = useNavigation<LoginScreenNavigationProp>();
     const rootNavigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [isSignUpHovered, setIsSignUpHovered] = useState(false);
 
-    const handleLogin = () => {
-        // TODO: Implement login logic (set auth state / token)
-        rootNavigation.navigate('Main', { screen: 'Home' });
+    const [message, setMessage] = useState<string | null>(null);
+
+    const handleLogin = async () => {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+        });
+        if (error) setMessage(error.message);
+        else {
+            setMessage('Successfully logged in! Redirecting...');
+            setTimeout(() => setMessage(null), 2000);
+        }
     };
 
     const handleRegister = () => {
         navigation.navigate('Register');
     };
 
+    const handleGoogleLogin = async () => {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+            redirectTo: window.location.origin,
+            },
+        });
+        if (error) setMessage(error.message);
+    };
+
+
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            className="flex-1 bg-white"
+        <ScrollView
+            className="bg-white h-screen overflow-auto"
+            contentContainerStyle={{
+                justifyContent: 'flex-start',
+                paddingTop: spacing.screenVertical,
+                paddingBottom: spacing.screenBottom,
+            }}
+            keyboardShouldPersistTaps="handled"
         >
-            <Box className="flex-1 p-6 justify-between">
+            <Box className="p-6">
                 {/* Logo and Welcome Text */}
-                <Box className="items-center mt-12">
+                <Box className="items-center">
                     {/* logo.png not present in repo; using a simple placeholder */}
                     <Box
                         style={{
@@ -56,72 +87,82 @@ const LoginScreen: React.FC = () => {
                 </Box>
 
                 {/* Login Form */}
-                <Box className="w-full">
-                    <Box className="mb-6">
-                        <Text className="text-sm font-medium text-neutral-700 mb-2">
-                            Email
-                        </Text>
-                        <TextInput
-                            className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
-                            placeholder="Enter your email"
-                            value={email}
-                            onChangeText={setEmail}
-                            autoCapitalize="none"
-                            keyboardType="email-address"
-                        />
-                    </Box>
+                <Box className="w-full mt-8">
+                    <TextInputField
+                        label="Email"
+                        placeholder="Enter your email"
+                        value={email}
+                        onChangeText={setEmail}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                    />
 
-                    <Box className="mb-8">
-                        <Text className="text-sm font-medium text-neutral-700 mb-2">
-                            Password
-                        </Text>
-                        <TextInput
-                            className="w-full h-12 px-4 rounded-xl bg-neutral-50 text-neutral-900"
+                    <Box className="mt-6 mb-8">
+                        <TextInputField
+                            label="Password"
                             placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
+                            onSubmitEditing={handleLogin}
                         />
                     </Box>
 
-                    {/* Login Button */}
-                    <Pressable onPress={handleLogin} className="rounded-xl shadow overflow-hidden mb-4">
-                        <LinearGradient
-                            colors={[colors.primary[400], colors.primary[600]]}
-                            start={{ x: 0, y: 0.5 }}
-                            end={{ x: 1, y: 0.5 }}
-                            style={{ borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                    {message && (
+                        <Text
+                            className={`text-center mb-4 ${message.toLowerCase().includes('success') ? 'text-green-500' : 'text-red-500'}`}
                         >
-                            <Text className="text-white text-base font-semibold">
-                                Sign In
-                            </Text>
-                        </LinearGradient>
-                    </Pressable>
+                            {message}
+                        </Text>
+                    )}
+
+                    {/* Login Button */}
+                    <PrimaryButton 
+                        title="Sign In" 
+                        onPress={handleLogin}
+                    />
 
                     {/* Forgot Password */}
-                    <Pressable className="mb-8">
+                    <Pressable className="mt-6 mb-4">
                         <Text className="text-center text-primary-500 font-medium">
                             Forgot Password?
                         </Text>
                     </Pressable>
 
                     {/* Sign Up Link */}
-                    <View className="flex-row justify-center items-center">
+                    <View className="flex-row justify-center items-center mb-2">
                         <Text className="text-neutral-600">
                             Don't have an account?{' '}
                         </Text>
-                        <Pressable onPress={handleRegister}>
-                            <Text className="text-primary-500 font-medium">
+                        <Pressable 
+                            onPress={handleRegister}
+                            onHoverIn={() => setIsSignUpHovered(true)}
+                            onHoverOut={() => setIsSignUpHovered(false)}
+                        >
+                            <Text 
+                                className="font-bold"
+                                style={{
+                                    color: '#009689',
+                                    textDecorationLine: isSignUpHovered ? 'underline' : 'none',
+                                }}
+                            >
                                 Sign Up
                             </Text>
                         </Pressable>
                     </View>
                 </Box>
 
+                {/* Google Login Button */}
+                <Box className="mt-0">
+                    <GoogleSignInButton 
+                        onPress={handleGoogleLogin}
+                    />
+                </Box>
+
                 {/* Footer space for keyboard */}
                 <Box className="h-6" />
             </Box>
-        </KeyboardAvoidingView>
+        </ScrollView>
     );
 };
 
