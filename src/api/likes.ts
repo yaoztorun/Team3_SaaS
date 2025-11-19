@@ -31,9 +31,7 @@ export async function getLikesForLogs(
     const userId = row.user_id as string;
 
     counts.set(logId, (counts.get(logId) ?? 0) + 1);
-    if (userId === currentUserId) {
-      likedByMe.add(logId);
-    }
+    if (userId === currentUserId) likedByMe.add(logId);
   });
 
   return { counts, likedByMe };
@@ -44,12 +42,10 @@ export async function toggleLike(
   userId: string,
   currentlyLiked: boolean,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!userId) {
-    return { success: false, error: 'Not logged in' };
-  }
+  if (!userId) return { success: false, error: 'Not logged in' };
 
+  // UNLIKE
   if (currentlyLiked) {
-    // unlike – just delete
     const { error } = await supabase
       .from('DrinkLogLike')
       .delete()
@@ -60,11 +56,10 @@ export async function toggleLike(
       console.error('Error unliking drink log:', error);
       return { success: false, error: error.message };
     }
-
     return { success: true };
   }
 
-  // like – insert then notify owner
+  // LIKE
   const { error } = await supabase.from('DrinkLogLike').insert({
     user_id: userId,
     drink_log_id: drinkLogId,
@@ -75,20 +70,37 @@ export async function toggleLike(
     return { success: false, error: error.message };
   }
 
-  // find owner of the log
+  // Get log owner + cocktail name
   const { data: log, error: logError } = await supabase
     .from('DrinkLog')
-    .select('user_id')
+    .select(
+      `
+      user_id,
+      Cocktail (
+        name
+      )
+    `,
+    )
     .eq('id', drinkLogId)
     .single();
 
+  // Get actor profile for name
+  const { data: actorProfile } = await supabase
+    .from('Profile')
+    .select('full_name')
+    .eq('id', userId)
+    .single();
+
   if (!logError && log && log.user_id && log.user_id !== userId) {
+    const cocktailName = (log as any).Cocktail?.name || 'drink';
+    const actorName = actorProfile?.full_name || 'Someone';
+
     await createNotification({
       userId: log.user_id as string,
       actorId: userId,
       type: 'like',
       drinkLogId,
-      message: 'New like on your drink log',
+      message: `${actorName} liked your ${cocktailName}`,
     });
   }
 

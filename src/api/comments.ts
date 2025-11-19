@@ -20,14 +20,9 @@ export async function addComment(
   userId: string,
   content: string,
 ) {
-  if (!userId) {
-    return { success: false, error: 'Not logged in' };
-  }
-  if (!content.trim()) {
-    return { success: false, error: 'Comment is empty' };
-  }
+  if (!userId) return { success: false, error: 'Not logged in' };
+  if (!content.trim()) return { success: false, error: 'Comment is empty' };
 
-  // 1) insert the comment
   const { error } = await supabase.from('DrinkLogComment').insert({
     user_id: userId,
     drink_log_id: drinkLogId,
@@ -39,21 +34,37 @@ export async function addComment(
     return { success: false, error: error.message };
   }
 
-  // 2) find the owner of the drink log
+  // owner + cocktail
   const { data: log, error: logError } = await supabase
     .from('DrinkLog')
-    .select('user_id')
+    .select(
+      `
+      user_id,
+      Cocktail (
+        name
+      )
+    `,
+    )
     .eq('id', drinkLogId)
     .single();
 
+  // actor profile for name
+  const { data: actorProfile } = await supabase
+    .from('Profile')
+    .select('full_name')
+    .eq('id', userId)
+    .single();
+
   if (!logError && log && log.user_id && log.user_id !== userId) {
-    // 3) create notification for the owner
+    const cocktailName = (log as any).Cocktail?.name || 'drink';
+    const actorName = actorProfile?.full_name || 'Someone';
+
     await createNotification({
       userId: log.user_id as string,
       actorId: userId,
       type: 'comment',
       drinkLogId,
-      message: 'New comment on your drink log',
+      message: `${actorName} commented on your ${cocktailName}`,
     });
   }
 
@@ -87,12 +98,9 @@ export async function getCommentsForLog(
     return [];
   }
 
-  // normalize Profile to single object or null
   const rows = (data ?? []).map((raw: any): CommentRow => {
     let profile = raw.Profile ?? null;
-    if (Array.isArray(profile)) {
-      profile = profile[0] ?? null;
-    }
+    if (Array.isArray(profile)) profile = profile[0] ?? null;
 
     return {
       id: raw.id as string,
@@ -113,7 +121,6 @@ export async function getCommentsForLog(
   return rows;
 }
 
-// comment counts for feed
 export async function getCommentCountsForLogs(
   drinkLogIds: string[],
 ): Promise<Map<string, number>> {
@@ -138,14 +145,11 @@ export async function getCommentCountsForLogs(
   return counts;
 }
 
-// delete comment (only own comment allowed by RLS)
 export async function deleteComment(
   commentId: string,
   userId: string,
 ): Promise<{ success: boolean; error?: string }> {
-  if (!userId) {
-    return { success: false, error: 'Not logged in' };
-  }
+  if (!userId) return { success: false, error: 'Not logged in' };
 
   const { error } = await supabase
     .from('DrinkLogComment')

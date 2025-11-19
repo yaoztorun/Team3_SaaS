@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+// src/screens/HomeScreen.tsx
+import React, { useEffect, useState, useRef } from 'react';
 import {
   ScrollView,
   ActivityIndicator,
@@ -26,6 +27,8 @@ import {
   type CommentRow,
   deleteComment,
 } from '@/src/api/comments';
+import { Swipeable } from 'react-native-gesture-handler';
+import { Trash2 } from 'lucide-react-native';
 
 type FeedFilter = 'friends' | 'for-you';
 
@@ -162,8 +165,12 @@ export const HomeScreen: React.FC = () => {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
-  const [lastDeletedComment, setLastDeletedComment] =
-    useState<CommentRow | null>(null);
+  const [lastDeletedComment, setLastDeletedComment] = useState<CommentRow | null>(null);
+
+  // feed scroll + mapping from postId -> y offset
+  const scrollRef = useRef<ScrollView | null>(null);
+  const [postPositions, setPostPositions] = useState<Record<string, number>>({});
+  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null);
 
   // carousel state
   const [activeIndex, setActiveIndex] = useState(0);
@@ -384,6 +391,56 @@ export const HomeScreen: React.FC = () => {
     await loadComments(postId);
   };
 
+  // 🔔 When a notification is clicked in TopBar
+  const handleNotificationSelect = (payload: {
+    id: string;
+    type: string;
+    drinkLogId?: string | null;
+  }) => {
+    console.log('HomeScreen: notification payload', payload);
+    console.log('HomeScreen: postPositions', postPositions);
+
+    if (!payload.drinkLogId) {
+      console.log('No drinkLogId on payload, nothing to scroll to');
+      return;
+    }
+
+    const y = postPositions[payload.drinkLogId];
+    console.log('HomeScreen: resolved Y position for post', payload.drinkLogId, y);
+
+    if (y !== undefined && scrollRef.current) {
+      scrollRef.current.scrollTo({ y, animated: true });
+      setHighlightedPostId(payload.drinkLogId);
+
+      // remove highlight after a short delay
+      setTimeout(() => {
+        setHighlightedPostId((current) =>
+          current === payload.drinkLogId ? null : current,
+        );
+      }, 2000);
+    } else {
+      // Fallback: if we have the post in the feed but no layout position,
+      // open its comments so something obvious happens.
+      const found = feedPosts.find((p) => p.id === payload.drinkLogId);
+      if (found) {
+        console.log(
+          'Y not found, but post exists in feed. Opening comments as fallback.',
+        );
+        openComments(found.id);
+        setHighlightedPostId(found.id);
+        setTimeout(() => {
+          setHighlightedPostId((current) =>
+            current === found.id ? null : current,
+          );
+        }, 2000);
+      } else {
+        console.log(
+          'Post not found in current feed (maybe different tab / visibility).',
+        );
+      }
+    }
+  };
+
   const closeComments = () => {
     setCommentsVisible(false);
     setActivePostId(null);
@@ -405,8 +462,6 @@ export const HomeScreen: React.FC = () => {
 
     if (!res.success) {
       console.warn(res.error);
-      // optional: restore text if you want
-      // setNewComment(content);
     } else {
       await loadComments(activePostId);
 
@@ -477,9 +532,10 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <Box className="flex-1 bg-neutral-50">
-      <TopBar title="Feed" streakCount={12} cocktailCount={47} />
+      <TopBar title="Feed" onNotificationPress={handleNotificationSelect} />
 
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: spacing.screenHorizontal,
@@ -610,9 +666,20 @@ export const HomeScreen: React.FC = () => {
 
         {/* Feed list */}
         {feedPosts.map((post) => (
-          <Box key={post.id} className="mb-4">
+          <Box
+            key={post.id}
+            className="mb-4"
+            onLayout={(e) => {
+              const y = e.nativeEvent.layout.y;
+              setPostPositions((prev) => ({
+                ...prev,
+                [post.id]: y,
+              }));
+            }}
+          >
             <FeedPostCard
               {...post}
+              isHighlighted={highlightedPostId === post.id}
               onToggleLike={() => handleToggleLike(post.id)}
               onPressComments={() => openComments(post.id)}
             />
@@ -665,27 +732,35 @@ export const HomeScreen: React.FC = () => {
                 )}
 
                 {!commentsLoading &&
-                  commentsForPost.map((c) => (
-                    <Box
-                      key={c.id}
-                      className="mb-3 flex-row items-center justify-between"
-                    >
-                      <Box className="flex-1 mr-3">
-                        <Text className="text-xs text-neutral-500 mb-1">
-                          {c.Profile?.full_name ?? 'Unknown user'}
-                        </Text>
-                        <Text className="text-sm text-neutral-900">
-                          {c.content}
-                        </Text>
-                      </Box>
-
-                      {c.user_id === user?.id && (
-                        <Pressable onPress={() => handleDeleteComment(c.id)}>
-                          <Text className="text-xs text-red-500">Delete</Text>
-                        </Pressable>
-                      )}
-                    </Box>
-                  ))}
+                  commentsForPost.map((c) => {
+                    const canDelete = c.user_id === user?.id;
+                    return (
+                      <Swipeable
+                        key={c.id}
+                        enabled={canDelete}
+                        renderRightActions={() => (
+                          <Pressable
+                            className="bg-red-500 justify-center items-center w-16"
+                            onPress={() => handleDeleteComment(c.id)}
+                          >
+                            <Trash2 size={20} color="#fff" />
+                          </Pressable>
+                        )}
+                        onSwipeableOpen={() => {
+                          if (canDelete) handleDeleteComment(c.id);
+                        }}
+                      >
+                        <Box className="mb-3 bg-white">
+                          <Text className="text-xs text-neutral-500 mb-1">
+                            {c.Profile?.full_name ?? 'Unknown user'}
+                          </Text>
+                          <Text className="text-sm text-neutral-900">
+                            {c.content}
+                          </Text>
+                        </Box>
+                      </Swipeable>
+                    );
+                  })}
 
                 {!commentsLoading && commentsForPost.length === 0 && (
                   <Text className="text-sm text-neutral-500">

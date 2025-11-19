@@ -27,11 +27,14 @@ import {
 } from '@/src/api/notifications';
 
 interface TopBarProps {
-  // If passed, these override DB values
   streakCount?: number;
   cocktailCount?: number;
   title?: string;
-  onNotificationPress?: () => void;
+  onNotificationPress?: (payload: {
+    id: string;
+    type: string;
+    drinkLogId?: string | null;
+  }) => void;
   showSettingsIcon?: boolean;
   onSettingsPress?: () => void;
   showBack?: boolean;
@@ -137,19 +140,43 @@ export const TopBar: React.FC<TopBarProps> = ({
 
   // ---------- notification handlers ----------
 
-  const handleNotificationItemPress = (id: string) => {
-    // Mark as read locally; DB is updated when closing modal
+  const handleCloseNotifications = useCallback(async () => {
+    setShowNotifications(false);
+
+    if (unreadCount > 0) {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    }
+  }, [unreadCount]);
+
+  const handleNotificationItemPress = (notification: Notification) => {
+    console.log('TopBar: notification clicked', notification);
+
+    // mark as read in local state
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+      prev.map((n) =>
+        n.id === notification.id ? { ...n, isRead: true } : n,
+      ),
     );
-    setUnreadCount((prev) => {
-      const target = notifications.find((n) => n.id === id);
-      if (target && !target.isRead) return Math.max(0, prev - 1);
-      return prev;
-    });
+
+    if (!notification.isRead) {
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    }
+
+    // bubble up to parent (e.g. HomeScreen) with id/type/drinkLogId
+    if (onNotificationPress) {
+      onNotificationPress({
+        id: notification.id,
+        type: notification.type,
+        drinkLogId: notification.drinkLogId,
+      });
+    }
+
+    // close modal + mark all read in DB (doesn't block UI)
+    handleCloseNotifications();
   };
 
-  // 🔹 swipe-to-delete handler
   const handleDeleteNotification = async (id: string) => {
     const target = notifications.find((n) => n.id === id);
     if (!target) return;
@@ -163,10 +190,12 @@ export const TopBar: React.FC<TopBarProps> = ({
     const res = await deleteNotification(id);
     if (!res.success) {
       console.warn(res.error);
-      // revert if failure
-      setNotifications((prev) => [...prev, target].sort((a, b) =>
-        a.timeAgo.localeCompare(b.timeAgo),
-      ));
+      // revert on failure
+      setNotifications((prev) =>
+        [...prev, target].sort((a, b) =>
+          a.timeAgo.localeCompare(b.timeAgo),
+        ),
+      );
       if (!target.isRead) {
         setUnreadCount((prev) => prev + 1);
       }
@@ -186,6 +215,8 @@ export const TopBar: React.FC<TopBarProps> = ({
       message: row.message ?? 'New activity',
       timeAgo: formatTimeAgo(row.created_at),
       isRead: row.is_read,
+      type: row.type,
+      drinkLogId: row.drink_log_id,
     }));
 
     setNotifications(mapped);
@@ -193,21 +224,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
     const unread = rows.filter((r) => !r.is_read).length;
     setUnreadCount(unread);
-
-    if (onNotificationPress) {
-      onNotificationPress();
-    }
-  }, [user, onNotificationPress]);
-
-  const handleCloseNotifications = useCallback(async () => {
-    setShowNotifications(false);
-
-    if (unreadCount > 0) {
-      await markAllNotificationsRead();
-      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-    }
-  }, [unreadCount]);
+  }, [user]);
 
   // ---------- final values for display ----------
 
@@ -319,7 +336,7 @@ export const TopBar: React.FC<TopBarProps> = ({
         notifications={notifications}
         onClose={handleCloseNotifications}
         onNotificationPress={handleNotificationItemPress}
-        onDeleteNotification={handleDeleteNotification}  
+        onDeleteNotification={handleDeleteNotification}
       />
     </Box>
   );

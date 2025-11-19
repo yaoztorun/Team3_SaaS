@@ -17,12 +17,15 @@ interface FeedPostCardProps {
   caption: string;
   isLiked?: boolean;
 
-  // 🔹 new callbacks
+  // highlight glow
+  isHighlighted?: boolean;
+
+  // callbacks
   onToggleLike?: () => void;
   onPressComments?: () => void;
 }
 
-export const FeedPostCard = ({
+export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   userName,
   userInitials,
   timeAgo,
@@ -33,11 +36,23 @@ export const FeedPostCard = ({
   comments,
   caption,
   isLiked = false,
+  isHighlighted = false,
   onToggleLike,
   onPressComments,
-}: FeedPostCardProps) => {
+}) => {
   return (
-    <Box className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+    <Box
+      className="rounded-2xl bg-white overflow-hidden"
+      style={{
+        borderWidth: isHighlighted ? 3 : 1,
+        borderColor: isHighlighted ? '#00BBA7' : '#e5e7eb',
+        shadowColor: isHighlighted ? '#00BBA7' : '#000',
+        shadowOpacity: isHighlighted ? 0.35 : 0.1,
+        shadowRadius: isHighlighted ? 12 : 4,
+        shadowOffset: { width: 0, height: 2 },
+        transform: isHighlighted ? [{ scale: 1.02 }] : [{ scale: 1 }],
+      }}
+    >
       {/* Header with user info */}
       <Box className="flex-row items-center px-4 pt-4 pb-3">
         <Box className="w-10 h-10 rounded-full bg-[#009689] items-center justify-center mr-3">

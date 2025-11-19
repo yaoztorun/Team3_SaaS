@@ -1,3 +1,4 @@
+// src/screens/navigation/NotificationModal.tsx
 import React from 'react';
 import {
   Modal,
@@ -8,22 +9,23 @@ import {
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { X, Trash } from 'lucide-react-native';
-import { Swipeable } from 'react-native-gesture-handler';
+import { X, Trash2 } from 'lucide-react-native';
 
 export interface Notification {
   id: string;
   message: string;
   timeAgo: string;
   isRead: boolean;
+  type: string;
+  drinkLogId?: string | null;
 }
 
 interface NotificationModalProps {
   visible: boolean;
   notifications: Notification[];
   onClose: () => void;
-  onNotificationPress: (id: string) => void;
-  onDeleteNotification: (id: string) => void; // 🔹 new
+  onNotificationPress: (notification: Notification) => void;
+  onDeleteNotification: (id: string) => void;
 }
 
 export const NotificationModal: React.FC<NotificationModalProps> = ({
@@ -33,18 +35,6 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   onNotificationPress,
   onDeleteNotification,
 }) => {
-  // right-side red bin for swipe action
-  const renderRightActions = (id: string) => (
-    <Box className="flex-row items-stretch">
-      <Pressable
-        className="bg-red-500 justify-center px-4"
-        onPress={() => onDeleteNotification(id)}
-      >
-        <Trash size={20} color="#ffffff" />
-      </Pressable>
-    </Box>
-  );
-
   return (
     <Modal
       visible={visible}
@@ -56,6 +46,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
       <Pressable className="flex-1 bg-black/20" onPress={onClose}>
         {/* Modal Content */}
         <View className="flex-1 items-end pt-20 pr-4">
+          {/* Stop backdrop press from closing when tapping inside */}
           <Pressable onPress={(e) => e.stopPropagation()}>
             <Box className="bg-white rounded-2xl shadow-lg w-80 max-h-[450px] overflow-hidden border border-gray-200">
               {/* Header */}
@@ -74,52 +65,48 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
               {/* Notification List */}
               <ScrollView className="max-h-96">
                 {notifications.map((notification) => (
-                  <Swipeable
+                  <TouchableOpacity
                     key={notification.id}
-                    renderRightActions={() =>
-                      renderRightActions(notification.id)
-                    }
+                    onPress={() => onNotificationPress(notification)}
+                    className={`border-b border-gray-100 ${
+                      !notification.isRead
+                        ? 'bg-[rgba(240,253,250,0.3)]'
+                        : ''
+                    }`}
                   >
-                    <TouchableOpacity
-                      onPress={() => onNotificationPress(notification.id)}
-                      className={`border-b border-gray-100 ${
-                        !notification.isRead
-                          ? 'bg-[rgba(240,253,250,0.3)]'
-                          : ''
-                      }`}
-                    >
-                      <Box className="px-4 py-4">
-                        <Box className="flex-row items-start">
-                          {/* Unread indicator dot */}
-                          {!notification.isRead && (
-                            <Box className="w-2 h-2 rounded-full bg-[#00BBA7] mt-1.5 mr-3" />
-                          )}
+                    <Box className="px-4 py-4">
+                      <Box className="flex-row items-start">
+                        {/* Unread dot */}
+                        {!notification.isRead && (
+                          <Box className="w-2 h-2 rounded-full bg-[#00BBA7] mt-1.5 mr-3" />
+                        )}
 
-                          <Box
-                            className={`flex-1 ${
-                              notification.isRead ? 'ml-5' : ''
-                            }`}
-                          >
-                            <Text className="text-sm text-neutral-950 mb-1">
-                              {notification.message}
-                            </Text>
+                        <Box
+                          className={`flex-1 ${
+                            notification.isRead ? 'ml-5' : ''
+                          }`}
+                        >
+                          <Text className="text-sm text-neutral-950 mb-1">
+                            {notification.message}
+                          </Text>
+                          <Box className="flex-row justify-between items-center">
                             <Text className="text-xs text-[#6a7282]">
                               {notification.timeAgo}
                             </Text>
+
+                            {/* Small delete button (no swipe) */}
+                            <Pressable
+                              className="ml-3 px-2 py-1 rounded-full"
+                              onPress={() => onDeleteNotification(notification.id)}
+                            >
+                              <Trash2 size={16} color="#ef4444" />
+                            </Pressable>
                           </Box>
                         </Box>
                       </Box>
-                    </TouchableOpacity>
-                  </Swipeable>
+                    </Box>
+                  </TouchableOpacity>
                 ))}
-
-                {notifications.length === 0 && (
-                  <Box className="px-4 py-4">
-                    <Text className="text-sm text-neutral-500">
-                      No notifications yet.
-                    </Text>
-                  </Box>
-                )}
               </ScrollView>
             </Box>
           </Pressable>
