@@ -1,5 +1,6 @@
 // src/api/comments.ts
 import { supabase } from '@/src/lib/supabase';
+import { createNotification } from '@/src/api/notifications';
 
 export type CommentRow = {
   id: string;
@@ -26,6 +27,7 @@ export async function addComment(
     return { success: false, error: 'Comment is empty' };
   }
 
+  // 1) insert the comment
   const { error } = await supabase.from('DrinkLogComment').insert({
     user_id: userId,
     drink_log_id: drinkLogId,
@@ -35,6 +37,24 @@ export async function addComment(
   if (error) {
     console.error('Error adding comment:', error);
     return { success: false, error: error.message };
+  }
+
+  // 2) find the owner of the drink log
+  const { data: log, error: logError } = await supabase
+    .from('DrinkLog')
+    .select('user_id')
+    .eq('id', drinkLogId)
+    .single();
+
+  if (!logError && log && log.user_id && log.user_id !== userId) {
+    // 3) create notification for the owner
+    await createNotification({
+      userId: log.user_id as string,
+      actorId: userId,
+      type: 'comment',
+      drinkLogId,
+      message: 'New comment on your drink log',
+    });
   }
 
   return { success: true };
@@ -67,11 +87,9 @@ export async function getCommentsForLog(
     return [];
   }
 
-  // 🔹 Safely map result and normalize Profile to a single object or null
+  // normalize Profile to single object or null
   const rows = (data ?? []).map((raw: any): CommentRow => {
     let profile = raw.Profile ?? null;
-
-    // if Supabase gives Profile as an array, take the first element
     if (Array.isArray(profile)) {
       profile = profile[0] ?? null;
     }
@@ -95,7 +113,7 @@ export async function getCommentsForLog(
   return rows;
 }
 
-// tiny helper just to get counts when loading feed
+// comment counts for feed
 export async function getCommentCountsForLogs(
   drinkLogIds: string[],
 ): Promise<Map<string, number>> {
@@ -118,4 +136,26 @@ export async function getCommentCountsForLogs(
   });
 
   return counts;
+}
+
+// delete comment (only own comment allowed by RLS)
+export async function deleteComment(
+  commentId: string,
+  userId: string,
+): Promise<{ success: boolean; error?: string }> {
+  if (!userId) {
+    return { success: false, error: 'Not logged in' };
+  }
+
+  const { error } = await supabase
+    .from('DrinkLogComment')
+    .delete()
+    .eq('id', commentId);
+
+  if (error) {
+    console.error('Error deleting comment:', error);
+    return { success: false, error: error.message };
+  }
+
+  return { success: true };
 }

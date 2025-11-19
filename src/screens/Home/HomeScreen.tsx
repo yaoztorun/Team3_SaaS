@@ -5,6 +5,10 @@ import {
   Dimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -15,7 +19,13 @@ import { FeedPostCard } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
-import { getCommentCountsForLogs } from '@/src/api/comments';
+import {
+  getCommentCountsForLogs,
+  getCommentsForLog,
+  addComment,
+  type CommentRow,
+  deleteComment,
+} from '@/src/api/comments';
 
 type FeedFilter = 'friends' | 'for-you';
 
@@ -144,6 +154,16 @@ export const HomeScreen: React.FC = () => {
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // comments modal state
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [commentsForPost, setCommentsForPost] = useState<CommentRow[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [sendingComment, setSendingComment] = useState(false);
+  const [lastDeletedComment, setLastDeletedComment] =
+    useState<CommentRow | null>(null);
 
   // carousel state
   const [activeIndex, setActiveIndex] = useState(0);
@@ -345,6 +365,116 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
+  // ---------- comments modal helpers ----------
+
+  const loadComments = async (postId: string) => {
+    setCommentsLoading(true);
+    const rows = await getCommentsForLog(postId);
+    setCommentsForPost(rows);
+    setCommentsLoading(false);
+  };
+
+  const openComments = async (postId: string) => {
+    if (!user) {
+      console.log('User not logged in, cannot comment');
+      return;
+    }
+    setActivePostId(postId);
+    setCommentsVisible(true);
+    await loadComments(postId);
+  };
+
+  const closeComments = () => {
+    setCommentsVisible(false);
+    setActivePostId(null);
+    setCommentsForPost([]);
+    setNewComment('');
+    setLastDeletedComment(null);
+  };
+
+  const handleSendComment = async () => {
+    if (!user?.id || !activePostId || !newComment.trim() || sendingComment) {
+      return;
+    }
+
+    const content = newComment.trim();
+    setSendingComment(true);
+    setNewComment('');
+
+    const res = await addComment(activePostId, user.id, content);
+
+    if (!res.success) {
+      console.warn(res.error);
+      // optional: restore text if you want
+      // setNewComment(content);
+    } else {
+      await loadComments(activePostId);
+
+      // bump comment count in feed
+      setFeedPosts((prev) =>
+        prev.map((p) =>
+          p.id === activePostId ? { ...p, comments: p.comments + 1 } : p,
+        ),
+      );
+    }
+
+    setSendingComment(false);
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    if (!user?.id || !activePostId) return;
+
+    const comment = commentsForPost.find((c) => c.id === commentId);
+    if (!comment) return;
+
+    // optimistic: remove from UI
+    setCommentsForPost((prev) => prev.filter((c) => c.id !== commentId));
+    setLastDeletedComment(comment);
+
+    const res = await deleteComment(commentId, user.id);
+    if (!res.success) {
+      console.warn(res.error);
+      // revert on failure
+      setCommentsForPost((prev) =>
+        [...prev, comment].sort((a, b) =>
+          a.created_at.localeCompare(b.created_at),
+        ),
+      );
+      setLastDeletedComment(null);
+      return;
+    }
+
+    // decrement comment count in feed list
+    setFeedPosts((prev) =>
+      prev.map((p) =>
+        p.id === activePostId
+          ? { ...p, comments: Math.max(0, p.comments - 1) }
+          : p,
+      ),
+    );
+  };
+
+  const handleUndoDeleteComment = async () => {
+    if (!user?.id || !activePostId || !lastDeletedComment) return;
+
+    const comment = lastDeletedComment;
+    setLastDeletedComment(null);
+
+    const res = await addComment(activePostId, user.id, comment.content);
+    if (!res.success) {
+      console.warn(res.error);
+      return;
+    }
+
+    await loadComments(activePostId);
+
+    setFeedPosts((prev) =>
+      prev.map((p) =>
+        p.id === activePostId ? { ...p, comments: p.comments + 1 } : p,
+      ),
+    );
+  };
+
   return (
     <Box className="flex-1 bg-neutral-50">
       <TopBar title="Feed" streakCount={12} cocktailCount={47} />
@@ -360,7 +490,7 @@ export const HomeScreen: React.FC = () => {
         {/* Popular Right Now – Emoji Carousel */}
         <Box className="mb-6">
           <Text className="text-lg font-medium text-neutral-900 mb-3">
-            Popular Right Now
+            Drinks for your mood
           </Text>
 
           <Box className="h-64">
@@ -484,14 +614,131 @@ export const HomeScreen: React.FC = () => {
             <FeedPostCard
               {...post}
               onToggleLike={() => handleToggleLike(post.id)}
-              onPressComments={() => {
-                // later: open comments modal for post.id
-                console.log('open comments for', post.id);
-              }}
+              onPressComments={() => openComments(post.id)}
             />
           </Box>
         ))}
       </ScrollView>
+
+      {/* Comments bottom sheet modal */}
+      <Modal
+        visible={commentsVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeComments}
+      >
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
+          {/* Backdrop */}
+          <Box className="flex-1 justify-end bg-black/40">
+            {/* Sheet */}
+            <Box
+              className="bg-white rounded-t-3xl p-4"
+              style={{ maxHeight: 500 }}
+            >
+              {/* Drag handle */}
+              <Box className="items-center mb-3">
+                <Box className="w-12 h-1.5 rounded-full bg-neutral-300" />
+              </Box>
+
+              {/* Header */}
+              <Box className="flex-row justify-between items-center mb-3">
+                <Text className="text-base font-semibold text-neutral-900">
+                  Comments
+                </Text>
+                <Pressable onPress={closeComments}>
+                  <Text className="text-sm text-neutral-500">Close</Text>
+                </Pressable>
+              </Box>
+
+              {/* Comments list */}
+              <ScrollView
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 8 }}
+              >
+                {commentsLoading && (
+                  <Box className="py-3 items-center">
+                    <ActivityIndicator />
+                  </Box>
+                )}
+
+                {!commentsLoading &&
+                  commentsForPost.map((c) => (
+                    <Box
+                      key={c.id}
+                      className="mb-3 flex-row items-center justify-between"
+                    >
+                      <Box className="flex-1 mr-3">
+                        <Text className="text-xs text-neutral-500 mb-1">
+                          {c.Profile?.full_name ?? 'Unknown user'}
+                        </Text>
+                        <Text className="text-sm text-neutral-900">
+                          {c.content}
+                        </Text>
+                      </Box>
+
+                      {c.user_id === user?.id && (
+                        <Pressable onPress={() => handleDeleteComment(c.id)}>
+                          <Text className="text-xs text-red-500">Delete</Text>
+                        </Pressable>
+                      )}
+                    </Box>
+                  ))}
+
+                {!commentsLoading && commentsForPost.length === 0 && (
+                  <Text className="text-sm text-neutral-500">
+                    Be the first to comment.
+                  </Text>
+                )}
+              </ScrollView>
+
+              {/* Undo bar */}
+              {lastDeletedComment && (
+                <Box className="flex-row items-center justify-between mt-2 px-3 py-2 rounded-lg bg-neutral-100">
+                  <Text className="text-xs text-neutral-700">
+                    Comment deleted
+                  </Text>
+                  <Pressable onPress={handleUndoDeleteComment}>
+                    <Text className="text-xs font-semibold text-[#009689]">
+                      Undo
+                    </Text>
+                  </Pressable>
+                </Box>
+              )}
+
+              {/* Input row */}
+              {user && (
+                <Box className="flex-row items-center mt-3">
+                  <TextInput
+                    value={newComment}
+                    onChangeText={setNewComment}
+                    placeholder="Add a comment..."
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      paddingVertical: 8,
+                      paddingHorizontal: 10,
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: '#e5e7eb',
+                    }}
+                  />
+                  <Pressable
+                    className="ml-2 px-3 py-2 rounded-full bg-[#009689]"
+                    onPress={handleSendComment}
+                  >
+                    <Text className="text-white text-sm">
+                      {sendingComment ? '...' : 'Send'}
+                    </Text>
+                  </Pressable>
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </KeyboardAvoidingView>
+      </Modal>
     </Box>
   );
 };
