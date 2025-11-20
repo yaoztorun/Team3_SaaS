@@ -22,7 +22,6 @@ const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x300.png?text=Cocktail
 const getDummyData = (cocktailName: string) => ({
     rating: 4.8,
     reviewCount: 2847,
-    difficulty: 'Medium',
     prepTime: '5 min',
     funFact: `The ${cocktailName || 'cocktail'} is a classic drink that has been enjoyed for generations. Its unique blend of flavors makes it a favorite among cocktail enthusiasts worldwide.`,
 });
@@ -38,6 +37,9 @@ export const CocktailDetail = () => {
 
     const dummyData = getDummyData(cocktail.name || '');
     const imageUri = cocktail.image_url ?? PLACEHOLDER_IMAGE;
+
+    // Get difficulty from database, fallback to 'medium' if not set
+    const difficulty = cocktail.difficulty ? cocktail.difficulty.charAt(0).toUpperCase() + cocktail.difficulty.slice(1) : 'Medium';
 
     const parseJsonArray = <T,>(v: any): T[] => {
         if (!v) return [] as T[];
@@ -72,7 +74,7 @@ export const CocktailDetail = () => {
         }
     };
 
-    const difficultyColors = getDifficultyColor(dummyData.difficulty);
+    const difficultyColors = getDifficultyColor(difficulty);
 
     return (
         <Box className="flex-1 bg-white">
@@ -162,7 +164,7 @@ export const CocktailDetail = () => {
                         >
                             <Clock size={12} color={difficultyColors.text} />
                             <Text style={{ fontSize: 12, color: difficultyColors.text, fontWeight: '600' }}>
-                                {dummyData.difficulty}
+                                {difficulty}
                             </Text>
                         </View>
                         {/* Prep Time */}
