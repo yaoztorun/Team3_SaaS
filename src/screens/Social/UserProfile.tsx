@@ -11,6 +11,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Profile } from '@/src/types/profile';
 import { Button } from '@/src/components/ui/button';
 import { useAuth } from '@/src/hooks/useAuth';
+import { Avatar } from '@/src/components/global';
 import { 
     sendFriendRequest, 
     getFriendshipStatus,
@@ -147,21 +148,11 @@ export const UserProfile = () => {
                 {/* User Profile Card */}
                 <Box className="p-6 bg-white rounded-2xl mb-4">
                     <Center className="mb-4">
-                        {profile.avatar_url ? (
-                            <Box className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
-                                <Image 
-                                    source={{ uri: profile.avatar_url }} 
-                                    style={{ width: 96, height: 96 }}
-                                    resizeMode="cover"
-                                />
-                            </Box>
-                        ) : (
-                            <Center className="h-24 w-24 rounded-full bg-teal-500">
-                                <Text className="text-3xl text-white">
-                                    {profile.full_name?.charAt(0)?.toUpperCase() || profile.email?.charAt(0)?.toUpperCase() || '?'}
-                                </Text>
-                            </Center>
-                        )}
+                        <Avatar 
+                            avatarUrl={profile.avatar_url}
+                            fallbackText={profile.full_name || profile.email || '?'}
+                            size={96}
+                        />
                     </Center>
 
                     <Center className="mb-4">

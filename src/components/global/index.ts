@@ -13,3 +13,5 @@ export { FeedPostCard } from './FeedPostCard';
 export { CocktailCarouselCard } from './CocktailCarouselCard';
 export { PreviewCard } from './PreviewCard';
 export { EventCard } from './EventCard';
+export { Avatar } from './Avatar';
+

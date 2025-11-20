@@ -13,6 +13,7 @@ import { spacing } from '@/src/theme/spacing';
 import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile } from '@/src/api/profile';
 import type { Profile } from '@/src/types/profile';
+import { Avatar } from '@/src/components/global';
 
 type View = 'logged-drinks' | 'stats';
 
@@ -71,21 +72,11 @@ export const ProfileScreen = () => {
             {/* User Profile Card */}
             <Box className="mx-4 mt-4 p-6 bg-white rounded-2xl">
                 <HStack className="mb-4">
-                    {profile?.avatar_url ? (
-                        <Box className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
-                            <Image 
-                                source={{ uri: profile.avatar_url }} 
-                                style={{ width: 80, height: 80 }}
-                                resizeMode="cover"
-                            />
-                        </Box>
-                    ) : (
-                        <Center className="h-20 w-20 rounded-full bg-teal-500">
-                            <Text className="text-2xl text-white">
-                                {profile?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase() || '?'}
-                            </Text>
-                        </Center>
-                    )}
+                    <Avatar 
+                        avatarUrl={profile?.avatar_url}
+                        fallbackText={profile?.full_name || user?.email || '?'}
+                        size={80}
+                    />
                     <Box className="ml-4 flex-1">
                         <Text className="text-xl font-semibold text-neutral-900">
                             {loadingProfile ? 'Loading...' : (profile?.full_name || user?.email?.split('@')[0] || 'User')}
