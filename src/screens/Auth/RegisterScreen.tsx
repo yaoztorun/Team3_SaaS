@@ -31,10 +31,14 @@ const RegisterScreen: React.FC = () => {
             return;
         }
 
-        // TODO: Add name, picture, etc. to user profile registration (supabase: raw_user_metadata?)
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    full_name: name,
+                }
+            }
         });
 
         if(error) {
