@@ -1,145 +1,390 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, Image as RNImage } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import {
-        PrimaryButton,
-        TextInputField,
-        ImageUploadBox,
-        DifficultySelector,
-        RadioOption,
+    PrimaryButton,
+    TextInputField,
+    ImageUploadBox,
+    DifficultySelector,
 } from '@/src/components/global';
+import { supabase } from '@/src/lib/supabase';
+import uploadImageUri from '@/src/utils/storage';
 
 interface RecipeViewProps {
-        handleCameraPress: () => void;
-        handleGalleryPress: () => void;
-        photoUri: string | null;
-        selectedDifficulty: 'Easy' | 'Medium' | 'Hard';
-        setSelectedDifficulty: (v: 'Easy' | 'Medium' | 'Hard') => void;
-        shareWith: 'private' | 'friends' | 'public';
-        setShareWith: (v: 'private' | 'friends' | 'public') => void;
+    handleCameraPress: () => void;
+    handleGalleryPress: () => void;
+    photoUri: string | null;
+    selectedDifficulty: 'Easy' | 'Medium' | 'Hard';
+    setSelectedDifficulty: (v: 'Easy' | 'Medium' | 'Hard') => void;
+    onRecipeCreated: () => void;
 }
 
 const RecipeView: React.FC<RecipeViewProps> = ({
-        handleCameraPress,
-        handleGalleryPress,
-        photoUri,
-        selectedDifficulty,
-        setSelectedDifficulty,
-        shareWith,
-        setShareWith,
+    handleCameraPress,
+    handleGalleryPress,
+    photoUri,
+    selectedDifficulty,
+    setSelectedDifficulty,
+    onRecipeCreated,
 }) => {
-        return (
-                <Box className="flex-1 space-y-6">
-                        {/* Recipe Name */}
-                        <TextInputField
-                                label="Recipe Name"
-                                required
-                                placeholder="Name your cocktail recipe"
-                        />
+    // Ingredient row shape
+    type Ingredient = { id: string; name: string; amount: string; unit: string };
+    type InstructionStep = { id: string; text: string };
 
-                        {/* Recipe Photo */}
-                        <Box className="space-y-2">
-                                <Text className="text-sm text-neutral-950">Photo</Text>
-                                <ImageUploadBox
-                                        onCameraPress={handleCameraPress}
-                                        onGalleryPress={handleGalleryPress}
-                                />
-                                {photoUri && (
-                                        <Box className="mt-3 rounded-xl overflow-hidden">
-                                                <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
+    const MAX_STEPS = 20;
+
+    // Default suggestions (fallback). Can be expanded or loaded from API.
+    const DEFAULT_INGREDIENT_SUGGESTIONS = [
+        'Gin', 'Vodka', 'White Rum', 'Tequila', 'Bourbon', 'Triple Sec', 'Cointreau', 'Sweet Vermouth', 'Dry Vermouth',
+        'Sugar Syrup', 'Simple Syrup', 'Lime Juice', 'Lemon Juice', 'Mint', 'Angostura Bitters', 'Orange Bitters',
+        'Orange Peel', 'Salt', 'Sugar', 'Egg White', 'Campari', 'Aperol', 'Ginger Beer', 'Tonic Water', 'Soda Water',
+        'Tomato Juice', 'Tabasco', 'Worcestershire Sauce', 'Pineapple Juice', 'Coconut Cream', 'Coconut Milk', 'Coffee Liqueur'
+    ];
+
+    const UNITS = ['ml', 'oz', 'tsp', 'tbsp', 'dash', 'slice', 'piece', 'to taste'];
+
+    const [recipeName, setRecipeName] = useState('');
+    const [isCheckingName, setIsCheckingName] = useState(false);
+    const [nameExists, setNameExists] = useState(false);
+    const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+    const [instructions, setInstructions] = useState<InstructionStep[]>([]);
+    const [nameQueryByIndex, setNameQueryByIndex] = useState<Record<string, string>>({});
+    const [suggestionsVisibleByIndex, setSuggestionsVisibleByIndex] = useState<Record<string, boolean>>({});
+    const [isUploading, setIsUploading] = useState(false);
+
+    const addIngredient = () => {
+        const newIng: Ingredient = { id: String(Date.now()), name: '', amount: '', unit: 'ml' };
+        setIngredients(prev => [...prev, newIng]);
+    };
+
+    const updateIngredient = (id: string, patch: Partial<Ingredient>) => {
+        setIngredients(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i));
+    };
+
+    const removeIngredient = (id: string) => {
+        setIngredients(prev => prev.filter(i => i.id !== id));
+        setNameQueryByIndex(q => { const copy = { ...q }; delete copy[id]; return copy; });
+        setSuggestionsVisibleByIndex(s => { const copy = { ...s }; delete copy[id]; return copy; });
+    };
+
+    const filteredSuggestions = (query: string) => {
+        if (!query) return DEFAULT_INGREDIENT_SUGGESTIONS.slice(0, 8);
+        const q = query.toLowerCase();
+        return DEFAULT_INGREDIENT_SUGGESTIONS.filter(s => s.toLowerCase().includes(q)).slice(0, 8);
+    };
+
+    const addStep = () => {
+        if (instructions.length >= MAX_STEPS) return;
+        const newStep: InstructionStep = { id: String(Date.now()), text: '' };
+        setInstructions(prev => [...prev, newStep]);
+    };
+
+    const updateStep = (id: string, text: string) => {
+        setInstructions(prev => prev.map(s => s.id === id ? { ...s, text } : s));
+    };
+
+    const removeStep = (id: string) => {
+        setInstructions(prev => prev.filter(s => s.id !== id));
+    };
+
+    // Check if recipe name already exists in DB (debounced)
+    useEffect(() => {
+        if (!recipeName || recipeName.trim().length < 2) {
+            setNameExists(false);
+            return;
+        }
+
+        const checkNameAvailability = async () => {
+            setIsCheckingName(true);
+            try {
+                const { data, error } = await supabase
+                    .from('Cocktail')
+                    .select('id')
+                    .ilike('name', recipeName.trim())
+                    .limit(1);
+
+                if (error) {
+                    console.error('Error checking recipe name:', error);
+                    return;
+                }
+
+                setNameExists(data && data.length > 0);
+            } catch (e) {
+                console.error('Unexpected error checking name:', e);
+            } finally {
+                setIsCheckingName(false);
+            }
+        };
+
+        const timeoutId = setTimeout(checkNameAvailability, 500);
+        return () => clearTimeout(timeoutId);
+    }, [recipeName]);
+
+    // Validation logic
+    const hasValidIngredients = ingredients.length > 0 && ingredients.every(ing =>
+        ing.name.trim() && ing.amount.trim()
+    );
+    const hasValidInstructions = instructions.length > 0 && instructions.every(step =>
+        step.text.trim()
+    );
+    const canSubmit =
+        recipeName.trim() &&
+        !nameExists &&
+        !isCheckingName &&
+        photoUri &&
+        hasValidIngredients &&
+        hasValidInstructions;
+
+    const handleCreateRecipe = async () => {
+        try {
+            setIsUploading(true);
+
+            // Get authenticated user
+            const {
+                data: { user },
+                error: userErr,
+            } = await supabase.auth.getUser();
+
+            if (userErr || !user) {
+                console.error('Error fetching user', userErr);
+                alert('Authentication error. Please sign in and try again.');
+                return;
+            }
+
+            // Upload photo to storage
+            let uploadedUrl: string | null = null;
+            if (photoUri) {
+                uploadedUrl = await uploadImageUri(photoUri, user.id);
+                console.log('Uploaded recipe image URL:', uploadedUrl);
+            }
+
+            // Format ingredients as JSONB array matching DB schema
+            const formattedIngredients = ingredients.map(ing => ({
+                name: ing.name.trim(),
+                amount: parseFloat(ing.amount.trim()) || 0,
+                unit: ing.unit,
+            }));
+
+            // Format instructions as JSONB array matching DB schema
+            const formattedInstructions = instructions.map((step, index) => ({
+                step: index + 1,
+                description: step.text.trim(),
+            }));
+
+            // Insert new cocktail recipe
+            const { data: insertData, error: insertError } = await supabase
+                .from('Cocktail')
+                .insert([
+                    {
+                        name: recipeName.trim(),
+                        creator_id: user.id,
+                        origin_type: 'user',
+                        is_public: false,
+                        difficulty: selectedDifficulty.toLowerCase() as 'easy' | 'medium' | 'hard',
+                        image_url: uploadedUrl,
+                        ingredients: formattedIngredients as any,
+                        instructions: formattedInstructions as any,
+                        created_at: new Date().toISOString(),
+                    },
+                ]);
+
+            if (insertError) {
+                console.error('Insert error', insertError);
+                alert('Failed to create recipe. Please try again.');
+                return;
+            }
+
+            // Success - notify parent to show modal and clear form
+            onRecipeCreated();
+
+        } catch (error) {
+            console.error('Unexpected error creating recipe:', error);
+            alert('An unexpected error occurred. Please try again.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    return (
+        <Box className="flex-1 space-y-6">
+            {/* Recipe Name */}
+            <Box className="space-y-2">
+                <TextInputField
+                    label="Recipe Name"
+                    required
+                    placeholder="Name your cocktail recipe"
+                    value={recipeName}
+                    onChangeText={setRecipeName}
+                />
+                {isCheckingName && (
+                    <Text className="text-sm text-neutral-400">Checking availability...</Text>
+                )}
+                {!isCheckingName && nameExists && (
+                    <Text className="text-sm text-red-500">A recipe with this name already exists. Please choose a different name.</Text>
+                )}
+                {!isCheckingName && recipeName.trim().length >= 2 && !nameExists && (
+                    <Text className="text-sm text-green-600">✓ Name available</Text>
+                )}
+            </Box>
+
+            {/* Recipe Photo */}
+            <Box className="space-y-2">
+                <Text className="text-sm text-neutral-950">Photo</Text>
+                <ImageUploadBox
+                    onCameraPress={handleCameraPress}
+                    onGalleryPress={handleGalleryPress}
+                />
+                {photoUri && (
+                    <Box className="mt-3 rounded-xl overflow-hidden">
+                        <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
+                    </Box>
+                )}
+            </Box>
+
+            {/* Ingredients */}
+            <Box className="space-y-2">
+                <Text className="text-sm text-neutral-950">Ingredients *</Text>
+                <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
+                    {ingredients.length === 0 && (
+                        <Box className="px-2 py-4">
+                            <Text className="text-neutral-500">No ingredients yet. Add one below.</Text>
+                        </Box>
+                    )}
+
+                    {ingredients.map((ing) => (
+                        <Box key={ing.id} className="mb-2">
+                            <Box className="flex-row space-x-2 items-center">
+                                <Box className="flex-1">
+                                    <TextInputField
+                                        placeholder="Ingredient"
+                                        value={ing.name}
+                                        onChangeText={(t) => {
+                                            updateIngredient(ing.id, { name: t });
+                                            setNameQueryByIndex(q => ({ ...q, [ing.id]: t }));
+                                            setSuggestionsVisibleByIndex(s => ({ ...s, [ing.id]: true }));
+                                        }}
+                                        onFocus={() => setSuggestionsVisibleByIndex(s => ({ ...s, [ing.id]: true }))}
+                                    />
+                                    {suggestionsVisibleByIndex[ing.id] && (
+                                        <Box className="bg-white border border-gray-100 rounded-lg mt-1">
+                                            {filteredSuggestions(nameQueryByIndex[ing.id] || '').map(s => (
+                                                <TouchableOpacity key={s} className="px-3 py-2 border-b border-gray-100" onPress={() => {
+                                                    updateIngredient(ing.id, { name: s });
+                                                    setSuggestionsVisibleByIndex(sv => ({ ...sv, [ing.id]: false }));
+                                                    setNameQueryByIndex(q => ({ ...q, [ing.id]: s }));
+                                                }}>
+                                                    <Text>{s}</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                            <TouchableOpacity className="px-3 py-2" onPress={() => {
+                                                setSuggestionsVisibleByIndex(sv => ({ ...sv, [ing.id]: false }));
+                                            }}>
+                                                <Text className="text-sm text-neutral-400">Use custom entry</Text>
+                                            </TouchableOpacity>
                                         </Box>
-                                )}
-                        </Box>
-
-                        {/* Ingredients */}
-                        <Box className="space-y-2">
-                                <Text className="text-sm text-neutral-950">Ingredients *</Text>
-                                <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                                        <Box className="space-y-3">
-                                                <Box className="flex-col space-y-2">
-                                                        <TouchableOpacity
-                                                                className="w-full p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
-                                                        >
-                                                                <Text className="text-neutral-600">Select ingredient</Text>
-                                                                <Text>▼</Text>
-                                                        </TouchableOpacity>
-                                                        <Box className="flex-row space-x-2">
-                                                                <TextInputField
-                                                                        placeholder="Amount"
-                                                                        keyboardType="numeric"
-                                                                />
-                                                                <TouchableOpacity
-                                                                        className="flex-1 p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center"
-                                                                >
-                                                                        <Text className="text-neutral-600">Unit</Text>
-                                                                        <Text>▼</Text>
-                                                                </TouchableOpacity>
-                                                        </Box>
-                                                </Box>
-                                        </Box>
-                                        <TouchableOpacity
-                                                className="flex-row items-center justify-center py-2 mt-2"
-                                        >
-                                                <Text className="text-primary-500">+ Add Ingredient</Text>
-                                        </TouchableOpacity>
+                                    )}
                                 </Box>
-                        </Box>
 
-                        {/* Instructions */}
-                        <Box className="space-y-2">
-                                <Text className="text-sm text-neutral-950">Instructions *</Text>
-                                <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
-                                        <Box className="flex-row items-start space-x-3">
-                                                <Text className="text-neutral-400 mt-3">1.</Text>
-                                                <TextInputField
-                                                        placeholder="Add step"
-                                                        multiline
-                                                        numberOfLines={2}
-                                                />
-                                        </Box>
-                                        <TouchableOpacity className="flex-row items-center justify-center py-2">
-                                                <Text className="text-primary-500">+ Add Step</Text>
-                                        </TouchableOpacity>
+                                <Box style={{ width: 80 }}>
+                                    <TextInputField
+                                        placeholder="Amt"
+                                        value={ing.amount}
+                                        onChangeText={(t) => updateIngredient(ing.id, { amount: t })}
+                                        keyboardType="numeric"
+                                    />
                                 </Box>
-                        </Box>
 
-                        {/* Difficulty */}
-                        <Box className="space-y-2">
-                                <Text className="text-sm text-neutral-950">Difficulty</Text>
-                                <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                                        <DifficultySelector
-                                                selected={selectedDifficulty}
-                                                onChange={setSelectedDifficulty}
-                                        />
+                                <Box style={{ width: 100 }}>
+                                    <TouchableOpacity className="p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center" onPress={() => {
+                                        const nextIndex = (UNITS.indexOf(ing.unit) + 1) % UNITS.length;
+                                        updateIngredient(ing.id, { unit: UNITS[nextIndex] });
+                                    }}>
+                                        <Text className="text-neutral-600">{ing.unit}</Text>
+                                        <Text>▼</Text>
+                                    </TouchableOpacity>
                                 </Box>
-                        </Box>
 
-                        {/* Share With */}
-                        <Box className="bg-white p-4 rounded-xl border border-gray-200">
-                                <Text className="text-sm text-neutral-950 mb-3">Share With</Text>
-                                <Box className="space-y-2">
-                                        <RadioOption
-                                                selected={shareWith === 'private'}
-                                                onPress={() => setShareWith('private')}
-                                                icon="👤"
-                                                title="Just Me"
-                                                description="Only visible on your profile"
-                                        />
-                                        <RadioOption
-                                                selected={shareWith === 'friends'}
-                                                onPress={() => setShareWith('friends')}
-                                                icon="👥"
-                                                title="All Friends"
-                                                description="Share on feed with all friends"
-                                        />
-                                </Box>
+                                <TouchableOpacity onPress={() => removeIngredient(ing.id)} className="ml-2 p-2">
+                                    <Text className="text-red-500">✕</Text>
+                                </TouchableOpacity>
+                            </Box>
                         </Box>
+                    ))}
 
-                        {/* Submit Button */}
-                        <PrimaryButton title="Create Recipe" onPress={() => console.log('Create recipe')} />
+                    <TouchableOpacity
+                        className="flex-row items-center justify-center py-2 mt-2"
+                        onPress={addIngredient}
+                    >
+                        <Text className="text-primary-500">+ Add Ingredient</Text>
+                    </TouchableOpacity>
                 </Box>
-        );
+            </Box>
+
+            {/* Instructions */}
+            <Box className="space-y-2">
+                <Text className="text-sm text-neutral-950">Instructions *</Text>
+                <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
+                    {instructions.length === 0 && (
+                        <Box className="px-2 py-4">
+                            <Text className="text-neutral-500">No steps yet. Add one below.</Text>
+                        </Box>
+                    )}
+
+                    {instructions.map((step, index) => (
+                        <Box key={step.id} className="flex-row items-start space-x-3">
+                            <Text className="text-neutral-400 mt-3">{index + 1}.</Text>
+                            <Box className="flex-1">
+                                <TextInputField
+                                    placeholder="Describe this step"
+                                    multiline
+                                    numberOfLines={2}
+                                    value={step.text}
+                                    onChangeText={(t) => updateStep(step.id, t)}
+                                />
+                            </Box>
+                            <TouchableOpacity onPress={() => removeStep(step.id)} className="mt-3 p-2">
+                                <Text className="text-red-500">✕</Text>
+                            </TouchableOpacity>
+                        </Box>
+                    ))}
+
+                    <TouchableOpacity
+                        className="flex-row items-center justify-center py-2 mt-2"
+                        onPress={addStep}
+                        disabled={instructions.length >= MAX_STEPS}
+                    >
+                        <Text className={instructions.length >= MAX_STEPS ? "text-neutral-300" : "text-primary-500"}>
+                            + Add Step {instructions.length >= MAX_STEPS && `(max ${MAX_STEPS})`}
+                        </Text>
+                    </TouchableOpacity>
+                </Box>
+            </Box>
+
+            {/* Difficulty */}
+            <Box className="space-y-2">
+                <Text className="text-sm text-neutral-950">Difficulty</Text>
+                <Box className="bg-white p-4 rounded-xl border border-gray-200">
+                    <DifficultySelector
+                        selected={selectedDifficulty}
+                        onChange={setSelectedDifficulty}
+                    />
+                </Box>
+            </Box>
+
+            {/* Submit Button */}
+            <PrimaryButton
+                title={isUploading ? 'Creating Recipe...' : 'Create Recipe'}
+                onPress={handleCreateRecipe}
+                disabled={!canSubmit || isUploading}
+            />
+            {!canSubmit && !isUploading && (
+                <Text className="text-sm text-red-500 mt-2">
+                    Please complete all required fields: unique name, photo, at least one ingredient with amount, and at least one instruction step.
+                </Text>
+            )}
+        </Box>
+    );
 };
 
 export default RecipeView;

@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string | null
+          difficulty: Database["public"]["Enums"]["difficulty"]
           id: string
           image_url: string | null
           ingredients: Json | null
@@ -29,6 +30,7 @@ export type Database = {
         Insert: {
           created_at?: string
           creator_id?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty"]
           id?: string
           image_url?: string | null
           ingredients?: Json | null
@@ -40,6 +42,7 @@ export type Database = {
         Update: {
           created_at?: string
           creator_id?: string | null
+          difficulty?: Database["public"]["Enums"]["difficulty"]
           id?: string
           image_url?: string | null
           ingredients?: Json | null
@@ -64,30 +67,33 @@ export type Database = {
           cocktail_id: string | null
           created_at: string
           id: string
-          is_public: boolean | null
+          image_url: string | null
           location_id: string | null
           rating: number | null
           user_id: string
+          visibility: Database["public"]["Enums"]["log_permissions"] | null
         }
         Insert: {
           caption?: string | null
           cocktail_id?: string | null
           created_at?: string
           id?: string
-          is_public?: boolean | null
+          image_url?: string | null
           location_id?: string | null
           rating?: number | null
           user_id: string
+          visibility?: Database["public"]["Enums"]["log_permissions"] | null
         }
         Update: {
           caption?: string | null
           cocktail_id?: string | null
           created_at?: string
           id?: string
-          is_public?: boolean | null
+          image_url?: string | null
           location_id?: string | null
           rating?: number | null
           user_id?: string
+          visibility?: Database["public"]["Enums"]["log_permissions"] | null
         }
         Relationships: [
           {
@@ -106,6 +112,81 @@ export type Database = {
           },
           {
             foreignKeyName: "DrinkLog_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      DrinkLogComment: {
+        Row: {
+          content: string
+          created_at: string | null
+          drink_log_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          drink_log_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          drink_log_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "DrinkLogComment_drink_log_id_fkey"
+            columns: ["drink_log_id"]
+            isOneToOne: false
+            referencedRelation: "DrinkLog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "DrinkLogComment_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      DrinkLogLike: {
+        Row: {
+          created_at: string | null
+          drink_log_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          drink_log_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          drink_log_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "DrinkLogLike_drink_log_id_fkey"
+            columns: ["drink_log_id"]
+            isOneToOne: false
+            referencedRelation: "DrinkLog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "DrinkLogLike_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "Profile"
@@ -254,6 +335,7 @@ export type Database = {
           id: string
           image_url: string | null
           name: string | null
+          rating: number | null
           street_name: string | null
           street_nr: string | null
         }
@@ -265,6 +347,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           name?: string | null
+          rating?: number | null
           street_name?: string | null
           street_nr?: string | null
         }
@@ -276,25 +359,62 @@ export type Database = {
           id?: string
           image_url?: string | null
           name?: string | null
+          rating?: number | null
           street_name?: string | null
           street_nr?: string | null
         }
         Relationships: []
       }
-      ping: {
+      Notification: {
         Row: {
+          actor_id: string | null
+          created_at: string
+          drink_log_id: string | null
+          friendship_id: string | null
           id: string
-          msg: string
+          is_read: boolean
+          message: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
         }
         Insert: {
+          actor_id?: string | null
+          created_at?: string
+          drink_log_id?: string | null
+          friendship_id?: string | null
           id?: string
-          msg?: string
+          is_read?: boolean
+          message?: string | null
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
         }
         Update: {
+          actor_id?: string | null
+          created_at?: string
+          drink_log_id?: string | null
+          friendship_id?: string | null
           id?: string
-          msg?: string
+          is_read?: boolean
+          message?: string | null
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "Notification_drink_log_id_fkey"
+            columns: ["drink_log_id"]
+            isOneToOne: false
+            referencedRelation: "DrinkLog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Notification_friendship_id_fkey"
+            columns: ["friendship_id"]
+            isOneToOne: false
+            referencedRelation: "Friendship"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       Profile: {
         Row: {
@@ -358,11 +478,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      ingredient_usage: {
+        Args: { p_limit?: number }
+        Returns: {
+          count: number
+          name: string
+        }[]
+      }
     }
     Enums: {
       cocktail_origin: "system" | "user"
+      difficulty: "easy" | "medium" | "hard"
       friendship_status: "pending" | "accepted" | "declined" | "blocked"
+      log_permissions: "private" | "public" | "friends" | "only_me"
+      notification_type:
+        | "like"
+        | "comment"
+        | "friend_request"
+        | "friend_accepted"
+        | "close_friend_post"
       registration_status: "registered" | "cancelled" | "waitlisted"
     }
     CompositeTypes: {
@@ -492,7 +626,16 @@ export const Constants = {
   public: {
     Enums: {
       cocktail_origin: ["system", "user"],
+      difficulty: ["easy", "medium", "hard"],
       friendship_status: ["pending", "accepted", "declined", "blocked"],
+      log_permissions: ["private", "public", "friends", "only_me"],
+      notification_type: [
+        "like",
+        "comment",
+        "friend_request",
+        "friend_accepted",
+        "close_friend_post",
+      ],
       registration_status: ["registered", "cancelled", "waitlisted"],
     },
   },
