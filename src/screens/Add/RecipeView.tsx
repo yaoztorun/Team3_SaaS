@@ -62,6 +62,20 @@ const RecipeView: React.FC<RecipeViewProps> = ({
         setIngredients(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i));
     };
 
+    const handleIngredientNameChange = (id: string, text: string) => {
+        // Only allow letters (including accented characters) and spaces
+        const sanitized = text.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+        updateIngredient(id, { name: sanitized });
+        setNameQueryByIndex(q => ({ ...q, [id]: sanitized }));
+        setSuggestionsVisibleByIndex(s => ({ ...s, [id]: true }));
+    };
+
+    const handleIngredientAmountChange = (id: string, text: string) => {
+        // Only allow numbers and decimal point
+        const sanitized = text.replace(/[^0-9.]/g, '');
+        updateIngredient(id, { amount: sanitized });
+    };
+
     const removeIngredient = (id: string) => {
         setIngredients(prev => prev.filter(i => i.id !== id));
         setNameQueryByIndex(q => { const copy = { ...q }; delete copy[id]; return copy; });
@@ -259,11 +273,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                                     <TextInputField
                                         placeholder="Ingredient"
                                         value={ing.name}
-                                        onChangeText={(t) => {
-                                            updateIngredient(ing.id, { name: t });
-                                            setNameQueryByIndex(q => ({ ...q, [ing.id]: t }));
-                                            setSuggestionsVisibleByIndex(s => ({ ...s, [ing.id]: true }));
-                                        }}
+                                        onChangeText={(t) => handleIngredientNameChange(ing.id, t)}
                                         onFocus={() => setSuggestionsVisibleByIndex(s => ({ ...s, [ing.id]: true }))}
                                     />
                                     {suggestionsVisibleByIndex[ing.id] && (
@@ -290,7 +300,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                                     <TextInputField
                                         placeholder="Amt"
                                         value={ing.amount}
-                                        onChangeText={(t) => updateIngredient(ing.id, { amount: t })}
+                                        onChangeText={(t) => handleIngredientAmountChange(ing.id, t)}
                                         keyboardType="numeric"
                                     />
                                 </Box>
