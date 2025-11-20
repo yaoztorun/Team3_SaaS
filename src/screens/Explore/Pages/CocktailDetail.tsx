@@ -68,9 +68,9 @@ export const CocktailDetail = () => {
     const getDifficultyColor = (difficulty: string) => {
         switch (difficulty.toLowerCase()) {
             case 'easy': return { bg: '#d1fae5', text: '#065f46', border: '#10b981' };
-            case 'medium': return { bg: '#cbfbf1', text: '#00786f', border: '#00bba7' };
+            case 'medium': return { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' };
             case 'hard': return { bg: '#fee2e2', text: '#991b1b', border: '#ef4444' };
-            default: return { bg: '#cbfbf1', text: '#00786f', border: '#00bba7' };
+            default: return { bg: '#dbeafe', text: '#1e40af', border: '#3b82f6' };
         }
     };
 

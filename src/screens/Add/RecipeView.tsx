@@ -10,6 +10,7 @@ import {
 } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import uploadImageUri from '@/src/utils/storage';
+import { fetchIngredientUsage } from '@/src/api/cocktail';
 
 interface RecipeViewProps {
     handleCameraPress: () => void;
@@ -34,15 +35,10 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
     const MAX_STEPS = 20;
 
-    // Default suggestions (fallback). Can be expanded or loaded from API.
-    const DEFAULT_INGREDIENT_SUGGESTIONS = [
-        'Gin', 'Vodka', 'White Rum', 'Tequila', 'Bourbon', 'Triple Sec', 'Cointreau', 'Sweet Vermouth', 'Dry Vermouth',
-        'Sugar Syrup', 'Simple Syrup', 'Lime Juice', 'Lemon Juice', 'Mint', 'Angostura Bitters', 'Orange Bitters',
-        'Orange Peel', 'Salt', 'Sugar', 'Egg White', 'Campari', 'Aperol', 'Ginger Beer', 'Tonic Water', 'Soda Water',
-        'Tomato Juice', 'Tabasco', 'Worcestershire Sauce', 'Pineapple Juice', 'Coconut Cream', 'Coconut Milk', 'Coffee Liqueur'
-    ];
-
     const UNITS = ['ml', 'oz', 'tsp', 'tbsp', 'dash', 'slice', 'piece', 'to taste'];
+
+    // Ingredient suggestions loaded from database
+    const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
 
     const [recipeName, setRecipeName] = useState('');
     const [isCheckingName, setIsCheckingName] = useState(false);
@@ -83,10 +79,25 @@ const RecipeView: React.FC<RecipeViewProps> = ({
     };
 
     const filteredSuggestions = (query: string) => {
-        if (!query) return DEFAULT_INGREDIENT_SUGGESTIONS.slice(0, 8);
+        if (!query) return ingredientSuggestions.slice(0, 5);
         const q = query.toLowerCase();
-        return DEFAULT_INGREDIENT_SUGGESTIONS.filter(s => s.toLowerCase().includes(q)).slice(0, 8);
+        return ingredientSuggestions.filter(s => s.toLowerCase().includes(q)).slice(0, 8);
     };
+
+    // Load ingredient suggestions from database on mount
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            const data = await fetchIngredientUsage(500);
+            if (!mounted) return;
+            // Capitalize first letter of each ingredient name for display
+            const names = data.map(item =>
+                item.name.charAt(0).toUpperCase() + item.name.slice(1)
+            );
+            setIngredientSuggestions(names);
+        })();
+        return () => { mounted = false; };
+    }, []);
 
     const addStep = () => {
         if (instructions.length >= MAX_STEPS) return;
@@ -211,6 +222,15 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
             // Success - notify parent to show modal and clear form
             onRecipeCreated();
+
+            // Clear all form fields
+            setRecipeName('');
+            setIngredients([]);
+            setInstructions([]);
+            setNameQueryByIndex({});
+            setSuggestionsVisibleByIndex({});
+            setNameExists(false);
+            setIsCheckingName(false);
 
         } catch (error) {
             console.error('Unexpected error creating recipe:', error);
