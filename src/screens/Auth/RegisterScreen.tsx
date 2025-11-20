@@ -41,6 +41,11 @@ const RegisterScreen: React.FC = () => {
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+                data: {
+                    full_name: name,
+                }
+            }
         });
 
         if(error) {
