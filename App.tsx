@@ -7,11 +7,13 @@ import { useAuth } from './src/hooks/useAuth';
 import { View, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
 import '@/global.css';
 import {colors} from '@/src/theme/colors';
+import { initAnalytics } from './src/analytics';
 
 // Maximum width for the app content (similar to mobile screen width)
 const MAX_CONTENT_WIDTH = 480; // ~iPhone 14 Pro Max width
 
 export default function App() {
+  initAnalytics();
   const { user, loading } = useAuth();
   const { width } = useWindowDimensions();
 

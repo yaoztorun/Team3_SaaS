@@ -11,6 +11,7 @@ import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
 import { spacing } from '@/src/theme/spacing';
+import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -30,9 +31,28 @@ const LoginScreen: React.FC = () => {
             email,
             password,
         });
-        if (error) setMessage(error.message);
-        else {
+        if (error) {
+            setMessage(error.message);
+            posthogCapture(ANALYTICS_EVENTS.LOGIN_COMPLETED, {
+                method: 'email',
+                success: false,
+                error: error.message,
+            });
+        } else {
             setMessage('Successfully logged in! Redirecting...');
+            
+            // Identify user and track login
+            if (data.user) {
+                identifyUser(data.user.id, {
+                    email: data.user.email,
+                    last_login: new Date().toISOString(),
+                });
+                
+                trackWithTTFA(ANALYTICS_EVENTS.LOGIN_COMPLETED, {
+                    method: 'email',
+                });
+            }
+            
             setTimeout(() => setMessage(null), 2000);
         }
     };
@@ -42,13 +62,24 @@ const LoginScreen: React.FC = () => {
     };
 
     const handleGoogleLogin = async () => {
+        posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+            method: 'google',
+        });
+        
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
             redirectTo: window.location.origin,
             },
         });
-        if (error) setMessage(error.message);
+        if (error) {
+            setMessage(error.message);
+            posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+                method: 'google',
+                success: false,
+                error: error.message,
+            });
+        }
     };
 
 
