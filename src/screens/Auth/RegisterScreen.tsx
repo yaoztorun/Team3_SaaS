@@ -11,6 +11,7 @@ import { AuthStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
+import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
 
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -31,6 +32,12 @@ const RegisterScreen: React.FC = () => {
             return;
         }
 
+        // Track signup started
+        posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+            method: 'email',
+        });
+
+        // TODO: Add name, picture, etc. to user profile registration (supabase: raw_user_metadata?)
         const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -43,7 +50,27 @@ const RegisterScreen: React.FC = () => {
 
         if(error) {
             setMessage(error.message);
+            // Track failed signup
+            posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+                method: 'email',
+                success: false,
+                error: error.message,
+            });
             return;
+        }
+
+        // Track successful signup
+        if (data.user) {
+            identifyUser(data.user.id, {
+                email: data.user.email,
+                name: name || undefined,
+                created_at: new Date().toISOString(),
+            });
+            
+            trackWithTTFA(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+                method: 'email',
+                has_name: !!name,
+            });
         }
 
         setMessage('Registration successful! Please check your email to verify your account.');

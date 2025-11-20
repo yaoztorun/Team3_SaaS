@@ -15,6 +15,7 @@ import fetchLocations from '@/src/api/location';
 import { fetchCocktails } from '@/src/api/cocktail';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { colors } from '@/src/theme/colors';
+import { ANALYTICS_EVENTS, posthogCapture, trackWithTTFA } from '@/src/analytics';
 
 type ViewType = 'log' | 'recipe';
 
@@ -120,6 +121,34 @@ export const AddScreen = () => {
                 console.error('Insert error', insertError);
                 alert('Saved image but failed to create log entry. See console.');
                 return;
+            }
+
+            // Check if this is the user's first cocktail log (for activation tracking)
+            const { count } = await supabase
+                .from('DrinkLog')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id);
+
+            const isFirstLog = count === 1;
+
+            // Track cocktail logged event
+            if (isFirstLog) {
+                trackWithTTFA(ANALYTICS_EVENTS.FIRST_COCKTAIL_LOGGED, {
+                    cocktail_id: selectedCocktailId,
+                    has_photo: !!uploadedUrl,
+                    rating: rating,
+                    visibility: shareWith,
+                    location_type: isAtHome ? 'home' : 'bar',
+                });
+            } else {
+                posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                    feature: 'cocktail_logged',
+                    cocktail_id: selectedCocktailId,
+                    has_photo: !!uploadedUrl,
+                    rating: rating,
+                    visibility: shareWith,
+                    location_type: isAtHome ? 'home' : 'bar',
+                });
             }
 
             // show confirmation modal and clear form
