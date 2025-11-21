@@ -154,7 +154,7 @@ const LoginScreen: React.FC = () => {
                     />
 
                     {/* Forgot Password */}
-                    <Pressable className="mt-6 mb-4">
+                    <Pressable className="mt-6 mb-4" onPress={() => navigation.navigate('ForgotPassword')}>
                         <Text className="text-center text-primary-500 font-medium">
                             Forgot Password?
                         </Text>

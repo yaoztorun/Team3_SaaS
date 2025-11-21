@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { ScrollView, TouchableOpacity, Image, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { MapPin, Star } from 'lucide-react-native';
 import { fetchLocations } from '@/src/api/location';
@@ -96,7 +96,7 @@ export const BestBars = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title="Best Bars" />
+            <TopBar title="Best Bars" showBack onBackPress={() => navigation.goBack()} />
             <Box className="px-4 pt-4 pb-2">
                 <SearchBar 
                     value={searchQuery}
