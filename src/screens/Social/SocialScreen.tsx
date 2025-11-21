@@ -177,7 +177,7 @@ export const SocialScreen = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Social" streakCount={12} cocktailCount={47} />
+            <TopBar title="Social" />
             
             {/* View Toggle */}
             <Box className="bg-[#F3F4F6] p-4">

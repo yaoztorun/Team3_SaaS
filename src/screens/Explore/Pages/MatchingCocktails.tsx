@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ScrollView, TouchableOpacity, Image, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { fetchCocktails } from '@/src/api/cocktail';
 import { Cocktail } from '@/src/types/cocktail';
@@ -42,7 +42,7 @@ export const MatchingCocktails = () => {
             setLoading(true);
             try {
                 const data = await fetchCocktails();
-                if (mounted) setCocktails(data);
+                if (mounted) setCocktails(data as any);
             } catch (e) {
                 console.warn('Failed to load cocktails', e);
             } finally {
@@ -106,8 +106,9 @@ export const MatchingCocktails = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title="Matching Cocktails" />
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
+            <TopBar title="Matching Cocktails" showBack onBackPress={() => navigation.goBack()} />
+            <Box className="flex-1">
+                <ScrollView contentContainerStyle={{ padding: 16 }}>
                 {loading && (
                     <Text className="text-gray-600 mb-4">Loading cocktails...</Text>
                 )}
@@ -158,7 +159,8 @@ export const MatchingCocktails = () => {
                         </TouchableOpacity>
                     );
                 })}
-            </ScrollView>
+                </ScrollView>
+            </Box>
         </Box>
     );
 };
