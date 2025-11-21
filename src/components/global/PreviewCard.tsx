@@ -65,7 +65,7 @@ export const PreviewCard = ({
         return (
             <Pressable
                 onPress={onPress}
-                className="w-32 bg-white border-2 border-[#00bba7] rounded-2xl p-3"
+                className="w-32 h-32 bg-white border-2 border-[#00bba7] rounded-2xl p-3"
             >
                 <Text className="text-3xl mb-2">{emoji}</Text>
                 <Text className="text-xs text-neutral-900 mb-2" numberOfLines={2}>

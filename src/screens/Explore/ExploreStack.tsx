@@ -11,6 +11,7 @@ import { UpcomingEvents } from './Pages/UpcomingEvents';
 import { Shop } from './Pages/Shop';
 import { CocktailDetail } from './Pages/CocktailDetail';
 import { BarDetail } from './Pages/BarDetail';
+import { ItemDetail } from './Pages/ItemDetail';
 import { globalScreenOptions } from '@/src/theme/navigationTransitions';
 
 const Stack = createStackNavigator();
@@ -28,6 +29,7 @@ export const ExploreStack = () => {
       <Stack.Screen name="BarDetail" component={BarDetail} />
       <Stack.Screen name="UpcomingEvents" component={UpcomingEvents} />
       <Stack.Screen name="Shop" component={Shop} />
+      <Stack.Screen name="ItemDetail" component={ItemDetail} />
     </Stack.Navigator>
   );
 };
