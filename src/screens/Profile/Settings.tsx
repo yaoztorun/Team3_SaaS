@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ScrollView, Modal, View } from 'react-native';
+import { ScrollView, Modal, View, Linking } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { spacing } from '@/src/theme/spacing';
 import { Text } from '@/src/components/ui/text';
@@ -199,6 +199,27 @@ const Settings: React.FC = () => {
                             {logoutMessage}
                         </Text>
                     )}
+                </Box>
+
+                {/* Credits */}
+                <Box className="mb-6 bg-white rounded-2xl p-4">
+                    <Text className="text-base text-neutral-900 mb-3">Credits</Text>
+                    <Text className="text-xs text-neutral-600 leading-5">
+                        Icons made by{' '}
+                        <Text 
+                            className="text-xs text-teal-500 underline"
+                            onPress={() => Linking.openURL('https://www.flaticon.com/authors/rudiyana')}
+                        >
+                            Rudiyana
+                        </Text>
+                        {' '}from{' '}
+                        <Text 
+                            className="text-xs text-teal-500 underline"
+                            onPress={() => Linking.openURL('https://www.flaticon.com/')}
+                        >
+                            www.flaticon.com
+                        </Text>
+                    </Text>
                 </Box>
 
                 <PrimaryButton

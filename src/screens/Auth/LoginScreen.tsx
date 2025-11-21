@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -96,19 +96,14 @@ const LoginScreen: React.FC = () => {
             <Box className="p-6">
                 {/* Logo and Welcome Text */}
                 <Box className="items-center">
-                    {/* logo.png not present in repo; using a simple placeholder */}
-                    <Box
+                    <Image
+                        source={require('../../../assets/icon.png')}
                         style={{
                             width: 120,
                             height: 120,
-                            borderRadius: 60,
-                            backgroundColor: '#f3f4f6',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            resizeMode: 'contain',
                         }}
-                    >
-                        <Text className="text-3xl font-bold text-primary-500">P</Text>
-                    </Box>
+                    />
                     <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
                         Welcome Back!
                     </Text>
