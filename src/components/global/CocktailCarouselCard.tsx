@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, StyleSheet } from 'react-native';
+import { Image, StyleSheet, Pressable } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import type { ImageSourcePropType } from 'react-native';
@@ -8,49 +8,92 @@ type Props = {
   name: string;
   image: ImageSourcePropType;
   isCenter: boolean;
+  onPress?: () => void;
 };
 
 export const CocktailCarouselCard: React.FC<Props> = ({
   name,
   image,
   isCenter,
+  onPress,
 }) => {
   return (
-    <Box
-      style={[
-        styles.card,
-        !isCenter && styles.cardSide,
-      ]}
-      className="items-center justify-center bg-white rounded-3xl"
-    >
-      <Image source={image} style={styles.image} resizeMode="contain" />
-      <Text
-        className="mt-3 text-base font-semibold text-neutral-900"
-        numberOfLines={1}
+    <Pressable onPress={onPress}>
+      <Box
+        className="items-center bg-white rounded-3xl overflow-hidden"
+        style={[
+          styles.card,
+          !isCenter && styles.cardSide,
+          isCenter && styles.cardCenter,
+        ]}
       >
-        {name}
-      </Text>
-    </Box>
+        {/* Image Container with fixed aspect ratio */}
+        <Box style={styles.imageContainer}>
+          <Image 
+            source={image} 
+            style={styles.image} 
+            resizeMode="contain"
+          />
+          {/* Gradient overlay */}
+          <Box style={styles.gradientOverlay} />
+        </Box>
+        
+        {/* Title */}
+        <Box style={styles.titleContainer}>
+          <Text
+            className="text-lg font-bold text-neutral-900"
+            numberOfLines={1}
+          >
+            {name}
+          </Text>
+        </Box>
+      </Box>
+    </Pressable>
   );
 };
 
 const styles = StyleSheet.create({
   card: {
-    paddingVertical: 32,
-    paddingHorizontal: 12,
-    opacity: 1,
-    // Figma look: subtle shadow & bigger scale for center card
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowOffset: { width: 0, height: 6 },
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  cardCenter: {
+    borderWidth: 2,
+    borderColor: '#14b8a6', // primary-500
+    transform: [{ scale: 1 }],
+    opacity: 1,
+    shadowOpacity: 0.2,
   },
   cardSide: {
-    opacity: 0.25, // this matches the side cards in Figma frames
+    opacity: 0.6,
+    transform: [{ scale: 0.92 }],
+  },
+  imageContainer: {
+    width: '100%',
+    height: 280,
+    backgroundColor: '#f3f4f6',
+    position: 'relative',
+    overflow: 'hidden',
   },
   image: {
-    width: 140, // tune with Figma values if you want
-    height: 220,
+    width: '100%',
+    height: '100%',
+    padding: 16,
+  },
+  gradientOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+  },
+  titleContainer: {
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
   },
 });

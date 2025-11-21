@@ -4,7 +4,9 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  Dimensions,
 } from 'react-native';
+import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Center } from '@/src/components/ui/center';
@@ -19,6 +21,7 @@ import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile } from '@/src/api/profile';
 import type { Profile } from '@/src/types/profile';
 import { supabase } from '@/src/lib/supabase';
+import { fetchUserStats, UserStats } from '@/src/api/stats';
 
 type View = 'logged-drinks' | 'stats';
 
@@ -76,6 +79,10 @@ export const ProfileScreen = () => {
   const [recentDrinks, setRecentDrinks] = useState<RecentDrink[]>([]);
   const [loadingDrinks, setLoadingDrinks] = useState(false);
   const [drinksError, setDrinksError] = useState<string | null>(null);
+  
+  // stats state
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   const loadProfile = async () => {
     if (user?.id) {
@@ -83,6 +90,15 @@ export const ProfileScreen = () => {
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
       setLoadingProfile(false);
+    }
+  };
+
+  const loadStats = async () => {
+    if (user?.id) {
+      setLoadingStats(true);
+      const stats = await fetchUserStats(user.id);
+      setUserStats(stats);
+      setLoadingStats(false);
     }
   };
 
@@ -146,25 +162,11 @@ export const ProfileScreen = () => {
     React.useCallback(() => {
       loadProfile();
       loadRecentDrinks();
-    }, [user]),
+      loadStats();
+    }, [user?.id])
   );
 
-  // Dummy stats (UI only for now)
-  const userStats = {
-    drinksLogged: 47,
-    avgRating: 4.1,
-    barsVisited: 12,
-    popularCocktail: {
-      name: 'Mai Tai',
-      count: 15,
-    },
-    cocktailBreakdown: [
-      { name: 'Mai Tai', count: 12, color: '#F6339A' },
-      { name: 'Mojito', count: 10, color: '#AD46FF' },
-      { name: 'Margarita', count: 8, color: '#FF6900' },
-      { name: 'Others', count: 17, color: '#F0B100' },
-    ],
-  };
+
 
   return (
     <Box className="flex-1 bg-neutral-50">
@@ -351,7 +353,7 @@ export const ProfileScreen = () => {
               <HStack className="justify-between">
                 <Box className="items-center">
                   <Text className="text-3xl text-teal-500 font-semibold">
-                    {userStats.drinksLogged}
+                    {userStats?.drinksLogged || 0}
                   </Text>
                   <Text className="text-xs text-neutral-500">
                     Drinks Logged
@@ -359,7 +361,7 @@ export const ProfileScreen = () => {
                 </Box>
                 <Box className="items-center">
                   <Text className="text-3xl text-red-500 font-semibold">
-                    {userStats.avgRating}
+                    {userStats?.avgRating || 0}
                   </Text>
                   <Text className="text-xs text-neutral-500">
                     Avg Rating
@@ -367,7 +369,7 @@ export const ProfileScreen = () => {
                 </Box>
                 <Box className="items-center">
                   <Text className="text-3xl text-blue-500 font-semibold">
-                    {userStats.barsVisited}
+                    {userStats?.barsVisited || 0}
                   </Text>
                   <Text className="text-xs text-neutral-500">
                     Bars Visited
@@ -376,33 +378,88 @@ export const ProfileScreen = () => {
               </HStack>
             </Box>
 
-            {/* Most Popular Cocktail */}
-            <Box className="bg-gradient-to-r from-teal-500 to-teal-600 rounded-2xl p-6 mb-4">
-              <Text className="text-base text-white mb-2">
-                Most Popular Cocktail
-              </Text>
-              <HStack className="items-center">
-                <Text className="text-4xl mr-3">🍹</Text>
-                <Box>
-                  <Text className="text-xl text-white">
-                    {userStats.popularCocktail.name}
-                  </Text>
-                  <Text className="text-sm text-white opacity-90">
-                    Logged {userStats.popularCocktail.count} times
-                  </Text>
-                </Box>
-              </HStack>
-            </Box>
+            {/* Top Cocktails */}
+            {userStats?.topCocktails && userStats.topCocktails.length > 0 && (
+              <Box className="bg-white rounded-2xl p-4 mb-4">
+                <Text className="text-base text-neutral-900 mb-3">
+                  Most Popular
+                </Text>
+                {userStats.topCocktails.map((cocktail, index) => (
+                  <Box
+                    key={index}
+                    className="flex-row items-center justify-between py-3 border-b border-neutral-100 last:border-b-0"
+                  >
+                    <HStack className="items-center flex-1">
+                      <Box className="w-8 h-8 rounded-full bg-teal-500 items-center justify-center mr-3">
+                        <Text className="text-white font-semibold">
+                          {index + 1}
+                        </Text>
+                      </Box>
+                      <Text className="text-sm text-neutral-900 flex-1" numberOfLines={1}>
+                        {cocktail.name}
+                      </Text>
+                    </HStack>
+                    <Box className="bg-teal-50 px-3 py-1 rounded-full ml-2">
+                      <Text className="text-sm text-teal-600 font-medium">
+                        {cocktail.count}x
+                      </Text>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            )}
 
             {/* Rating Trend */}
             <Box className="bg-white rounded-2xl p-4 mb-4">
-              <HStack className="justify-between items-center mb-4">
-                <Text className="text-base text-neutral-900">
-                  Rating Trend
-                </Text>
-                <Box className="h-5 w-5 bg-neutral-100 rounded-full" />
-              </HStack>
-              <Box className="h-48 bg-neutral-50 rounded-lg mb-2" />
+              <Text className="text-base text-neutral-900 mb-4">
+                Rating Trend
+              </Text>
+              {userStats?.ratingTrend && userStats.ratingTrend.some(item => item.count > 0) ? (
+                <Box className="items-center justify-center -ml-8">
+                  <LineChart
+                    data={{
+                      labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+                      datasets: [{
+                        data: userStats.ratingTrend.map(item => item.count),
+                      }],
+                    }}
+                    width={360}
+                    height={220}
+                    yAxisLabel=""
+                    yAxisSuffix=""
+                    chartConfig={{
+                      backgroundColor: '#ffffff',
+                      backgroundGradientFrom: '#ffffff',
+                      backgroundGradientTo: '#ffffff',
+                      decimalPlaces: 0,
+                      color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
+                      labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                      propsForDots: {
+                        r: '3',
+                        strokeWidth: '2',
+                        stroke: '#60A5FA',
+                      },
+                    }}
+                    bezier
+                    style={{
+                      marginVertical: 8,
+                      borderRadius: 16,
+                      marginLeft: -40,
+                    }}
+                    withDots={true}
+                    withInnerLines={false}
+                    withOuterLines={false}
+                    withVerticalLines={false}
+                    withHorizontalLines={false}
+                    withShadow={false}
+                    segments={4}
+                  />
+                </Box>
+              ) : (
+                <Box className="h-48 items-center justify-center">
+                  <Text className="text-gray-400">No rating data yet</Text>
+                </Box>
+              )}
             </Box>
 
             {/* Cocktail Breakdown */}
@@ -410,25 +467,50 @@ export const ProfileScreen = () => {
               <Text className="text-lg text-neutral-900 mb-4">
                 Cocktail Breakdown
               </Text>
-              <Box className="items-center justify-center mb-4">
-                <Box className="h-48 w-48 bg-neutral-50 rounded-full" />
-              </Box>
-              <Box className="flex-row flex-wrap">
-                {userStats.cocktailBreakdown.map((item, index) => (
-                  <Box
-                    key={index}
-                    className="w-1/2 flex-row items-center mb-2 pr-2"
-                  >
-                    <Box
-                      style={{ backgroundColor: item.color }}
-                      className="h-4 w-4 rounded-full mr-2"
+              {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 ? (
+                <>
+                  <Box className="items-center justify-center mb-4">
+                    <PieChart
+                      data={userStats.cocktailBreakdown.map(item => ({
+                        name: item.name,
+                        population: item.count,
+                        color: item.color,
+                        legendFontColor: '#374151',
+                        legendFontSize: 12,
+                      }))}
+                      width={260}
+                      height={200}
+                      chartConfig={{
+                        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                      }}
+                      accessor="population"
+                      backgroundColor="transparent"
+                      paddingLeft="60"
+                      hasLegend={false}
                     />
-                    <Text className="text-sm text-neutral-900">
-                      {item.name} - {item.count}
-                    </Text>
                   </Box>
-                ))}
-              </Box>
+                  <Box className="flex-row flex-wrap">
+                    {userStats.cocktailBreakdown.map((item, index) => (
+                      <Box
+                        key={index}
+                        className="w-1/2 flex-row items-center mb-2 pr-2"
+                      >
+                        <Box
+                          style={{ backgroundColor: item.color }}
+                          className="h-4 w-4 rounded-full mr-2"
+                        />
+                        <Text className="text-sm text-neutral-900" numberOfLines={1}>
+                          {item.name} ({item.count})
+                        </Text>
+                      </Box>
+                    ))}
+                  </Box>
+                </>
+              ) : (
+                <Box className="h-48 items-center justify-center">
+                  <Text className="text-gray-400">No cocktail data yet</Text>
+                </Box>
+              )}
             </Box>
           </>
         )}
