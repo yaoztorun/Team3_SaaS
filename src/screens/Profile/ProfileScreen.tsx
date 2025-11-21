@@ -79,7 +79,7 @@ export const ProfileScreen = () => {
   const [recentDrinks, setRecentDrinks] = useState<RecentDrink[]>([]);
   const [loadingDrinks, setLoadingDrinks] = useState(false);
   const [drinksError, setDrinksError] = useState<string | null>(null);
-  
+
   // stats state
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
@@ -199,8 +199,8 @@ export const ProfileScreen = () => {
               {loadingProfile
                 ? 'Loading...'
                 : profile?.full_name ||
-                  user?.email?.split('@')[0] ||
-                  'User'}
+                user?.email?.split('@')[0] ||
+                'User'}
             </Text>
             <Text className="text-base text-neutral-600">
               {profile?.email || user?.email || 'Cocktail Enthusiast'}
