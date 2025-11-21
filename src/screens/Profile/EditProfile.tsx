@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile, updateProfile } from '@/src/api/profile';
+import { uploadProfileImage } from '@/src/api/storage';
 import type { Profile } from '@/src/types/profile';
 import { Center } from '@/src/components/ui/center';
 import { createCameraHandlers } from '@/src/utils/camera';
@@ -29,28 +30,8 @@ const EditProfile: React.FC = () => {
 
     const handleImageSelected = async (uri: string | null) => {
         if (uri) {
-            setUploading(true);
-            try {
-                // Convert to base64 for web, or keep URI for native
-                if (uri.startsWith('blob:') || uri.startsWith('file:')) {
-                    const response = await fetch(uri);
-                    const blob = await response.blob();
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const base64data = reader.result as string;
-                        setTempImageUri(base64data);
-                        setUploading(false);
-                    };
-                    reader.readAsDataURL(blob);
-                } else {
-                    setTempImageUri(uri);
-                    setUploading(false);
-                }
-            } catch (error) {
-                console.error('Error processing image:', error);
-                setTempImageUri(uri);
-                setUploading(false);
-            }
+            // Just store the URI temporarily - will upload when saving
+            setTempImageUri(uri);
         }
         setShowImagePicker(false);
     };
@@ -78,9 +59,22 @@ const EditProfile: React.FC = () => {
         if (!user?.id) return;
         
         setSaving(true);
+        let finalAvatarUrl = avatarUrl;
         
-        // Use temp image if available, otherwise keep existing avatar
-        const finalAvatarUrl = tempImageUri || avatarUrl;
+        // If user selected a new image, upload it to Storage first
+        if (tempImageUri) {
+            setUploading(true);
+            const uploadResult = await uploadProfileImage(user.id, tempImageUri);
+            setUploading(false);
+            
+            if (uploadResult.error) {
+                alert('Failed to upload image: ' + uploadResult.error);
+                setSaving(false);
+                return;
+            }
+            
+            finalAvatarUrl = uploadResult.url || avatarUrl;
+        }
         
         const result = await updateProfile(user.id, {
             full_name: fullName,

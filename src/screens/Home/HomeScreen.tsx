@@ -1,5 +1,4 @@
-// src/screens/HomeScreen.tsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   ActivityIndicator,
@@ -77,7 +76,8 @@ const formatTimeAgo = (isoDate: string) => {
   if (diffMinutes < 60) return `${diffMinutes} min ago`;
 
   const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffHours < 24)
+    return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
 
   const diffDays = Math.floor(diffHours / 24);
   if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
@@ -158,30 +158,30 @@ export const HomeScreen: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // comments modal state
+  // comments + post detail state
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [activePostId, setActivePostId] = useState<string | null>(null);
+  const [focusedPost, setFocusedPost] = useState<FeedPost | null>(null);
   const [commentsForPost, setCommentsForPost] = useState<CommentRow[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
-  const [lastDeletedComment, setLastDeletedComment] = useState<CommentRow | null>(null);
-
-  // feed scroll + mapping from postId -> y offset
-  const scrollRef = useRef<ScrollView | null>(null);
-  const [postPositions, setPostPositions] = useState<Record<string, number>>({});
-  const [highlightedPostId, setHighlightedPostId] = useState<string | null>(null);
+  const [lastDeletedComment, setLastDeletedComment] =
+    useState<CommentRow | null>(null);
 
   // carousel state
   const [activeIndex, setActiveIndex] = useState(0);
 
-  const handleCarouselScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+  const handleCarouselScroll = (
+    event: NativeSyntheticEvent<NativeScrollEvent>,
+  ) => {
     const offsetX = event.nativeEvent.contentOffset.x;
     const index = Math.round(offsetX / SNAP_INTERVAL);
     setActiveIndex(index);
   };
 
-  // load feed + likes + comment counts
+  // ---------- load feed + likes + comment counts ----------
+
   useEffect(() => {
     const loadFeed = async () => {
       try {
@@ -343,7 +343,8 @@ export const HomeScreen: React.FC = () => {
     loadFeed();
   }, [feedFilter, user]);
 
-  // like toggle
+  // ---------- like toggle ----------
+
   const handleToggleLike = async (postId: string) => {
     if (!user?.id) return;
 
@@ -372,7 +373,7 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  // ---------- comments modal helpers ----------
+  // ---------- comments + post detail helpers ----------
 
   const loadComments = async (postId: string) => {
     setCommentsLoading(true);
@@ -381,69 +382,35 @@ export const HomeScreen: React.FC = () => {
     setCommentsLoading(false);
   };
 
+  // open full-screen post detail (used by both feed + notifications)
   const openComments = async (postId: string) => {
     if (!user) {
       console.log('User not logged in, cannot comment');
       return;
     }
+
+    const post = feedPosts.find((p) => p.id === postId) ?? null;
+    setFocusedPost(post);
+
     setActivePostId(postId);
     setCommentsVisible(true);
     await loadComments(postId);
   };
 
-  // 🔔 When a notification is clicked in TopBar
+  // called from TopBar when a notification is tapped
   const handleNotificationSelect = (payload: {
     id: string;
     type: string;
     drinkLogId?: string | null;
   }) => {
-    console.log('HomeScreen: notification payload', payload);
-    console.log('HomeScreen: postPositions', postPositions);
-
-    if (!payload.drinkLogId) {
-      console.log('No drinkLogId on payload, nothing to scroll to');
-      return;
-    }
-
-    const y = postPositions[payload.drinkLogId];
-    console.log('HomeScreen: resolved Y position for post', payload.drinkLogId, y);
-
-    if (y !== undefined && scrollRef.current) {
-      scrollRef.current.scrollTo({ y, animated: true });
-      setHighlightedPostId(payload.drinkLogId);
-
-      // remove highlight after a short delay
-      setTimeout(() => {
-        setHighlightedPostId((current) =>
-          current === payload.drinkLogId ? null : current,
-        );
-      }, 2000);
-    } else {
-      // Fallback: if we have the post in the feed but no layout position,
-      // open its comments so something obvious happens.
-      const found = feedPosts.find((p) => p.id === payload.drinkLogId);
-      if (found) {
-        console.log(
-          'Y not found, but post exists in feed. Opening comments as fallback.',
-        );
-        openComments(found.id);
-        setHighlightedPostId(found.id);
-        setTimeout(() => {
-          setHighlightedPostId((current) =>
-            current === found.id ? null : current,
-          );
-        }, 2000);
-      } else {
-        console.log(
-          'Post not found in current feed (maybe different tab / visibility).',
-        );
-      }
-    }
+    if (!payload.drinkLogId) return;
+    openComments(payload.drinkLogId);
   };
 
   const closeComments = () => {
     setCommentsVisible(false);
     setActivePostId(null);
+    setFocusedPost(null);
     setCommentsForPost([]);
     setNewComment('');
     setLastDeletedComment(null);
@@ -535,7 +502,6 @@ export const HomeScreen: React.FC = () => {
       <TopBar title="Feed" onNotificationPress={handleNotificationSelect} />
 
       <ScrollView
-        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{
           paddingHorizontal: spacing.screenHorizontal,
@@ -666,20 +632,9 @@ export const HomeScreen: React.FC = () => {
 
         {/* Feed list */}
         {feedPosts.map((post) => (
-          <Box
-            key={post.id}
-            className="mb-4"
-            onLayout={(e) => {
-              const y = e.nativeEvent.layout.y;
-              setPostPositions((prev) => ({
-                ...prev,
-                [post.id]: y,
-              }));
-            }}
-          >
+          <Box key={post.id} className="mb-4">
             <FeedPostCard
               {...post}
-              isHighlighted={highlightedPostId === post.id}
               onToggleLike={() => handleToggleLike(post.id)}
               onPressComments={() => openComments(post.id)}
             />
@@ -687,7 +642,7 @@ export const HomeScreen: React.FC = () => {
         ))}
       </ScrollView>
 
-      {/* Comments bottom sheet modal */}
+      {/* Full-screen Post + Comments (Instagram-style) */}
       <Modal
         visible={commentsVisible}
         animationType="slide"
@@ -698,76 +653,82 @@ export const HomeScreen: React.FC = () => {
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          {/* Backdrop */}
-          <Box className="flex-1 justify-end bg-black/40">
-            {/* Sheet */}
-            <Box
-              className="bg-white rounded-t-3xl p-4"
-              style={{ maxHeight: 500 }}
-            >
-              {/* Drag handle */}
-              <Box className="items-center mb-3">
-                <Box className="w-12 h-1.5 rounded-full bg-neutral-300" />
-              </Box>
+          <Box className="flex-1 bg-white">
+            {/* Header */}
+            <Box className="flex-row justify-between items-center px-4 py-3 border-b border-neutral-200">
+              <Text className="text-base font-semibold text-neutral-900">
+                Post
+              </Text>
+              <Pressable onPress={closeComments}>
+                <Text className="text-sm text-neutral-500">Close</Text>
+              </Pressable>
+            </Box>
 
-              {/* Header */}
-              <Box className="flex-row justify-between items-center mb-3">
-                <Text className="text-base font-semibold text-neutral-900">
-                  Comments
-                </Text>
-                <Pressable onPress={closeComments}>
-                  <Text className="text-sm text-neutral-500">Close</Text>
-                </Pressable>
-              </Box>
+            {/* Post + comments */}
+            <ScrollView
+              style={{ flex: 1 }}
+              contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+            >
+              {/* Focused post card */}
+              {focusedPost && (
+                <Box className="mb-4">
+                  <FeedPostCard
+                    {...focusedPost}
+                    onToggleLike={() => handleToggleLike(focusedPost.id)}
+                    // comments button does nothing here (we're already in detail)
+                    onPressComments={() => {}}
+                  />
+                </Box>
+              )}
+
+              {/* Comments title */}
+              <Text className="text-sm font-semibold text-neutral-900 mb-2">
+                Comments
+              </Text>
 
               {/* Comments list */}
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: 8 }}
-              >
-                {commentsLoading && (
-                  <Box className="py-3 items-center">
-                    <ActivityIndicator />
-                  </Box>
-                )}
+              {commentsLoading && (
+                <Box className="py-3 items-center">
+                  <ActivityIndicator />
+                </Box>
+              )}
 
-                {!commentsLoading &&
-                  commentsForPost.map((c) => {
-                    const canDelete = c.user_id === user?.id;
-                    return (
-                      <Swipeable
-                        key={c.id}
-                        enabled={canDelete}
-                        renderRightActions={() => (
-                          <Pressable
-                            className="bg-red-500 justify-center items-center w-16"
-                            onPress={() => handleDeleteComment(c.id)}
-                          >
-                            <Trash2 size={20} color="#fff" />
-                          </Pressable>
-                        )}
-                        onSwipeableOpen={() => {
-                          if (canDelete) handleDeleteComment(c.id);
-                        }}
-                      >
-                        <Box className="mb-3 bg-white">
-                          <Text className="text-xs text-neutral-500 mb-1">
-                            {c.Profile?.full_name ?? 'Unknown user'}
-                          </Text>
-                          <Text className="text-sm text-neutral-900">
-                            {c.content}
-                          </Text>
-                        </Box>
-                      </Swipeable>
-                    );
-                  })}
+              {!commentsLoading &&
+                commentsForPost.map((c) => {
+                  const canDelete = c.user_id === user?.id;
+                  return (
+                    <Swipeable
+                      key={c.id}
+                      enabled={canDelete}
+                      renderRightActions={() => (
+                        <Pressable
+                          className="bg-red-500 justify-center items-center w-16"
+                          onPress={() => handleDeleteComment(c.id)}
+                        >
+                          <Trash2 size={20} color="#fff" />
+                        </Pressable>
+                      )}
+                      onSwipeableOpen={() => {
+                        if (canDelete) handleDeleteComment(c.id);
+                      }}
+                    >
+                      <Box className="mb-3 bg-white">
+                        <Text className="text-xs text-neutral-500 mb-1">
+                          {c.Profile?.full_name ?? 'Unknown user'}
+                        </Text>
+                        <Text className="text-sm text-neutral-900">
+                          {c.content}
+                        </Text>
+                      </Box>
+                    </Swipeable>
+                  );
+                })}
 
-                {!commentsLoading && commentsForPost.length === 0 && (
-                  <Text className="text-sm text-neutral-500">
-                    Be the first to comment.
-                  </Text>
-                )}
-              </ScrollView>
+              {!commentsLoading && commentsForPost.length === 0 && (
+                <Text className="text-sm text-neutral-500">
+                  Be the first to comment.
+                </Text>
+              )}
 
               {/* Undo bar */}
               {lastDeletedComment && (
@@ -782,35 +743,35 @@ export const HomeScreen: React.FC = () => {
                   </Pressable>
                 </Box>
               )}
+            </ScrollView>
 
-              {/* Input row */}
-              {user && (
-                <Box className="flex-row items-center mt-3">
-                  <TextInput
-                    value={newComment}
-                    onChangeText={setNewComment}
-                    placeholder="Add a comment..."
-                    style={{
-                      flex: 1,
-                      fontSize: 14,
-                      paddingVertical: 8,
-                      paddingHorizontal: 10,
-                      borderRadius: 999,
-                      borderWidth: 1,
-                      borderColor: '#e5e7eb',
-                    }}
-                  />
-                  <Pressable
-                    className="ml-2 px-3 py-2 rounded-full bg-[#009689]"
-                    onPress={handleSendComment}
-                  >
-                    <Text className="text-white text-sm">
-                      {sendingComment ? '...' : 'Send'}
-                    </Text>
-                  </Pressable>
-                </Box>
-              )}
-            </Box>
+            {/* Input row at bottom */}
+            {user && (
+              <Box className="flex-row items-center px-4 py-3 border-t border-neutral-200 bg-white">
+                <TextInput
+                  value={newComment}
+                  onChangeText={setNewComment}
+                  placeholder="Add a comment..."
+                  style={{
+                    flex: 1,
+                    fontSize: 14,
+                    paddingVertical: 8,
+                    paddingHorizontal: 10,
+                    borderRadius: 999,
+                    borderWidth: 1,
+                    borderColor: '#e5e7eb',
+                  }}
+                />
+                <Pressable
+                  className="ml-2 px-3 py-2 rounded-full bg-[#009689]"
+                  onPress={handleSendComment}
+                >
+                  <Text className="text-white text-sm">
+                    {sendingComment ? '...' : 'Send'}
+                  </Text>
+                </Pressable>
+              </Box>
+            )}
           </Box>
         </KeyboardAvoidingView>
       </Modal>

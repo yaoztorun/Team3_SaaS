@@ -18,14 +18,14 @@ export async function uploadProfileImage(userId: string, imageUri: string): Prom
             blob = await response.blob();
         }
 
-        // Create a unique filename
+        // Create a unique filename with user folder structure for RLS
         const fileExt = blob.type.split('/')[1] || 'jpg';
-        const fileName = `${userId}-${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
+        const fileName = `avatar-${Date.now()}.${fileExt}`;
+        const filePath = `${userId}/${fileName}`;
 
         // Upload to Supabase Storage
         const { data, error } = await supabase.storage
-            .from('profiles')
+            .from('avatars')
             .upload(filePath, blob, {
                 contentType: blob.type,
                 upsert: true
@@ -38,7 +38,7 @@ export async function uploadProfileImage(userId: string, imageUri: string): Prom
 
         // Get public URL
         const { data: { publicUrl } } = supabase.storage
-            .from('profiles')
+            .from('avatars')
             .getPublicUrl(filePath);
 
         return { url: publicUrl };
@@ -53,7 +53,7 @@ export async function deleteProfileImage(imageUrl: string): Promise<{ success: b
         // Extract file path from URL
         const url = new URL(imageUrl);
         const pathParts = url.pathname.split('/');
-        const bucketIndex = pathParts.findIndex(part => part === 'profiles');
+        const bucketIndex = pathParts.findIndex(part => part === 'avatars');
         
         if (bucketIndex === -1) {
             return { success: false, error: 'Invalid image URL' };
@@ -62,7 +62,7 @@ export async function deleteProfileImage(imageUrl: string): Promise<{ success: b
         const filePath = pathParts.slice(bucketIndex + 1).join('/');
 
         const { error } = await supabase.storage
-            .from('profiles')
+            .from('avatars')
             .remove([filePath]);
 
         if (error) {

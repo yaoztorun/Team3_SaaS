@@ -5,10 +5,12 @@ import {
   ScrollView,
   TouchableOpacity,
   View,
+  Platform,
 } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
+import { Swipeable } from 'react-native-gesture-handler';
 import { X, Trash2 } from 'lucide-react-native';
 
 export interface Notification {
@@ -35,6 +37,44 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
   onNotificationPress,
   onDeleteNotification,
 }) => {
+  const isWeb = Platform.OS === 'web';
+
+  const renderRowContent = (notification: Notification) => (
+    <Box
+      className={`border-b border-gray-100 ${
+        !notification.isRead ? 'bg-[rgba(240,253,250,0.3)]' : ''
+      }`}
+    >
+      <Box className="px-4 py-4">
+        <Box className="flex-row items-start">
+          {/* Unread dot */}
+          {!notification.isRead && (
+            <Box className="w-2 h-2 rounded-full bg-[#00BBA7] mt-1.5 mr-3" />
+          )}
+
+          <Box className={`flex-1 ${notification.isRead ? 'ml-5' : ''}`}>
+            <Text className="text-sm text-neutral-950 mb-1">
+              {notification.message}
+            </Text>
+            <Text className="text-xs text-[#6a7282]">
+              {notification.timeAgo}
+            </Text>
+          </Box>
+
+          {/* On web, show an explicit trash button instead of swipe */}
+          {isWeb && (
+            <Pressable
+              className="ml-3 justify-center items-center"
+              onPress={() => onDeleteNotification(notification.id)}
+            >
+              <Trash2 size={18} color="#ef4444" />
+            </Pressable>
+          )}
+        </Box>
+      </Box>
+    </Box>
+  );
+
   return (
     <Modal
       visible={visible}
@@ -64,49 +104,43 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
 
               {/* Notification List */}
               <ScrollView className="max-h-96">
-                {notifications.map((notification) => (
-                  <TouchableOpacity
-                    key={notification.id}
-                    onPress={() => onNotificationPress(notification)}
-                    className={`border-b border-gray-100 ${
-                      !notification.isRead
-                        ? 'bg-[rgba(240,253,250,0.3)]'
-                        : ''
-                    }`}
-                  >
-                    <Box className="px-4 py-4">
-                      <Box className="flex-row items-start">
-                        {/* Unread dot */}
-                        {!notification.isRead && (
-                          <Box className="w-2 h-2 rounded-full bg-[#00BBA7] mt-1.5 mr-3" />
-                        )}
+                {notifications.map((notification) => {
+                  // On web: no Swipeable, just normal row + trash icon
+                  if (isWeb) {
+                    return (
+                      <TouchableOpacity
+                        key={notification.id}
+                        onPress={() => onNotificationPress(notification)}
+                      >
+                        {renderRowContent(notification)}
+                      </TouchableOpacity>
+                    );
+                  }
 
-                        <Box
-                          className={`flex-1 ${
-                            notification.isRead ? 'ml-5' : ''
-                          }`}
+                  // Native (iOS/Android): keep swipe-to-delete
+                  return (
+                    <Swipeable
+                      key={notification.id}
+                      renderRightActions={() => (
+                        <Pressable
+                          className="bg-red-500 justify-center items-center w-16"
+                          onPress={() => onDeleteNotification(notification.id)}
                         >
-                          <Text className="text-sm text-neutral-950 mb-1">
-                            {notification.message}
-                          </Text>
-                          <Box className="flex-row justify-between items-center">
-                            <Text className="text-xs text-[#6a7282]">
-                              {notification.timeAgo}
-                            </Text>
-
-                            {/* Small delete button (no swipe) */}
-                            <Pressable
-                              className="ml-3 px-2 py-1 rounded-full"
-                              onPress={() => onDeleteNotification(notification.id)}
-                            >
-                              <Trash2 size={16} color="#ef4444" />
-                            </Pressable>
-                          </Box>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </TouchableOpacity>
-                ))}
+                          <Trash2 size={20} color="#fff" />
+                        </Pressable>
+                      )}
+                      onSwipeableOpen={() =>
+                        onDeleteNotification(notification.id)
+                      }
+                    >
+                      <TouchableOpacity
+                        onPress={() => onNotificationPress(notification)}
+                      >
+                        {renderRowContent(notification)}
+                      </TouchableOpacity>
+                    </Swipeable>
+                  );
+                })}
               </ScrollView>
             </Box>
           </Pressable>
