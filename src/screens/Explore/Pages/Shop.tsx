@@ -3,16 +3,27 @@ import { ScrollView, Image, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Box } from '@/src/components/ui/box';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { ChevronDown } from 'lucide-react-native';
 import { PrimaryButton, SearchBar, FilterChip } from '@/src/components/global';
 import { fetchShopItems, DBShopItem } from '@/src/api/shop';
+import { Star } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 
 type RootStackParamList = {
     ItemDetail: { itemId: string };
+
+
+type Product = {
+    id: string;
+    name: string;
+    price: string;
+    rating: number;
+    vendor: string;
+    image?: any;
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -106,7 +117,7 @@ export const Shop = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title="Shop" />
+            <TopBar title="Shop" showBack onBackPress={() => navigation.goBack()} />
             <ScrollView contentContainerStyle={{ padding: 16 }}>
                 {/* Search bar */}
                 <Box className="mb-3">

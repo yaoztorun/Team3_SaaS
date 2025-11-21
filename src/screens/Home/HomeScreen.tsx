@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   ScrollView,
   ActivityIndicator,
@@ -6,16 +6,16 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Modal,
-  TextInput,
   KeyboardAvoidingView,
   Platform,
+  View,
 } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard } from '@/src/components/global';
+import { FeedPostCard, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
@@ -27,7 +27,7 @@ import {
   deleteComment,
 } from '@/src/api/comments';
 import { Swipeable } from 'react-native-gesture-handler';
-import { Trash2 } from 'lucide-react-native';
+import { Trash2, ArrowLeft } from 'lucide-react-native';
 
 type FeedFilter = 'friends' | 'for-you';
 
@@ -171,6 +171,9 @@ export const HomeScreen: React.FC = () => {
 
   // carousel state
   const [activeIndex, setActiveIndex] = useState(0);
+  
+  // ref for comments scroll view to scroll to bottom
+  const commentsScrollViewRef = useRef<ScrollView>(null);
 
   const handleCarouselScroll = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
@@ -380,6 +383,11 @@ export const HomeScreen: React.FC = () => {
     const rows = await getCommentsForLog(postId);
     setCommentsForPost(rows);
     setCommentsLoading(false);
+    
+    // Scroll to bottom after comments load
+    setTimeout(() => {
+      commentsScrollViewRef.current?.scrollToEnd({ animated: false });
+    }, 100);
   };
 
   // open full-screen post detail (used by both feed + notifications)
@@ -395,6 +403,11 @@ export const HomeScreen: React.FC = () => {
     setActivePostId(postId);
     setCommentsVisible(true);
     await loadComments(postId);
+    
+    // Scroll to bottom after a short delay to ensure content is rendered
+    setTimeout(() => {
+      commentsScrollViewRef.current?.scrollToEnd({ animated: false });
+    }, 100);
   };
 
   // called from TopBar when a notification is tapped
@@ -575,45 +588,26 @@ export const HomeScreen: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Feed header + toggle */}
-        <Box className="flex-row items-center justify-between mb-4">
-          <Text className="text-base font-medium text-neutral-900">Feed</Text>
-
-          <Box className="flex-row bg-neutral-100 rounded-full p-1">
+        {/* Feed toggle - centered with same style as Social page */}
+        <Box className="bg-[#F3F4F6] px-4 py-3 mb-2">
+          <View className="bg-[#E5E7EB] flex-row rounded-xl p-1">
             <Pressable
               onPress={() => setFeedFilter('friends')}
-              className={`px-3 py-1 rounded-full ${
-                feedFilter === 'friends' ? 'bg-white shadow' : ''
-              }`}
+              className={feedFilter === 'friends' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
             >
-              <Text
-                className={`text-xs ${
-                  feedFilter === 'friends'
-                    ? 'text-neutral-900 font-semibold'
-                    : 'text-neutral-500'
-                }`}
-              >
+              <Text className={feedFilter === 'friends' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
                 Friends
               </Text>
             </Pressable>
-
             <Pressable
               onPress={() => setFeedFilter('for-you')}
-              className={`px-3 py-1 rounded-full ml-1 ${
-                feedFilter === 'for-you' ? 'bg-white shadow' : ''
-              }`}
+              className={feedFilter === 'for-you' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
             >
-              <Text
-                className={`text-xs ${
-                  feedFilter === 'for-you'
-                    ? 'text-neutral-900 font-semibold'
-                    : 'text-neutral-500'
-                }`}
-              >
+              <Text className={feedFilter === 'for-you' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
                 For you
               </Text>
             </Pressable>
-          </Box>
+          </View>
         </Box>
 
         {/* Loading */}
@@ -646,29 +640,31 @@ export const HomeScreen: React.FC = () => {
       <Modal
         visible={commentsVisible}
         animationType="slide"
-        transparent
+        transparent={false}
         onRequestClose={closeComments}
       >
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <Box className="flex-1 bg-white">
-            {/* Header */}
-            <Box className="flex-row justify-between items-center px-4 py-3 border-b border-neutral-200">
-              <Text className="text-base font-semibold text-neutral-900">
-                Post
-              </Text>
-              <Pressable onPress={closeComments}>
-                <Text className="text-sm text-neutral-500">Close</Text>
-              </Pressable>
-            </Box>
+        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1, maxWidth: 480, width: '100%', alignSelf: 'center', backgroundColor: '#fff' }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <Box className="flex-1 bg-white">
+              {/* Header with back button */}
+              <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
+                <Pressable onPress={closeComments} className="mr-3">
+                  <ArrowLeft size={24} color="#000" />
+                </Pressable>
+                <Text className="text-base font-semibold text-neutral-900">
+                  Post
+                </Text>
+              </Box>
 
-            {/* Post + comments */}
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-            >
+              {/* Post + comments */}
+              <ScrollView
+                ref={commentsScrollViewRef}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+              >
               {/* Focused post card */}
               {focusedPost && (
                 <Box className="mb-4">
@@ -696,13 +692,15 @@ export const HomeScreen: React.FC = () => {
               {!commentsLoading &&
                 commentsForPost.map((c) => {
                   const canDelete = c.user_id === user?.id;
+                  const userName = c.Profile?.full_name ?? 'Unknown user';
+                  const initials = getInitials(userName);
                   return (
                     <Swipeable
                       key={c.id}
                       enabled={canDelete}
                       renderRightActions={() => (
                         <Pressable
-                          className="bg-red-500 justify-center items-center w-16"
+                          className="bg-red-500 justify-center items-center w-16 rounded-lg"
                           onPress={() => handleDeleteComment(c.id)}
                         >
                           <Trash2 size={20} color="#fff" />
@@ -712,13 +710,20 @@ export const HomeScreen: React.FC = () => {
                         if (canDelete) handleDeleteComment(c.id);
                       }}
                     >
-                      <Box className="mb-3 bg-white">
-                        <Text className="text-xs text-neutral-500 mb-1">
-                          {c.Profile?.full_name ?? 'Unknown user'}
-                        </Text>
-                        <Text className="text-sm text-neutral-900">
-                          {c.content}
-                        </Text>
+                      <Box className="mb-4 bg-white">
+                        <Box className="flex-row items-start">
+                          <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
+                            <Text className="text-white text-xs font-medium">{initials}</Text>
+                          </Box>
+                          <Box className="flex-1">
+                            <Text className="text-sm font-semibold text-neutral-900 mb-1">
+                              {userName}
+                            </Text>
+                            <Text className="text-sm text-neutral-700">
+                              {c.content}
+                            </Text>
+                          </Box>
+                        </Box>
                       </Box>
                     </Swipeable>
                   );
@@ -747,33 +752,30 @@ export const HomeScreen: React.FC = () => {
 
             {/* Input row at bottom */}
             {user && (
-              <Box className="flex-row items-center px-4 py-3 border-t border-neutral-200 bg-white">
-                <TextInput
-                  value={newComment}
-                  onChangeText={setNewComment}
-                  placeholder="Add a comment..."
-                  style={{
-                    flex: 1,
-                    fontSize: 14,
-                    paddingVertical: 8,
-                    paddingHorizontal: 10,
-                    borderRadius: 999,
-                    borderWidth: 1,
-                    borderColor: '#e5e7eb',
-                  }}
-                />
-                <Pressable
-                  className="ml-2 px-3 py-2 rounded-full bg-[#009689]"
-                  onPress={handleSendComment}
-                >
-                  <Text className="text-white text-sm">
-                    {sendingComment ? '...' : 'Send'}
-                  </Text>
-                </Pressable>
+              <Box className="px-4 py-3 border-t border-neutral-200 bg-white">
+                <Box className="flex-row items-center gap-2">
+                  <Box className="flex-1">
+                    <TextInputField
+                      value={newComment}
+                      onChangeText={setNewComment}
+                      placeholder="Add a comment..."
+                    />
+                  </Box>
+                  <Pressable
+                    className="px-4 py-2 rounded-full bg-[#009689]"
+                    onPress={handleSendComment}
+                    disabled={sendingComment || !newComment.trim()}
+                  >
+                    <Text className="text-white text-sm font-medium">
+                      {sendingComment ? '...' : 'Send'}
+                    </Text>
+                  </Pressable>
+                </Box>
               </Box>
             )}
           </Box>
         </KeyboardAvoidingView>
+        </View>
       </Modal>
     </Box>
   );

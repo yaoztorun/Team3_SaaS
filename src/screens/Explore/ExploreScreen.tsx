@@ -7,7 +7,7 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Search, ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
+import { ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
 import { PreviewCard, EventCard } from '@/src/components/global';
 import { fetchLocations } from '@/src/api/location';
 import type { DBLocation } from '@/src/api/location';
@@ -84,7 +84,7 @@ export const ExploreScreen = () => {
 
     return (
         <Box className="flex-1 bg-gray-50">
-            <TopBar title="Explore" streakCount={12} cocktailCount={47} />
+            <TopBar title="Explore" />
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
@@ -92,16 +92,6 @@ export const ExploreScreen = () => {
                     paddingBottom: spacing.screenBottom,
                 }}
             >
-                {/* Search Bar */}
-                <Box className="px-4 mb-4">
-                    <Box className="bg-gray-100 rounded-lg px-4 py-3 flex-row items-center">
-                        <Search size={20} color="#717182" />
-                        <Text className="ml-3 text-sm text-[#717182]">
-                            Search cocktails, bars, events...
-                        </Text>
-                    </Box>
-                </Box>
-
                 {/* All Cocktails Section */}
                 <Box className="mb-6">
                     <Pressable

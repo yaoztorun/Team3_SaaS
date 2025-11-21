@@ -2,10 +2,10 @@ import React from 'react';
 import { ScrollView, Image, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { MapPin, Star } from 'lucide-react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Location } from '@/src/types/location';
 
@@ -19,6 +19,7 @@ const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/600x400.png?text=Bar';
 
 export const BarDetail = () => {
     const route = useRoute<BarDetailRouteProp>();
+    const navigation = useNavigation();
     const { bar } = route.params;
 
     const address = [bar.street_name, bar.street_nr, bar.city, bar.country]
@@ -28,7 +29,7 @@ export const BarDetail = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title={bar.name} />
+            <TopBar title={bar.name || 'Bar Details'} showBack onBackPress={() => navigation.goBack()} />
             <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
                 <View className="bg-neutral-200 items-center justify-center" style={{ height: 250 }}>
                     <Image source={{ uri: imageUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
