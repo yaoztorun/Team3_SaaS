@@ -91,10 +91,15 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         </Box>
       </Box>
 
-      {/* Actions and caption */}
+      {/* Caption and actions */}
       <Box className="px-4 py-4">
+        {/* Caption */}
+        {caption ? (
+          <Text className="text-sm text-neutral-900 mb-3">{caption}</Text>
+        ) : null}
+
         {/* Action buttons */}
-        <Box className="flex-row items-center mb-2">
+        <Box className="flex-row items-center">
           {/* Like */}
           <Pressable
             className="flex-row items-center mr-4"
@@ -122,9 +127,6 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
             <Share2 size={20} color="#4a5565" />
           </Pressable>
         </Box>
-
-        {/* Caption */}
-        <Text className="text-sm text-neutral-900">{caption}</Text>
       </Box>
     </Box>
   );
