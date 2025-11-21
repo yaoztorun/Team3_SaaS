@@ -1,6 +1,6 @@
 // src/screens/navigation/TopBar.tsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { View } from 'react-native';
+import { View, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -258,16 +258,27 @@ export const TopBar: React.FC<TopBarProps> = ({
             </Pressable>
           )}
 
-          <Text
-            style={{
-              fontSize: 26,
-              fontWeight: '700',
-              color: '#111827',
-              letterSpacing: -0.5,
-            }}
-          >
-            {title}
-          </Text>
+          {title === 'Feed' ? (
+            <Image
+              source={require('../../../assets/icon.png')}
+              style={{
+                width: 50,
+                height: 50,
+                resizeMode: 'contain',
+              }}
+            />
+          ) : (
+            <Text
+              style={{
+                fontSize: 26,
+                fontWeight: '700',
+                color: '#111827',
+                letterSpacing: -0.5,
+              }}
+            >
+              {title}
+            </Text>
+          )}
         </View>
 
         {/* Right side: either settings icon (for profile) or stats + bell */}
