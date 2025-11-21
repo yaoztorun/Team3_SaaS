@@ -5,6 +5,7 @@ import { RootStack } from './src/screens/navigation/RootStack';
 import { AuthStack } from './src/screens/navigation/AuthStack';
 import { useAuth } from './src/hooks/useAuth';
 import { View, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/global.css';
 import {colors} from '@/src/theme/colors';
 import { initAnalytics } from './src/analytics';
@@ -29,11 +30,13 @@ export default function App() {
   }
 
   const content = (
-    <GluestackUIProvider mode="light">
-      <NavigationContainer key={user ? 'root' : 'auth'}>
-        {user ? <RootStack /> : <AuthStack />}
-      </NavigationContainer>
-    </GluestackUIProvider>
+    <SafeAreaProvider>
+      <GluestackUIProvider mode="light">
+        <NavigationContainer key={user ? 'root' : 'auth'}>
+          {user ? <RootStack /> : <AuthStack />}
+        </NavigationContainer>
+      </GluestackUIProvider>
+    </SafeAreaProvider>
   );
 
   // Wrap content in centered container for web
