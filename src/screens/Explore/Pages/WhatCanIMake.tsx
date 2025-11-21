@@ -1,17 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, TextInput } from 'react-native';
+import { ScrollView } from 'react-native';
 import { Box } from '@/src/components/ui/box';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { Text } from '@/src/components/ui/text';
-import { Pressable } from '@/src/components/ui/pressable';
-import { Check } from 'lucide-react-native';
-import { colors } from '@/src/theme/colors';
-import { LinearGradient } from 'expo-linear-gradient';
 import { fetchCocktails, fetchIngredientUsage } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { PrimaryButton } from '@/src/components/global';
+import { PrimaryButton, SearchBar, FilterChip } from '@/src/components/global';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -99,22 +95,15 @@ export const WhatCanIMake = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title="What Can I Make?" />
+            <TopBar title="What Can I Make?" showBack onBackPress={() => navigation.goBack()} />
 
             <ScrollView contentContainerStyle={{ padding: 16 }}>
                 {/* Search input */}
                 <Box className="mb-4">
-                    <TextInput
-                        placeholder="Search ingredients..."
+                    <SearchBar
                         value={query}
                         onChangeText={setQuery}
-                        style={{
-                            backgroundColor: '#fff',
-                            paddingHorizontal: 12,
-                            paddingVertical: 10,
-                            borderRadius: 999,
-                        }}
-                        placeholderTextColor="#9CA3AF"
+                        placeholder="Search ingredients..."
                     />
                 </Box>
 
@@ -129,24 +118,13 @@ export const WhatCanIMake = () => {
                         {filtered.map((ing) => {
                             const isSelected = selected.includes(ing);
                             return (
-                                <Pressable
-                                    key={ing}
-                                    onPress={() => toggle(ing)}
-                                    className="mr-2 mb-3"
-                                >
-                                    <Box
-                                        style={{
-                                            backgroundColor: isSelected ? '#E0F7F4' : '#fff',
-                                            paddingHorizontal: 24,
-                                            paddingVertical: 14,
-                                            borderRadius: 999,
-                                            borderWidth: 1,
-                                            borderColor: isSelected ? '#00BBA7' : '#D1D5DB',
-                                        }}
-                                    >
-                                        <Text style={{ color: isSelected ? '#00BBA7' : '#374151', fontSize: 16 }}>{ing}</Text>
-                                    </Box>
-                                </Pressable>
+                                <Box key={ing} className="mr-2 mb-3">
+                                    <FilterChip
+                                        label={ing}
+                                        selected={isSelected}
+                                        onPress={() => toggle(ing)}
+                                    />
+                                </Box>
                             );
                         })}
                     </HStack>
