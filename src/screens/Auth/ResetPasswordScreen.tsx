@@ -1,37 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '../navigation/types';
 import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 
-type ResetPasswordScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'ResetPassword'>;
-
 const ResetPasswordScreen: React.FC = () => {
-    const navigation = useNavigation<ResetPasswordScreenNavigationProp>();
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [message, setMessage] = useState<string | null>(null);
     const [isSuccess, setIsSuccess] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-
-    useEffect(() => {
-        // Listen for auth state changes to handle the password reset flow
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            if (event === 'PASSWORD_RECOVERY') {
-                // User has clicked the reset link and is ready to set a new password
-                setMessage('Please enter your new password');
-            }
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, []);
 
     const handleUpdatePassword = async () => {
         // Validation
@@ -69,9 +49,10 @@ const ResetPasswordScreen: React.FC = () => {
             setMessage('Password updated successfully!');
             setIsSuccess(true);
             
-            // Redirect to login after 2 seconds
-            setTimeout(() => {
-                navigation.navigate('Login');
+            // Sign out and redirect to login after 2 seconds
+            setTimeout(async () => {
+                await supabase.auth.signOut();
+                window.location.href = '/'; // Reload to show login screen
             }, 2000);
         }
     };

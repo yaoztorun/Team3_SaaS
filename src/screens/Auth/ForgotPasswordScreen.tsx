@@ -29,12 +29,7 @@ const ForgotPasswordScreen: React.FC = () => {
         setIsLoading(true);
         setMessage(null);
 
-        // For local testing - use localhost, for production use window.location.origin
-        const redirectUrl = window.location.hostname === 'localhost' 
-            ? `http://localhost:8081/reset-password`  // Update port if different
-            : `${window.location.origin}/reset-password`;
-
-        console.log('Reset password redirect URL:', redirectUrl);
+        const redirectUrl = `${window.location.origin}/reset-password`;
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
             redirectTo: redirectUrl,
