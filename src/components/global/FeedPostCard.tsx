@@ -1,3 +1,4 @@
+// src/components/global/FeedPostCard.tsx
 import React from 'react';
 import { Image } from 'react-native';
 import { Box } from '@/src/components/ui/box';
@@ -23,6 +24,7 @@ interface FeedPostCardProps {
   // callbacks
   onToggleLike?: () => void;
   onPressComments?: () => void;
+  onPressUser?: () => void;          // ✅ NEW
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({
@@ -39,6 +41,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   isHighlighted = false,
   onToggleLike,
   onPressComments,
+  onPressUser,                        // ✅ NEW
 }) => {
   return (
     <Box
@@ -54,7 +57,10 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
       }}
     >
       {/* Header with user info */}
-      <Box className="flex-row items-center px-4 pt-4 pb-3">
+      <Pressable                         // ✅ make whole header tappable
+        className="flex-row items-center px-4 pt-4 pb-3"
+        onPress={onPressUser}
+      >
         <Box className="w-10 h-10 rounded-full bg-[#009689] items-center justify-center mr-3">
           <Text className="text-white font-medium">{userInitials}</Text>
         </Box>
@@ -64,7 +70,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
           </Text>
           <Text className="text-sm text-[#6a7282]">{timeAgo}</Text>
         </Box>
-      </Box>
+      </Pressable>
 
       {/* Cocktail Image */}
       <Box className="w-full h-[414px] relative">
@@ -73,7 +79,6 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
           style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
         />
-        {/* Cocktail name and rating badge */}
         <Box className="absolute bottom-4 left-4 right-4 flex-row items-center justify-between">
           <Box className="bg-white/90 rounded-xl px-3 py-2">
             <Text className="text-sm text-neutral-900">{cocktailName}</Text>
@@ -87,7 +92,6 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
 
       {/* Actions and caption */}
       <Box className="px-4 py-4">
-        {/* Action buttons */}
         <Box className="flex-row items-center mb-2">
           {/* Like */}
           <Pressable
@@ -117,7 +121,6 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
           </Pressable>
         </Box>
 
-        {/* Caption */}
         <Text className="text-sm text-neutral-900">{caption}</Text>
       </Box>
     </Box>

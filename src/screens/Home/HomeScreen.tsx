@@ -1,4 +1,4 @@
-// src/screens/HomeScreen.tsx
+// src/screens/Home/HomeScreen.tsx
 import React, { useEffect, useState, useRef } from 'react';
 import {
   ScrollView,
@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native'; // 🔹 NEW
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
@@ -54,6 +55,7 @@ type DbDrinkLog = {
 
 export type FeedPost = {
   id: string;
+  userId: string;        
   userName: string;
   userInitials: string;
   timeAgo: string;
@@ -119,6 +121,7 @@ const COCKTAILS: CarouselItem[] = [
 const DUMMY_POSTS_FRIENDS: FeedPost[] = [
   {
     id: 'dummy-1',
+    userId: 'dummy-user',
     userName: 'Your Friend',
     userInitials: 'YF',
     timeAgo: '5 min ago',
@@ -135,6 +138,7 @@ const DUMMY_POSTS_FRIENDS: FeedPost[] = [
 const DUMMY_POSTS_FOR_YOU: FeedPost[] = [
   {
     id: 'dummy-2',
+    userId: 'dummy-user-2',
     userName: 'Community Member',
     userInitials: 'CM',
     timeAgo: '10 min ago',
@@ -152,6 +156,7 @@ const DUMMY_POSTS_FOR_YOU: FeedPost[] = [
 
 export const HomeScreen: React.FC = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();          
 
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('friends');
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
@@ -315,6 +320,7 @@ export const HomeScreen: React.FC = () => {
 
           return {
             id: log.id,
+            userId: log.user_id,                
             userName: fullName,
             userInitials: initials,
             timeAgo: formatTimeAgo(log.created_at),
@@ -372,6 +378,12 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
+  // ---------- open user profile ----------
+
+  const handleOpenUserProfile = (userId: string) => {
+    navigation.navigate('UserProfile', { userId });   // 🔹 assumes route name is UserProfile
+  };
+
   // ---------- comments modal helpers ----------
 
   const loadComments = async (postId: string) => {
@@ -391,23 +403,14 @@ export const HomeScreen: React.FC = () => {
     await loadComments(postId);
   };
 
-  // 🔔 When a notification is clicked in TopBar
   const handleNotificationSelect = (payload: {
     id: string;
     type: string;
     drinkLogId?: string | null;
   }) => {
-    console.log('HomeScreen: notification payload', payload);
-    console.log('HomeScreen: postPositions', postPositions);
-
-    if (!payload.drinkLogId) {
-      console.log('No drinkLogId on payload, nothing to scroll to');
-      return;
-    }
+    if (!payload.drinkLogId) return;
 
     const y = postPositions[payload.drinkLogId];
-    console.log('HomeScreen: resolved Y position for post', payload.drinkLogId, y);
-
     if (y !== undefined && scrollRef.current) {
       scrollRef.current.scrollTo({ y, animated: true });
       setHighlightedPostId(payload.drinkLogId);
@@ -418,26 +421,6 @@ export const HomeScreen: React.FC = () => {
           current === payload.drinkLogId ? null : current,
         );
       }, 2000);
-    } else {
-      // Fallback: if we have the post in the feed but no layout position,
-      // open its comments so something obvious happens.
-      const found = feedPosts.find((p) => p.id === payload.drinkLogId);
-      if (found) {
-        console.log(
-          'Y not found, but post exists in feed. Opening comments as fallback.',
-        );
-        openComments(found.id);
-        setHighlightedPostId(found.id);
-        setTimeout(() => {
-          setHighlightedPostId((current) =>
-            current === found.id ? null : current,
-          );
-        }, 2000);
-      } else {
-        console.log(
-          'Post not found in current feed (maybe different tab / visibility).',
-        );
-      }
     }
   };
 
@@ -532,7 +515,10 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <Box className="flex-1 bg-neutral-50">
-      <TopBar title="Feed" onNotificationPress={handleNotificationSelect} />
+      <TopBar
+        title="Feed"
+        onNotificationPress={handleNotificationSelect}
+      />
 
       <ScrollView
         ref={scrollRef}
@@ -677,14 +663,20 @@ export const HomeScreen: React.FC = () => {
               }));
             }}
           >
-            <FeedPostCard
-              {...post}
-              isHighlighted={highlightedPostId === post.id}
-              onToggleLike={() => handleToggleLike(post.id)}
-              onPressComments={() => openComments(post.id)}
-            />
-          </Box>
-        ))}
+             <FeedPostCard
+                {...post}
+                isHighlighted={highlightedPostId === post.id}
+                onToggleLike={() => handleToggleLike(post.id)}
+                onPressComments={() => openComments(post.id)}
+                onPressUser={() =>
+                  navigation.navigate('Profile', {          // 👈 name of your tab
+                    screen: 'UserProfile',                  // 👈 screen we added to ProfileStack
+                    params: { userId: post.userId },
+                  })
+                }
+              />
+                </Box>
+              ))}
       </ScrollView>
 
       {/* Comments bottom sheet modal */}
