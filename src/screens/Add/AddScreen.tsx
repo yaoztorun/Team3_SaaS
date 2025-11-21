@@ -176,6 +176,15 @@ export const AddScreen = () => {
         }
     };
 
+    const handleRecipeCreated = () => {
+        // Show success modal and clear form
+        setModalMessage('Recipe created successfully');
+        setModalVisible(true);
+        // Clear form fields
+        setPhotoUri(null);
+        setSelectedDifficulty('Easy');
+    };
+
     const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0 && (isAtHome || !!selectedLocationId);
 
     return (
@@ -238,8 +247,7 @@ export const AddScreen = () => {
                         photoUri={photoUri}
                         selectedDifficulty={selectedDifficulty}
                         setSelectedDifficulty={setSelectedDifficulty}
-                        shareWith={shareWith}
-                        setShareWith={setShareWith}
+                        onRecipeCreated={handleRecipeCreated}
                     />
                 )}
             </ScrollView>
