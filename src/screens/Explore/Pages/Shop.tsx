@@ -11,10 +11,10 @@ import { ChevronDown } from 'lucide-react-native';
 import { PrimaryButton, SearchBar, FilterChip } from '@/src/components/global';
 import { fetchShopItems, DBShopItem } from '@/src/api/shop';
 import { Star } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
 
 type RootStackParamList = {
     ItemDetail: { itemId: string };
+}
 
 
 type Product = {
