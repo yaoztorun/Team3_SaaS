@@ -24,7 +24,7 @@ interface FeedPostCardProps {
   // callbacks
   onToggleLike?: () => void;
   onPressComments?: () => void;
-  onPressUser?: () => void;          // ✅ NEW
+  onPressUser?: () => void;   // 👈 NEW
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({
@@ -41,7 +41,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   isHighlighted = false,
   onToggleLike,
   onPressComments,
-  onPressUser,                        // ✅ NEW
+  onPressUser,
 }) => {
   return (
     <Box
@@ -57,7 +57,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
       }}
     >
       {/* Header with user info */}
-      <Pressable                         // ✅ make whole header tappable
+      <Pressable
         className="flex-row items-center px-4 pt-4 pb-3"
         onPress={onPressUser}
       >
@@ -79,6 +79,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
           style={{ width: '100%', height: '100%' }}
           resizeMode="cover"
         />
+        {/* Cocktail name and rating badge */}
         <Box className="absolute bottom-4 left-4 right-4 flex-row items-center justify-between">
           <Box className="bg-white/90 rounded-xl px-3 py-2">
             <Text className="text-sm text-neutral-900">{cocktailName}</Text>
@@ -92,6 +93,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
 
       {/* Actions and caption */}
       <Box className="px-4 py-4">
+        {/* Action buttons */}
         <Box className="flex-row items-center mb-2">
           {/* Like */}
           <Pressable
@@ -121,6 +123,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
           </Pressable>
         </Box>
 
+        {/* Caption */}
         <Text className="text-sm text-neutral-900">{caption}</Text>
       </Box>
     </Box>
