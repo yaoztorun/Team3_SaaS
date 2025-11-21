@@ -36,7 +36,7 @@ type DbDrinkLog = {
   Cocktail?: {
     id: string;
     name: string | null;
-  }[] | null; // Supabase returns an array here
+  } | null;
 };
 
 type RecentDrink = {
@@ -131,18 +131,16 @@ export const ProfileScreen = () => {
 
       if (error) throw error;
 
-      const mapped: RecentDrink[] = (data ?? []).map((raw) => {
-        const log = raw as DbDrinkLog;
-
-        // Supabase gives Cocktail as an array – use the first one
-        const firstCocktail = log.Cocktail?.[0];
+      const mapped: RecentDrink[] = (data ?? []).map((raw: any) => {
+        // Supabase returns Cocktail as a single object when using foreign key relation
+        const cocktailName = raw.Cocktail?.name ?? 'Unknown cocktail';
 
         return {
-          id: log.id,
-          name: firstCocktail?.name ?? 'Unknown cocktail',
-          subtitle: log.caption ?? '',
-          rating: log.rating ?? 0,
-          time: formatTimeAgo(log.created_at),
+          id: raw.id,
+          name: cocktailName,
+          subtitle: raw.caption ?? '',
+          rating: raw.rating ?? 0,
+          time: formatTimeAgo(raw.created_at),
         };
       });
 
