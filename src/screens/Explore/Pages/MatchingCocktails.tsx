@@ -42,7 +42,7 @@ export const MatchingCocktails = () => {
             setLoading(true);
             try {
                 const data = await fetchCocktails();
-                if (mounted) setCocktails(data);
+                if (mounted) setCocktails(data as any);
             } catch (e) {
                 console.warn('Failed to load cocktails', e);
             } finally {
