@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState, } from 'react';
 import {
   ScrollView,
   ActivityIndicator,
@@ -9,7 +9,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   View,
+  Image,
+  Animated,
 } from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
@@ -28,6 +31,7 @@ import {
 } from '@/src/api/comments';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Trash2, ArrowLeft } from 'lucide-react-native';
+import { colors } from '@/src/theme/colors';
 
 type FeedFilter = 'friends' | 'for-you';
 
@@ -93,26 +97,39 @@ const getInitials = (name: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-// ---------- carousel (emoji only) ----------
+// ---------- carousel (images) ----------
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type CarouselItem = {
   id: string;
   name: string;
-  emoji: string;
+  image: ImageSourcePropType;
 };
 
-const CAROUSEL_ITEM_WIDTH = 160;
+// Card sizing tuned to avoid overflow while keeping visuals compact
+const CAROUSEL_ITEM_WIDTH = 200;
 const CAROUSEL_SPACING = 16;
 const SNAP_INTERVAL = CAROUSEL_ITEM_WIDTH + CAROUSEL_SPACING;
 
+// Side padding so first/last card can center without huge empty space
+const SIDE_PADDING = Math.max(
+  0,
+  (SCREEN_WIDTH - CAROUSEL_ITEM_WIDTH) / 2,
+);
+
+// paths: src/screens/Home/HomeScreen.tsx -> ../../../assets/cocktails
 const COCKTAILS: CarouselItem[] = [
-  { id: 'mojito', name: 'Mojito', emoji: '🍃' },
-  { id: 'margarita', name: 'Margarita', emoji: '🍋' },
-  { id: 'mai-tai', name: 'Mai Tai', emoji: '🍹' },
-  { id: 'whiskey-sour', name: 'Whiskey Sour', emoji: '🥃' },
+  { id: 'margarita', name: 'Margarita', image: require('../../../assets/cocktails/margarita.png') },
+  { id: 'clover-club', name: 'Clover Club', image: require('../../../assets/cocktails/clover_club.png') },
+  { id: 'espresso-martini', name: 'Espresso Martini', image: require('../../../assets/cocktails/espresso_martini.png') },
+  { id: 'whiskey-sour', name: 'Whiskey Sour', image: require('../../../assets/cocktails/whiskey_sour.png') },
+  { id: 'hemingway', name: 'Hemingway', image: require('../../../assets/cocktails/hemingway.png') },
+  { id: 'jungle-bird', name: 'Jungle Bird', image: require('../../../assets/cocktails/jungle_bird.png') },
 ];
+
+// Start on the second real cocktail (index 1) so user sees cards on both sides.
+const INITIAL_INDEX = 1;
 
 // ---------- dummy data (when DB is empty / no user) ----------
 
@@ -170,18 +187,36 @@ export const HomeScreen: React.FC = () => {
     useState<CommentRow | null>(null);
 
   // carousel state
-  const [activeIndex, setActiveIndex] = useState(0);
-  
-  // ref for comments scroll view to scroll to bottom
-  const commentsScrollViewRef = useRef<ScrollView>(null);
+  const [activeIndex, setActiveIndex] = useState(INITIAL_INDEX);
+  const carouselRef = useRef<ScrollView | null>(null);
+  const scrollX = useRef(new Animated.Value(0)).current;
+  const commentsScrollViewRef = useRef<ScrollView | null>(null);
 
   const handleCarouselScroll = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
   ) => {
     const offsetX = event.nativeEvent.contentOffset.x;
-    const index = Math.round(offsetX / SNAP_INTERVAL);
-    setActiveIndex(index);
+    // Offset relative to the first card's theoretical centered position
+    const relative = offsetX - (SIDE_PADDING + (INITIAL_INDEX - 1) * SNAP_INTERVAL);
+    let index = Math.round(relative / SNAP_INTERVAL);
+    index = index + INITIAL_INDEX - 1; // re-base to real index
+    const clamped = Math.max(0, Math.min(COCKTAILS.length - 1, index));
+    setActiveIndex(clamped);
   };
+
+  // ensure we don't start on a blank area due to side padding
+  useEffect(() => {
+    // Scroll immediately so second item (index 1) is centered.
+    const id = setTimeout(() => {
+      try {
+        carouselRef.current?.scrollTo({
+          x: SIDE_PADDING + INITIAL_INDEX * SNAP_INTERVAL,
+          animated: false,
+        });
+      } catch {}
+    }, 0);
+    return () => clearTimeout(id);
+  }, []);
 
   // ---------- load feed + likes + comment counts ----------
 
@@ -522,68 +557,141 @@ export const HomeScreen: React.FC = () => {
           paddingBottom: spacing.screenBottom,
         }}
       >
-        {/* Popular Right Now – Emoji Carousel */}
+        {/* Popular Right Now – Image Carousel */}
         <Box className="mb-6">
           <Text className="text-lg font-medium text-neutral-900 mb-3">
             Drinks for your mood
           </Text>
 
-          <Box className="h-64">
-            <ScrollView
+          {/* a bit taller so dots don't sit under the card */}
+          <Box className="h-72">
+            <Animated.ScrollView
+              ref={carouselRef}
               horizontal
               showsHorizontalScrollIndicator={false}
               snapToInterval={SNAP_INTERVAL}
+              snapToAlignment="center"
               decelerationRate="fast"
               scrollEventThrottle={16}
               contentContainerStyle={{
-                paddingHorizontal: (SCREEN_WIDTH - CAROUSEL_ITEM_WIDTH) / 2,
                 alignItems: 'center',
+                // Left padding so first card can slide in; right slightly reduced to minimize blank space after last.
+                paddingLeft: SIDE_PADDING,
+                paddingRight: Math.max(12, SIDE_PADDING * 0.4),
               }}
-              onScroll={handleCarouselScroll}
+              onScroll={Animated.event(
+                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                { useNativeDriver: true, listener: handleCarouselScroll },
+              )}
             >
               {COCKTAILS.map((item, index) => {
                 const isCenter = index === activeIndex;
+                const isFirst = index === 0;
+                const isLast = index === COCKTAILS.length - 1;
+                const inputRange = [
+                  SIDE_PADDING + (index - 1) * SNAP_INTERVAL,
+                  SIDE_PADDING + index * SNAP_INTERVAL,
+                  SIDE_PADDING + (index + 1) * SNAP_INTERVAL,
+                ];
+                const scale = scrollX.interpolate({
+                  inputRange,
+                  outputRange: [0.95, 1, 0.95],
+                  extrapolate: 'clamp',
+                });
+                const opacity = scrollX.interpolate({
+                  inputRange,
+                  outputRange: [0.6, 1, 0.6],
+                  extrapolate: 'clamp',
+                });
+                const glowOpacity = scrollX.interpolate({
+                  inputRange,
+                  outputRange: [0, 0.18, 0],
+                  extrapolate: 'clamp',
+                });
                 return (
                   <Box
                     key={item.id}
                     style={{
                       width: CAROUSEL_ITEM_WIDTH,
-                      marginRight: CAROUSEL_SPACING,
+                      // reduce side padding at extremes slightly to avoid large blank feel
+                      marginLeft: isFirst ? CAROUSEL_SPACING / 2 : CAROUSEL_SPACING / 2,
+                      marginRight: isLast ? CAROUSEL_SPACING / 2 : CAROUSEL_SPACING / 2,
+                      alignItems: 'center',
+                      position: 'relative',
                     }}
                   >
-                    <Box
-                      className="items-center justify-center bg-white rounded-3xl"
+                    {/* subtle glow behind the card */}
+                    <Animated.View
                       style={{
-                        paddingVertical: 32,
-                        paddingHorizontal: 12,
-                        shadowColor: '#000',
-                        shadowOpacity: isCenter ? 0.2 : 0.05,
-                        shadowOffset: { width: 0, height: 6 },
-                        shadowRadius: 12,
-                        elevation: isCenter ? 5 : 1,
-                        opacity: isCenter ? 1 : 0.4,
+                        position: 'absolute',
+                        top: 10,
+                        bottom: 10,
+                        left: 10,
+                        right: 10,
+                        borderRadius: 28,
+                        backgroundColor: colors.primary[500],
+                        opacity: glowOpacity,
+                      }}
+                    />
+
+                    <Animated.View
+                      className="items-center justify-center rounded-3xl"
+                      style={{
+                        width: '100%',
+                        height: 240,
+                        paddingVertical: 10,
+                        paddingHorizontal: 10,
+                        borderRadius: 28,
+                        backgroundColor: colors.white,
+                        overflow: 'hidden',
+                        borderWidth: isCenter ? 2 : 0,
+                        borderColor: isCenter ? colors.primary[500] : 'transparent',
+                        shadowColor: isCenter ? colors.primary[500] : '#000000',
+                        shadowOpacity: isCenter ? 0.22 : 0.08,
+                        shadowOffset: { width: 0, height: isCenter ? 10 : 4 },
+                        shadowRadius: isCenter ? 16 : 6,
+                        elevation: isCenter ? 7 : 2,
+                        opacity: opacity as any,
+                        transform: [{ scale }],
                       }}
                     >
-                      <Text className="text-4xl mb-2">{item.emoji}</Text>
-                      <Text className="text-base font-semibold text-neutral-900">
+                      <Image
+                        source={item.image}
+                        style={{
+                          width: '100%',
+                          height: '82%',
+                          maxHeight: 200,
+                          resizeMode: 'contain',
+                        }}
+                      />
+                      <Text className="mt-2 text-base font-semibold text-neutral-900 text-center">
                         {item.name}
                       </Text>
-                    </Box>
+                    </Animated.View>
                   </Box>
                 );
               })}
-            </ScrollView>
+            </Animated.ScrollView>
 
             {/* Dots */}
-            <Box className="flex-row justify-center mt-4">
-              {COCKTAILS.map((_, index) => (
-                <Box
-                  key={index}
-                  className={`h-2 rounded-full mx-1 ${
-                    activeIndex === index ? 'w-6 bg-[#9810fa]' : 'w-2 bg-[#d1d5dc]'
-                  }`}
-                />
-              ))}
+            <Box className="flex-row justify-center mt-6">
+              {COCKTAILS.map((_, index) => {
+                const active = activeIndex === index;
+                return (
+                  <Box
+                    key={index}
+                    style={{
+                      width: active ? 14 : 6,
+                      height: 6,
+                      borderRadius: 999,
+                      marginHorizontal: 8,
+                      backgroundColor: active
+                        ? colors.primary[500]
+                        : '#e5e7eb',
+                    }}
+                  />
+                );
+              })}
             </Box>
           </Box>
         </Box>
