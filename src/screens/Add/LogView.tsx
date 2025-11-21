@@ -45,6 +45,8 @@ interface LogViewProps {
     isUploading: boolean;
     handleLogCocktail: () => Promise<void>;
     canSubmit: boolean;
+    hasInteracted: boolean;
+    setHasInteracted: (v: boolean) => void;
 }
 
 const LogView: React.FC<LogViewProps> = ({
@@ -76,7 +78,17 @@ const LogView: React.FC<LogViewProps> = ({
     isUploading,
     handleLogCocktail,
     canSubmit,
+    hasInteracted,
+    setHasInteracted,
 }) => {
+
+    // Mark form as interacted when user starts filling fields
+    const handleFieldInteraction = () => {
+        if (!hasInteracted) {
+            setHasInteracted(true);
+        }
+    };
+
     return (
         <Box className="flex-1 space-y-6">
             {/* Cocktail Name */}
@@ -86,6 +98,7 @@ const LogView: React.FC<LogViewProps> = ({
                 placeholder="Select a cocktail"
                 value={cocktailQuery}
                 onChangeText={(t) => {
+                    handleFieldInteraction();
                     setCocktailQuery(t);
                     setSelectedCocktailId(null);
                     setCocktailSuggestionsVisible(!!t);
@@ -137,7 +150,10 @@ const LogView: React.FC<LogViewProps> = ({
             <Box className="space-y-2 bg-white p-4 rounded-xl border border-gray-200">
                 <Text className="text-sm text-neutral-950">Rating</Text>
                 <Center>
-                    <RatingStars value={rating} onChange={setRating} />
+                    <RatingStars value={rating} onChange={(r) => {
+                        handleFieldInteraction();
+                        setRating(r);
+                    }} />
                 </Center>
             </Box>
 
@@ -149,7 +165,10 @@ const LogView: React.FC<LogViewProps> = ({
                 multiline
                 numberOfLines={3}
                 value={caption}
-                onChangeText={setCaption}
+                onChangeText={(text) => {
+                    handleFieldInteraction();
+                    setCaption(text);
+                }}
             />
 
             {/* Location */}
@@ -248,8 +267,8 @@ const LogView: React.FC<LogViewProps> = ({
             </Box>
 
             {/* Submit Button */}
-            <PrimaryButton title={isUploading ? 'Uploading…' : 'Log Cocktail'} onPress={handleLogCocktail} disabled={!canSubmit || isUploading} />
-            {!canSubmit && (
+            <PrimaryButton title={isUploading ? 'Uploading...' : 'Log Cocktail'} onPress={handleLogCocktail} disabled={!canSubmit || isUploading} />
+            {!canSubmit && hasInteracted && (
                 <Text className="text-sm text-red-500 mt-2">Please complete all required fields: cocktail, rating, review, and location or At Home.</Text>
             )}
         </Box>
