@@ -73,12 +73,20 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
       </Pressable>
 
       {/* Cocktail Image */}
-      <Box className="w-full h-[414px] relative">
-        <Image
-          source={{ uri: imageUrl }}
-          style={{ width: '100%', height: '100%' }}
-          resizeMode="cover"
-        />
+      <Box className="w-full h-[414px] relative bg-neutral-200">
+        {imageUrl ? (
+          <Image
+            source={{ uri: imageUrl }}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+            onError={(e) => console.warn('Image load error:', e.nativeEvent.error)}
+          />
+        ) : (
+          <Box className="w-full h-full items-center justify-center bg-neutral-100">
+            <Text className="text-6xl">🍸</Text>
+            <Text className="text-sm text-neutral-500 mt-2">No image</Text>
+          </Box>
+        )}
         {/* Cocktail name and rating badge */}
         <Box className="absolute bottom-4 left-4 right-4 flex-row items-center justify-between">
           <Box className="bg-white/90 rounded-xl px-3 py-2">

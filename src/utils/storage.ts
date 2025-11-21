@@ -31,8 +31,13 @@ export async function uploadImageUri(uri: string, userId?: string | null, destin
                         throw uploadError;
                 }
 
-                const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path);
-                return urlData.publicUrl;
+                // Manually construct public URL with proper encoding
+                const { data: { publicUrl } } = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path);
+
+                // Fix: Replace space with %20 in the bucket name part of the URL
+                const correctedUrl = publicUrl.replace('/Log images/', '/Log%20images/');
+
+                return correctedUrl;
         } catch (e) {
                 console.error('uploadImageUri error', e);
                 throw e;
