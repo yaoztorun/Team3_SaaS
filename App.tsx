@@ -6,6 +6,7 @@ import { AuthStack } from './src/screens/navigation/AuthStack';
 import ResetPasswordScreen from './src/screens/Auth/ResetPasswordScreen';
 import { useAuth } from './src/hooks/useAuth';
 import { View, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/global.css';
 import {colors} from '@/src/theme/colors';
 import { initAnalytics } from './src/analytics';

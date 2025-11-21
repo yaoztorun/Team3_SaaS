@@ -8,7 +8,7 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { Check } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { LinearGradient } from 'expo-linear-gradient';
-import { fetchCocktails } from '@/src/api/cocktail';
+import { fetchCocktails, fetchIngredientUsage } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PrimaryButton } from '@/src/components/global';
@@ -42,58 +42,44 @@ export const WhatCanIMake = () => {
         const load = async () => {
             setLoading(true);
             try {
-                const data = await fetchCocktails();
-                
-                // Count ingredient usage (case-insensitive to avoid duplicates) 
-                const countMap = new Map<string, number>();
-                const nameMap = new Map<string, string>(); // normalized -> display name
-                
-                (data || []).forEach((row: any) => {
-                    const raw = row?.ingredients;
-                    let arr: any[] = [];
-                    if (!raw) return;
-                    if (typeof raw === 'string') {
-                        try {
-                            arr = JSON.parse(raw);
-                        } catch (e) {
-                            return;
-                        }
-                    } else if (Array.isArray(raw)) {
-                        arr = raw;
-                    }
+                // Prefer server-side aggregation via RPC if available
+                try {
+                    const usage = await fetchIngredientUsage(500);
+                    const names = usage.map(u => u.name).filter(Boolean);
+                    if (mounted) setIngredients(names);
+                    console.log('Fetched ingredient usage via RPC:', names.length, 'ingredients');
+                } catch (rpcErr) {
+                    // Fallback to fetching full cocktails and processing client-side
+                    console.warn('RPC fetchIngredientUsage failed, falling back to client-side processing.', rpcErr);
 
-                    arr.forEach((ing) => {
-                        if (!ing) return;
-                        const name = (ing.name || '').toString().trim();
-                        if (!name) return;
-                        
-                        // Normalize to lowercase for deduplication
-                        const normalized = name.toLowerCase();
-                        countMap.set(normalized, (countMap.get(normalized) || 0) + 1);
-                        
-                        // Store the first occurrence as display name (or prefer capitalized)
-                        if (!nameMap.has(normalized)) {
-                            nameMap.set(normalized, name);
-                        } else {
-                            // Prefer the version with proper capitalization
-                            const current = nameMap.get(normalized)!;
-                            if (name[0] === name[0].toUpperCase() && current[0] !== current[0].toUpperCase()) {
-                                nameMap.set(normalized, name);
-                            }
+                    const data = await fetchCocktails();
+                    const countMap = new Map<string, number>();
+                    const nameMap = new Map<string, string>();
+
+                    (data || []).forEach((row: any) => {
+                        const raw = row?.ingredients;
+                        let arr: any[] = [];
+                        if (!raw) return;
+                        if (typeof raw === 'string') {
+                            try { arr = JSON.parse(raw); } catch (e) { return; }
+                        } else if (Array.isArray(raw)) {
+                            arr = raw;
                         }
+                        arr.forEach((ing) => {
+                            if (!ing) return;
+                            const name = (ing.name || '').toString().trim();
+                            if (!name) return;
+                            const normalized = name.toLowerCase();
+                            countMap.set(normalized, (countMap.get(normalized) || 0) + 1);
+                            if (!nameMap.has(normalized)) nameMap.set(normalized, name);
+                        });
                     });
-                });
 
-                // Sort by usage count (most popular first), then alphabetically
-                const sorted = Array.from(countMap.entries())
-                    .sort((a, b) => {
-                        const countDiff = b[1] - a[1];
-                        if (countDiff !== 0) return countDiff;
-                        return a[0].localeCompare(b[0]);
-                    })
-                    .map(([normalized]) => nameMap.get(normalized)!);
-
-                if (mounted) setIngredients(sorted);
+                    const sorted = Array.from(countMap.entries())
+                        .sort((a, b) => (b[1] - a[1]) || a[0].localeCompare(b[0]))
+                        .map(([normalized]) => nameMap.get(normalized)!);
+                    if (mounted) setIngredients(sorted);
+                }
             } catch (e) {
                 console.warn('Failed to load ingredients', e);
             } finally {
