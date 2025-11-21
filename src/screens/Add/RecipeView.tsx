@@ -19,6 +19,8 @@ interface RecipeViewProps {
     selectedDifficulty: 'Easy' | 'Medium' | 'Hard';
     setSelectedDifficulty: (v: 'Easy' | 'Medium' | 'Hard') => void;
     onRecipeCreated: () => void;
+    hasInteracted: boolean;
+    setHasInteracted: (v: boolean) => void;
 }
 
 const RecipeView: React.FC<RecipeViewProps> = ({
@@ -28,6 +30,8 @@ const RecipeView: React.FC<RecipeViewProps> = ({
     selectedDifficulty,
     setSelectedDifficulty,
     onRecipeCreated,
+    hasInteracted,
+    setHasInteracted,
 }) => {
     // Ingredient row shape
     type Ingredient = { id: string; name: string; amount: string; unit: string };
@@ -36,6 +40,13 @@ const RecipeView: React.FC<RecipeViewProps> = ({
     const MAX_STEPS = 20;
 
     const UNITS = ['ml', 'oz', 'tsp', 'tbsp', 'dash', 'slice', 'piece', 'to taste'];
+
+    // Mark form as interacted when user starts filling fields
+    const handleFieldInteraction = () => {
+        if (!hasInteracted) {
+            setHasInteracted(true);
+        }
+    };
 
     // Ingredient suggestions loaded from database
     const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
@@ -249,7 +260,10 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                     required
                     placeholder="Name your cocktail recipe"
                     value={recipeName}
-                    onChangeText={setRecipeName}
+                    onChangeText={(text) => {
+                        handleFieldInteraction();
+                        setRecipeName(text);
+                    }}
                 />
                 {isCheckingName && (
                     <Text className="text-sm text-neutral-400">Checking availability...</Text>
@@ -408,7 +422,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                 onPress={handleCreateRecipe}
                 disabled={!canSubmit || isUploading}
             />
-            {!canSubmit && !isUploading && (
+            {!canSubmit && !isUploading && hasInteracted && (
                 <Text className="text-sm text-red-500 mt-2">
                     Please complete all required fields: unique name, photo, at least one ingredient with amount, and at least one instruction step.
                 </Text>

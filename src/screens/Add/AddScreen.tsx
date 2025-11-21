@@ -5,7 +5,8 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { ToggleSwitch } from '@/src/components/global';
+import { ToggleSwitch, PrimaryButton } from '@/src/components/global';
+import { useNavigation } from '@react-navigation/native';
 import LogView from './LogView';
 import RecipeView from './RecipeView';
 import { createCameraHandlers } from '@/src/utils/camera';
@@ -20,6 +21,7 @@ import { ANALYTICS_EVENTS, posthogCapture, trackWithTTFA } from '@/src/analytics
 type ViewType = 'log' | 'recipe';
 
 export const AddScreen = () => {
+    const navigation = useNavigation();
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
     const [isAtHome, setIsAtHome] = useState(false);
@@ -27,6 +29,10 @@ export const AddScreen = () => {
     const [selectedDifficulty, setSelectedDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
     const [photoUri, setPhotoUri] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+    // Track if user has interacted with form (to show validation errors)
+    const [hasLogInteracted, setHasLogInteracted] = useState(false);
+    const [hasRecipeInteracted, setHasRecipeInteracted] = useState(false);
     const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
     const [locationQuery, setLocationQuery] = useState('');
     const [suggestionsVisible, setSuggestionsVisible] = useState(false);
@@ -151,10 +157,7 @@ export const AddScreen = () => {
                 });
             }
 
-            // show confirmation modal and clear form
-            setModalMessage('Drink logged successfully');
-            setModalVisible(true);
-            // clear form fields
+            // Clear form fields first
             setCocktailQuery('');
             setSelectedCocktailId(null);
             setCaption('');
@@ -167,6 +170,13 @@ export const AddScreen = () => {
             setCocktailSuggestionsVisible(false);
             setSuggestionsVisible(false);
 
+            // Reset interaction state so errors won't show on fresh form
+            setHasLogInteracted(false);
+
+            // Show confirmation modal
+            setModalMessage('Drink logged successfully');
+            setModalVisible(true);
+
             // user will dismiss the modal manually
         } catch (e) {
             console.error('Error logging cocktail', e);
@@ -177,12 +187,22 @@ export const AddScreen = () => {
     };
 
     const handleRecipeCreated = () => {
-        // Show success modal and clear form
-        setModalMessage('Recipe created successfully');
-        setModalVisible(true);
-        // Clear form fields
+        // Clear form fields first
         setPhotoUri(null);
         setSelectedDifficulty('Easy');
+
+        // Reset interaction state so errors won't show on fresh form
+        setHasRecipeInteracted(false);
+
+        // Show success modal
+        setModalMessage('Recipe created successfully');
+        setModalVisible(true);
+    };
+
+    const handleModalConfirm = () => {
+        setModalVisible(false);
+        // Navigate to home tab
+        navigation.navigate('Home' as never);
     };
 
     const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0 && (isAtHome || !!selectedLocationId);
@@ -239,6 +259,8 @@ export const AddScreen = () => {
                         isUploading={isUploading}
                         handleLogCocktail={handleLogCocktail}
                         canSubmit={canSubmit}
+                        hasInteracted={hasLogInteracted}
+                        setHasInteracted={setHasLogInteracted}
                     />
                 ) : (
                     <RecipeView
@@ -248,32 +270,31 @@ export const AddScreen = () => {
                         selectedDifficulty={selectedDifficulty}
                         setSelectedDifficulty={setSelectedDifficulty}
                         onRecipeCreated={handleRecipeCreated}
+                        hasInteracted={hasRecipeInteracted}
+                        setHasInteracted={setHasRecipeInteracted}
                     />
                 )}
             </ScrollView>
 
-            {/* Confirmation Modal (re-uses the pattern from Settings) */}
+            {/* Confirmation Modal */}
             <Modal
                 visible={modalVisible}
                 transparent
                 animationType="fade"
-                onRequestClose={() => setModalVisible(false)}
+                onRequestClose={handleModalConfirm}
             >
                 <View className="flex-1 bg-black/50 items-center justify-center p-4">
-                    <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
+                    <Box className="w-full max-w-sm bg-white rounded-2xl p-6">
                         <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
-                            {modalMessage ?? 'Done'}
+                            {modalMessage ?? 'Success!'}
                         </Text>
-                        <Text className="text-neutral-600 mb-6 text-center">Your drink has been logged.</Text>
-                        <View>
-                            <Pressable
-                                onPress={() => setModalVisible(false)}
-                                className="py-3 rounded-xl"
-                                style={{ backgroundColor: colors.primary[500] }}
-                            >
-                                <Text className="text-white text-center font-medium">OK</Text>
-                            </Pressable>
-                        </View>
+                        <Text className="text-neutral-600 mb-6 text-center">
+                            {activeView === 'log' ? 'Your drink has been logged.' : 'Your recipe has been created.'}
+                        </Text>
+                        <PrimaryButton
+                            title="OK"
+                            onPress={handleModalConfirm}
+                        />
                     </Box>
                 </View>
             </Modal>
