@@ -1,7 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
 import { fetchCocktails, DBCocktail } from '@/src/api/cocktail';
@@ -115,7 +115,7 @@ export const AllCocktails = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title="All Cocktails" />
+            <TopBar title="All Cocktails" showBack onBackPress={() => navigation.goBack()} />
             {/* Content area with overlay header above the list */}
             <View style={{ flex: 1, position: 'relative' }}>
                 {/* Overlay Header: semi-transparent, on top of list */}

@@ -13,7 +13,7 @@ import { uploadProfileImage } from '@/src/api/storage';
 import type { Profile } from '@/src/types/profile';
 import { Center } from '@/src/components/ui/center';
 import { createCameraHandlers } from '@/src/utils/camera';
-import { Pencil, Camera, Image as ImageIcon, X } from 'lucide-react-native';
+import { Pencil, Camera, Image as ImageIcon, X, ArrowLeft } from 'lucide-react-native';
 
 const EditProfile: React.FC = () => {
     const navigation = useNavigation();
@@ -91,7 +91,12 @@ const EditProfile: React.FC = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Edit Profile" showBack onBackPress={() => navigation.goBack()} />
+            <Box className="bg-white px-4 py-4 border-b border-gray-200 flex-row items-center">
+                <Pressable onPress={() => navigation.goBack()} className="mr-4">
+                    <ArrowLeft size={24} color="#000" />
+                </Pressable>
+                <Text className="text-xl font-semibold">Edit Profile</Text>
+            </Box>
             <ScrollView
                 className="flex-1 px-4 pt-6"
                 contentContainerStyle={{ paddingBottom: spacing.screenBottom }}

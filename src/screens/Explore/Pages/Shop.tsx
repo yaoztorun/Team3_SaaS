@@ -1,12 +1,13 @@
 import React from 'react';
 import { ScrollView, Image } from 'react-native';
 import { Box } from '@/src/components/ui/box';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Star } from 'lucide-react-native';
 import { PrimaryButton } from '@/src/components/global';
+import { useNavigation } from '@react-navigation/native';
 
 type Product = {
     id: string;
@@ -51,9 +52,11 @@ const ProductCard = ({ product }: { product: Product }) => (
 );
 
 export const Shop = () => {
+    const navigation = useNavigation();
+    
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title="Shop" />
+            <TopBar title="Shop" showBack onBackPress={() => navigation.goBack()} />
             <ScrollView contentContainerStyle={{ padding: 16 }}>
                 {/* Search / filter bar */}
                 <HStack className="bg-white rounded-full px-4 py-2 mb-4 items-center">
