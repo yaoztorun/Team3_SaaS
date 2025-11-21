@@ -190,6 +190,7 @@ export const HomeScreen: React.FC = () => {
   const [activeIndex, setActiveIndex] = useState(INITIAL_INDEX);
   const carouselRef = useRef<ScrollView | null>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+  const commentsScrollViewRef = useRef<ScrollView | null>(null);
 
   const handleCarouselScroll = (
     event: NativeSyntheticEvent<NativeScrollEvent>,
