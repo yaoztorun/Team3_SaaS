@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
-import { PageHeader } from '../components/PageHeader';
+import { TopBar } from '@/src/screens/navigation/TopBar';
 import { ScrollView, Image, TouchableOpacity } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
 import { SearchBar, FilterChip } from '@/src/components/global';
+import { useNavigation } from '@react-navigation/native';
 
 type EventType = 'All' | 'Workshop' | 'Tasting' | 'Party' | 'Happy Hour' | 'Class';
 
@@ -85,6 +86,7 @@ const sampleEvents: Event[] = [
 ];
 
 export const UpcomingEvents = () => {
+    const navigation = useNavigation();
     const [selectedType, setSelectedType] = useState<EventType>('All');
     const [searchQuery, setSearchQuery] = useState('');
 
@@ -97,7 +99,7 @@ export const UpcomingEvents = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <PageHeader title="Upcoming Events" />
+            <TopBar title="Upcoming Events" showBack onBackPress={() => navigation.goBack()} />
             
             {/* Search Bar */}
             <Box className="px-4 pt-2 pb-1">

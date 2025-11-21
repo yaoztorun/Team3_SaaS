@@ -7,10 +7,12 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Search, ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
+import { ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
 import { PreviewCard, EventCard } from '@/src/components/global';
 import { fetchLocations } from '@/src/api/location';
 import type { DBLocation } from '@/src/api/location';
+import { fetchShopItems } from '@/src/api/shop';
+import type { DBShopItem } from '@/src/api/shop';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -19,6 +21,7 @@ type RootStackParamList = {
     BestBars: undefined;
     UpcomingEvents: undefined;
     Shop: undefined;
+    ItemDetail: { itemId: string };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -27,6 +30,8 @@ export const ExploreScreen = () => {
     const navigation = useNavigation<NavigationProp>();
     const [bars, setBars] = useState<DBLocation[]>([]);
     const [loadingBars, setLoadingBars] = useState(true);
+    const [shopItems, setShopItems] = useState<DBShopItem[]>([]);
+    const [loadingShop, setLoadingShop] = useState(true);
 
     useEffect(() => {
         const loadBars = async () => {
@@ -57,13 +62,29 @@ export const ExploreScreen = () => {
         loadBars();
     }, []);
 
+    useEffect(() => {
+        const loadShopItems = async () => {
+            setLoadingShop(true);
+            const data = await fetchShopItems();
+            // Filter for specific items
+            const targetItems = ['Smoking Kit', 'Bar Mat', 'Pure Sugar Cane Syrup'];
+            const selectedItems = data.filter(item => 
+                targetItems.some(target => item.name?.includes(target))
+            );
+            // If we found the items, use them, otherwise fall back to first 3
+            setShopItems(selectedItems.length > 0 ? selectedItems : data.slice(0, 3));
+            setLoadingShop(false);
+        };
+        loadShopItems();
+    }, []);
+
     const navigateToSection = (route: keyof RootStackParamList) => {
-        navigation.navigate(route);
+        navigation.navigate(route as any);
     };
 
     return (
         <Box className="flex-1 bg-gray-50">
-            <TopBar title="Explore" streakCount={12} cocktailCount={47} />
+            <TopBar title="Explore" />
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
@@ -71,16 +92,6 @@ export const ExploreScreen = () => {
                     paddingBottom: spacing.screenBottom,
                 }}
             >
-                {/* Search Bar */}
-                <Box className="px-4 mb-4">
-                    <Box className="bg-gray-100 rounded-lg px-4 py-3 flex-row items-center">
-                        <Search size={20} color="#717182" />
-                        <Text className="ml-3 text-sm text-[#717182]">
-                            Search cocktails, bars, events...
-                        </Text>
-                    </Box>
-                </Box>
-
                 {/* All Cocktails Section */}
                 <Box className="mb-6">
                     <Pressable
@@ -272,37 +283,33 @@ export const ExploreScreen = () => {
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
-                    >
-                        <Box className="mr-3">
-                            <PreviewCard
-                                emoji="🍹"
-                                title="Bartender Starter Kit"
-                                price="$45.99"
-                                variant="shop"
-                                onPress={() => navigateToSection('Shop')}
-                            />
+                    {loadingShop ? (
+                        <Box className="px-4">
+                            <ActivityIndicator size="small" color="#8B5CF6" />
                         </Box>
-                        <Box className="mr-3">
-                            <PreviewCard
-                                emoji="📚"
-                                title="Classic Cocktails Book"
-                                price="$24.99"
-                                variant="shop"
-                                onPress={() => navigateToSection('Shop')}
-                            />
+                    ) : shopItems.length === 0 ? (
+                        <Box className="px-4">
+                            <Text className="text-gray-500 text-sm">No shop items available</Text>
                         </Box>
-                        <PreviewCard
-                            emoji="🥃"
-                            title="Premium Tequila Bundle"
-                            price="$89.99"
-                            variant="shop"
-                            onPress={() => navigateToSection('Shop')}
-                        />
-                    </ScrollView>
+                    ) : (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
+                        >
+                            {shopItems.map((item, index) => (
+                                <Box key={item.id} className={index < shopItems.length - 1 ? 'mr-3' : ''}>
+                                    <PreviewCard
+                                        emoji="🛍️"
+                                        title={item.name || 'Shop Item'}
+                                        price={`€${item.price?.toFixed(2) || '0.00'}`}
+                                        variant="shop"
+                                        onPress={() => navigation.navigate('ItemDetail', { itemId: item.id })}
+                                    />
+                                </Box>
+                            ))}
+                        </ScrollView>
+                    )}
                 </Box>
             </ScrollView>
         </Box>

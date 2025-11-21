@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { View, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,6 +11,7 @@ import { PrimaryButton, TextInputField } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
 import { spacing } from '@/src/theme/spacing';
+import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -30,9 +31,28 @@ const LoginScreen: React.FC = () => {
             email,
             password,
         });
-        if (error) setMessage(error.message);
-        else {
+        if (error) {
+            setMessage(error.message);
+            posthogCapture(ANALYTICS_EVENTS.LOGIN_COMPLETED, {
+                method: 'email',
+                success: false,
+                error: error.message,
+            });
+        } else {
             setMessage('Successfully logged in! Redirecting...');
+            
+            // Identify user and track login
+            if (data.user) {
+                identifyUser(data.user.id, {
+                    email: data.user.email,
+                    last_login: new Date().toISOString(),
+                });
+                
+                trackWithTTFA(ANALYTICS_EVENTS.LOGIN_COMPLETED, {
+                    method: 'email',
+                });
+            }
+            
             setTimeout(() => setMessage(null), 2000);
         }
     };
@@ -42,13 +62,24 @@ const LoginScreen: React.FC = () => {
     };
 
     const handleGoogleLogin = async () => {
+        posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+            method: 'google',
+        });
+        
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
             redirectTo: window.location.origin,
             },
         });
-        if (error) setMessage(error.message);
+        if (error) {
+            setMessage(error.message);
+            posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
+                method: 'google',
+                success: false,
+                error: error.message,
+            });
+        }
     };
 
 
@@ -65,19 +96,14 @@ const LoginScreen: React.FC = () => {
             <Box className="p-6">
                 {/* Logo and Welcome Text */}
                 <Box className="items-center">
-                    {/* logo.png not present in repo; using a simple placeholder */}
-                    <Box
+                    <Image
+                        source={require('../../../assets/icon.png')}
                         style={{
                             width: 120,
                             height: 120,
-                            borderRadius: 60,
-                            backgroundColor: '#f3f4f6',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            resizeMode: 'contain',
                         }}
-                    >
-                        <Text className="text-3xl font-bold text-primary-500">P</Text>
-                    </Box>
+                    />
                     <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
                         Welcome Back!
                     </Text>
@@ -123,7 +149,7 @@ const LoginScreen: React.FC = () => {
                     />
 
                     {/* Forgot Password */}
-                    <Pressable className="mt-6 mb-4">
+                    <Pressable className="mt-6 mb-4" onPress={() => navigation.navigate('ForgotPassword')}>
                         <Text className="text-center text-primary-500 font-medium">
                             Forgot Password?
                         </Text>

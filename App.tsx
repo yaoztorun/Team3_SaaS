@@ -3,16 +3,20 @@ import { NavigationContainer } from '@react-navigation/native';
 import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider';
 import { RootStack } from './src/screens/navigation/RootStack';
 import { AuthStack } from './src/screens/navigation/AuthStack';
+import ResetPasswordScreen from './src/screens/Auth/ResetPasswordScreen';
 import { useAuth } from './src/hooks/useAuth';
 import { View, ActivityIndicator, useWindowDimensions, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/global.css';
 import {colors} from '@/src/theme/colors';
+import { initAnalytics } from './src/analytics';
 
 // Maximum width for the app content (similar to mobile screen width)
 const MAX_CONTENT_WIDTH = 480; // ~iPhone 14 Pro Max width
 
 export default function App() {
-  const { user, loading } = useAuth();
+  initAnalytics();
+  const { user, loading, isPasswordRecovery } = useAuth();
   const { width } = useWindowDimensions();
 
   // Calculate if we should center content (on web/larger screens)
@@ -26,20 +30,30 @@ export default function App() {
     );
   }
 
-  const content = (
-    <GluestackUIProvider mode="light">
-      <NavigationContainer key={user ? 'root' : 'auth'}>
-        {user ? <RootStack /> : <AuthStack />}
-      </NavigationContainer>
-    </GluestackUIProvider>
-  );
+  // Determine what content to show
+  let content;
+  if (isPasswordRecovery) {
+    content = (
+      <GluestackUIProvider mode="light">
+        <ResetPasswordScreen />
+      </GluestackUIProvider>
+    );
+  } else {
+    content = (
+      <GluestackUIProvider mode="light">
+        <NavigationContainer key={user ? 'root' : 'auth'}>
+          {user ? <RootStack /> : <AuthStack />}
+        </NavigationContainer>
+      </GluestackUIProvider>
+    );
+  }
 
   // Wrap content in centered container for web
   if (shouldCenterContent) {
     return (
       <View style={{ 
         flex: 1, 
-        backgroundColor: '#f5f5f5', // Light gray background for sides
+        backgroundColor: '#f5f5f5',
         alignItems: 'center',
         justifyContent: 'center'
       }}>

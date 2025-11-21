@@ -177,7 +177,7 @@ export const SocialScreen = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Social" streakCount={12} cocktailCount={47} />
+            <TopBar title="Social" />
             
             {/* View Toggle */}
             <Box className="bg-[#F3F4F6] p-4">
@@ -369,43 +369,75 @@ export const SocialScreen = () => {
 
                                 {/* Sent Requests Section */}
                                 {sentRequests.length > 0 && (
-                                    <Box className="mb-4">
-                                        <Text className="text-sm text-gray-600 mb-3">
-                                            Sent Requests ({sentRequests.length})
+                                <Box className="mb-4">
+                                    <HStack className="justify-between items-center mb-3">
+                                    <Text className="text-sm text-gray-600">
+                                        Sent Requests
+                                    </Text>
+                                    <Box className="bg-gray-100 px-2 py-1 rounded-full">
+                                        <Text className="text-[11px] text-gray-700">
+                                        {sentRequests.length} pending
                                         </Text>
-                                        {sentRequests.map(request => (
-                                            <Pressable 
-                                                key={request.id} 
-                                                className="bg-gray-50 p-4 rounded-xl mb-2 border border-gray-200"
-                                                onPress={() => navigation.navigate('UserProfile', { userId: request.friend_id })}
-                                            >
-                                                <HStack space="md" className="items-center">
-                                                    {request.sender_profile.avatar_url ? (
-                                                        <Box className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                                                            <Image 
-                                                                source={{ uri: request.sender_profile.avatar_url }} 
-                                                                style={{ width: 48, height: 48 }}
-                                                                resizeMode="cover"
-                                                            />
-                                                        </Box>
-                                                    ) : (
-                                                        <Center className="w-12 h-12 rounded-full bg-gray-400">
-                                                            <Text className="text-white">
-                                                                {request.sender_profile.full_name?.charAt(0)?.toUpperCase() || '?'}
-                                                            </Text>
-                                                        </Center>
-                                                    )}
-                                                    <Box className="flex-1">
-                                                        <Text className="text-base font-medium">
-                                                            {request.sender_profile.full_name || 'User'}
-                                                        </Text>
-                                                        <Text className="text-sm text-gray-500">Pending...</Text>
-                                                    </Box>
-                                                </HStack>
-                                            </Pressable>
-                                        ))}
                                     </Box>
+                                    </HStack>
+
+                                    {sentRequests.map((request) => {
+                                    // make TS happy and be flexible with what the API returns
+                                    const anyRequest = request as any;
+
+                                    // for outgoing requests, we want to show the *other person*:
+                                    // try receiver_profile / friend_profile, fall back to sender_profile
+                                    const targetProfile =
+                                        anyRequest.receiver_profile ||
+                                        anyRequest.friend_profile ||
+                                        anyRequest.sender_profile;
+
+                                    const targetId = request.friend_id ?? targetProfile?.id;
+
+                                    return (
+                                        <Pressable
+                                        key={request.id}
+                                        className="bg-white p-4 rounded-xl mb-2 border border-gray-200"
+                                        onPress={() =>
+                                            navigation.navigate('UserProfile', {
+                                            userId: targetId,
+                                            })
+                                        }
+                                        >
+                                        <HStack space="md" className="items-center">
+                                            {targetProfile?.avatar_url ? (
+                                            <Box className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
+                                                <Image
+                                                source={{ uri: targetProfile.avatar_url }}
+                                                style={{ width: 48, height: 48 }}
+                                                resizeMode="cover"
+                                                />
+                                            </Box>
+                                            ) : (
+                                            <Center className="w-12 h-12 rounded-full bg-gray-400">
+                                                <Text className="text-white">
+                                                {targetProfile?.full_name?.charAt(0)?.toUpperCase() ??
+                                                    targetProfile?.email?.charAt(0)?.toUpperCase() ??
+                                                    '?'}
+                                                </Text>
+                                            </Center>
+                                            )}
+
+                                            <Box className="flex-1">
+                                            <Text className="text-base font-medium">
+                                                {targetProfile?.full_name || 'User'}
+                                            </Text>
+                                            <Text className="text-sm text-gray-500">
+                                                Friend request sent · Pending
+                                            </Text>
+                                            </Box>
+                                        </HStack>
+                                        </Pressable>
+                                    );
+                                    })}
+                                </Box>
                                 )}
+
 
                                 {/* Friends List Section */}
                                 <Box>

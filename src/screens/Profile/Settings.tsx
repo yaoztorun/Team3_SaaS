@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { ScrollView, Modal, View } from 'react-native';
+import { ScrollView, Modal, View, Linking } from 'react-native';
 import { Box } from '@/src/components/ui/box';
-import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
@@ -11,6 +10,7 @@ import { RootStackParamList } from '@/src/screens/navigation/types';
 import { PrimaryButton } from '@/src/components/global';
 import { colors } from '@/src/theme/colors';
 import { supabase } from '@/src/lib/supabase';
+import { ArrowLeft } from 'lucide-react-native';
 
 const Settings: React.FC = () => {
     const navigation = useNavigation();
@@ -67,7 +67,12 @@ const Settings: React.FC = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Settings" showBack onBackPress={() => navigation.goBack()} />
+            <Box className="bg-white px-4 py-4 border-b border-gray-200 flex-row items-center">
+                <Pressable onPress={() => navigation.goBack()} className="mr-4">
+                    <ArrowLeft size={24} color="#000" />
+                </Pressable>
+                <Text className="text-xl font-semibold">Settings</Text>
+            </Box>
             <ScrollView
                 className="flex-1 px-4 pt-6"
                 contentContainerStyle={{ paddingBottom: spacing.screenBottom }}
@@ -194,6 +199,27 @@ const Settings: React.FC = () => {
                             {logoutMessage}
                         </Text>
                     )}
+                </Box>
+
+                {/* Credits */}
+                <Box className="mb-6 bg-white rounded-2xl p-4">
+                    <Text className="text-base text-neutral-900 mb-3">Credits</Text>
+                    <Text className="text-xs text-neutral-600 leading-5">
+                        Icons made by{' '}
+                        <Text 
+                            className="text-xs text-teal-500 underline"
+                            onPress={() => Linking.openURL('https://www.flaticon.com/authors/rudiyana')}
+                        >
+                            Rudiyana
+                        </Text>
+                        {' '}from{' '}
+                        <Text 
+                            className="text-xs text-teal-500 underline"
+                            onPress={() => Linking.openURL('https://www.flaticon.com/')}
+                        >
+                            www.flaticon.com
+                        </Text>
+                    </Text>
                 </Box>
 
                 <PrimaryButton
