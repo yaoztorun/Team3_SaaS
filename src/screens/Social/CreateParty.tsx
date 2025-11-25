@@ -1,204 +1,18 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ScrollView, Platform, Modal, TouchableOpacity, KeyboardAvoidingView, TextInput } from 'react-native';
+import React, { useState } from 'react';
+import { ScrollView, Platform, KeyboardAvoidingView } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { isWeb } from '@/src/utils/platform';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import DateTimePicker from '@react-native-community/datetimepicker';
-import { Calendar as CalendarIcon, Clock, MapPin, Users, X, ChevronRight, ArrowLeft } from 'lucide-react-native';
-import { Calendar, DateData } from 'react-native-calendars';
-import fetchLocations from '@/src/api/location';
+import { Users } from 'lucide-react-native';
 
-import { HStack } from '@/src/components/ui/hstack';
 import { SocialStackParamList } from './SocialStack';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { PrimaryButton, TextInputField, ImageUploadBox } from '@/src/components/global';
-import { colors } from '@/src/theme/colors';
+import { PrimaryButton, TextInputField, ImageUploadBox, DateTimePicker, LocationSelector } from '@/src/components/global';
 
 type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party';
-
-const CustomTimePicker = ({ value, onChange }: { value: Date; onChange: (date: Date) => void }) => {
-    const minutes = [0, 15, 30, 45];
-    const [selectedHour, setSelectedHour] = useState(value.getHours());
-    const [selectedMinute, setSelectedMinute] = useState(value.getMinutes());
-    const [activeField, setActiveField] = useState<'hour' | 'minute' | null>(null);
-
-    // Update internal state when value prop changes, but don't reset activeField
-    useEffect(() => {
-        setSelectedHour(value.getHours());
-        setSelectedMinute(value.getMinutes());
-    }, [value.getTime()]); // Use getTime() to only trigger when the actual time changes, not on every render
-
-    const handleHourChange = (increment: boolean) => {
-        let newHour = selectedHour + (increment ? 1 : -1);
-        if (newHour < 0) newHour = 23;
-        if (newHour > 23) newHour = 0;
-
-        setSelectedHour(newHour);
-        const newDate = new Date(value.getTime());
-        newDate.setHours(newHour);
-        newDate.setMinutes(selectedMinute);
-        onChange(newDate);
-    };
-
-    const handleMinuteChange = (increment: boolean) => {
-        const currentIndex = minutes.indexOf(selectedMinute);
-        let newIndex = currentIndex + (increment ? 1 : -1);
-        if (newIndex < 0) newIndex = minutes.length - 1;
-        if (newIndex >= minutes.length) newIndex = 0;
-
-        const newMinute = minutes[newIndex];
-        setSelectedMinute(newMinute);
-        const newDate = new Date(value.getTime());
-        newDate.setHours(selectedHour);
-        newDate.setMinutes(newMinute);
-        onChange(newDate);
-    };
-
-    return (
-        <Box className="bg-white rounded-xl p-4 border border-neutral-200">
-            <Text className="text-sm font-semibold text-neutral-700 mb-3">Select Time</Text>
-
-            <Box className="flex-row items-center justify-center gap-3">
-                {/* Hour Selector */}
-                <TouchableOpacity
-                    onPress={() => setActiveField(activeField === 'hour' ? null : 'hour')}
-                    style={{
-                        flex: 1,
-                        height: 76,
-                        backgroundColor: activeField === 'hour' ? '#f0fdfa' : '#ffffff',
-                        borderRadius: 12,
-                        borderWidth: 2,
-                        borderColor: activeField === 'hour' ? '#14b8a6' : '#e5e7eb',
-                        overflow: 'hidden',
-                    }}
-                >
-                    {activeField === 'hour' ? (
-                        <Box className="flex-row items-center justify-between px-2" style={{ height: '100%' }}>
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleHourChange(false);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>−</Text>
-                            </TouchableOpacity>
-
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#0d9488' }}>
-                                {selectedHour.toString().padStart(2, '0')}
-                            </Text>
-
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleHourChange(true);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>+</Text>
-                            </TouchableOpacity>
-                        </Box>
-                    ) : (
-                        <Box className="items-center justify-center" style={{ height: '100%' }}>
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#374151' }}>
-                                {selectedHour.toString().padStart(2, '0')}
-                            </Text>
-                            <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280', marginTop: 2 }}>
-                                Hour
-                            </Text>
-                        </Box>
-                    )}
-                </TouchableOpacity>
-
-                {/* Separator */}
-                <Text style={{ fontSize: 28, fontWeight: '700', color: '#9ca3af' }}>:</Text>
-
-                {/* Minute Selector */}
-                <TouchableOpacity
-                    onPress={() => setActiveField(activeField === 'minute' ? null : 'minute')}
-                    style={{
-                        flex: 1,
-                        height: 76,
-                        backgroundColor: activeField === 'minute' ? '#f0fdfa' : '#ffffff',
-                        borderRadius: 12,
-                        borderWidth: 2,
-                        borderColor: activeField === 'minute' ? '#14b8a6' : '#e5e7eb',
-                        overflow: 'hidden',
-                    }}
-                >
-                    {activeField === 'minute' ? (
-                        <Box className="flex-row items-center justify-between px-2" style={{ height: '100%' }}>
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleMinuteChange(false);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>−</Text>
-                            </TouchableOpacity>
-
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#0d9488' }}>
-                                {selectedMinute.toString().padStart(2, '0')}
-                            </Text>
-
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleMinuteChange(true);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>+</Text>
-                            </TouchableOpacity>
-                        </Box>
-                    ) : (
-                        <Box className="items-center justify-center" style={{ height: '100%' }}>
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#374151' }}>
-                                {selectedMinute.toString().padStart(2, '0')}
-                            </Text>
-                            <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280', marginTop: 2 }}>
-                                Minute
-                            </Text>
-                        </Box>
-                    )}
-                </TouchableOpacity>
-            </Box>
-        </Box>
-    );
-};
 
 export const CreateParty = () => {
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
@@ -206,16 +20,8 @@ export const CreateParty = () => {
     const [partyTitle, setPartyTitle] = useState('');
     const [description, setDescription] = useState('');
     const [selectedType, setSelectedType] = useState<PartyType>('house-party');
-    const [locationQuery, setLocationQuery] = useState('');
+    const [selectedLocation, setSelectedLocation] = useState('');
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-    const [locationSuggestionsVisible, setLocationSuggestionsVisible] = useState(false);
-    const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
-    const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
-    const [showAddPersonalLocation, setShowAddPersonalLocation] = useState(false);
-    const [personalLocationLabel, setPersonalLocationLabel] = useState('');
-    const [personalLocationStreet, setPersonalLocationStreet] = useState('');
-    const [personalLocationHouseNr, setPersonalLocationHouseNr] = useState('');
-    const [personalLocationCity, setPersonalLocationCity] = useState('');
     const [maxAttendees, setMaxAttendees] = useState('');
     const [entryFee, setEntryFee] = useState('');
     const [cocktailTheme, setCocktailTheme] = useState('');
@@ -223,75 +29,22 @@ export const CreateParty = () => {
     const [requireApproval, setRequireApproval] = useState(false);
 
     // Date & Time State
-    const [showDateTimeModal, setShowDateTimeModal] = useState(false);
-    const [date, setDate] = useState(new Date());
-    const [selectedDateString, setSelectedDateString] = useState(new Date().toISOString().split('T')[0]);
-
-    // Initialize times with proper values
     const initStartTime = () => {
         const start = new Date();
         start.setHours(22, 0, 0, 0);
         return start;
     };
 
+    const [date, setDate] = useState(new Date());
     const [startTime, setStartTime] = useState(initStartTime());
-    const [endTime, setEndTime] = useState<Date | null>(null);    // Picker visibility for Android / iOS accordion
-    const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
-
-    // Fetch locations for autocomplete
-    useEffect(() => {
-        let mounted = true;
-        (async () => {
-            const data = await fetchLocations();
-            if (!mounted) return;
-            setLocations(data.map(l => ({ id: l.id, name: l.name })));
-        })();
-        return () => { mounted = false };
-    }, []);
+    const [endTime, setEndTime] = useState<Date | null>(null);
 
     const partyTypes = [
-        { id: 'house-party', label: 'House Party', emoji: '�' },
+        { id: 'house-party', label: 'House Party', emoji: '🏠' },
         { id: 'bar-meetup', label: 'Bar Meetup', emoji: '🍻' },
-        { id: 'outdoor-event', label: 'Outdoor Event', emoji: '�' },
-        { id: 'themed-party', label: 'Themed Party', emoji: '�' },
+        { id: 'outdoor-event', label: 'Outdoor Event', emoji: '🌳' },
+        { id: 'themed-party', label: 'Themed Party', emoji: '🎭' },
     ] as const;
-
-    const formatTime = (date: Date) => {
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-    };
-
-    const formatDate = (date: Date) => {
-        return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-    };
-
-    const getNextDayDate = (baseDate: Date) => {
-        const nextDay = new Date(baseDate);
-        nextDay.setDate(baseDate.getDate() + 1);
-        return nextDay.toLocaleDateString([], { month: 'short', day: 'numeric' });
-    };
-
-    const isNextDay = (start: Date, end: Date | null): boolean => {
-        if (!end) return false;
-        const startH = start.getHours();
-        const startM = start.getMinutes();
-        const endH = end.getHours();
-        const endM = end.getMinutes();
-        return (endH < startH) || (endH === startH && endM < startM);
-    };
-
-    const addEndTime = () => {
-        const end = new Date(startTime);
-        end.setHours(end.getHours() + 4); // Default to 4 hours after start
-        setEndTime(end);
-        setShowEndTimePicker(true);
-        setShowStartTimePicker(false);
-    };
-
-    const removeEndTime = () => {
-        setEndTime(null);
-        setShowEndTimePicker(false);
-    };
 
     const handleCreateParty = () => {
         // Here you would typically save the party data
@@ -349,50 +102,25 @@ export const CreateParty = () => {
                         />
                     </Box>
 
-                    {/* Date & Time Summary */}
-                    <Box className="mb-6">
-                        <Text className="text-sm text-neutral-950 mb-2">Date & Time *</Text>
-                        <Pressable
-                            onPress={() => setShowDateTimeModal(true)}
-                            className="bg-white border border-neutral-300 rounded-lg px-3 py-3 flex-row items-center justify-between"
-                        >
-                            <Box className="flex-row items-center">
-                                <CalendarIcon size={20} color="#6a7282" />
-                                <Box className="ml-3">
-                                    <Text className="text-base text-neutral-900 font-medium">
-                                        {formatDate(date)}
-                                    </Text>
-                                    <Text className="text-sm text-neutral-500">
-                                        {formatTime(startTime)}
-                                        {endTime && (
-                                            <>
-                                                {' - '}{formatTime(endTime)} {isNextDay(startTime, endTime) ? `(${getNextDayDate(date)})` : ''}
-                                            </>
-                                        )}
-                                        {!endTime && ' (no end time)'}
-                                    </Text>
-                                </Box>
-                            </Box>
-                            <ChevronRight size={20} color="#9ca3af" />
-                        </Pressable>
-                    </Box>
+                    {/* Date & Time */}
+                    <DateTimePicker
+                        date={date}
+                        startTime={startTime}
+                        endTime={endTime}
+                        onDateChange={setDate}
+                        onStartTimeChange={setStartTime}
+                        onEndTimeChange={setEndTime}
+                    />
 
                     {/* Location */}
-                    <Box className="mb-6">
-                        <Text className="text-sm text-neutral-950 mb-2">Location *</Text>
-                        <Pressable
-                            onPress={() => setIsLocationModalVisible(true)}
-                            className="bg-white border border-neutral-300 rounded-lg px-3 py-3 flex-row items-center justify-between"
-                        >
-                            <Box className="flex-row items-center">
-                                <MapPin size={20} color="#6a7282" />
-                                <Text className={`ml-3 text-base ${locationQuery ? 'text-neutral-900' : 'text-neutral-500'}`}>
-                                    {locationQuery || 'Select or add location...'}
-                                </Text>
-                            </Box>
-                            <ChevronRight size={20} color="#9ca3af" />
-                        </Pressable>
-                    </Box>
+                    <LocationSelector
+                        selectedLocation={selectedLocation}
+                        selectedLocationId={selectedLocationId}
+                        onLocationChange={(location, locationId) => {
+                            setSelectedLocation(location);
+                            setSelectedLocationId(locationId);
+                        }}
+                    />
 
                     {/* Max Attendees */}
                     <Box className="mb-6">
@@ -500,335 +228,6 @@ export const CreateParty = () => {
                     />
                 </ScrollView>
             </KeyboardAvoidingView>
-
-            {/* Date & Time Selection Modal */}
-            <Modal
-                visible={showDateTimeModal}
-                transparent
-                animationType="slide"
-                onRequestClose={() => setShowDateTimeModal(false)}
-            >
-                <TouchableOpacity
-                    className="flex-1 bg-black/50 justify-end"
-                    activeOpacity={1}
-                    onPress={() => setShowDateTimeModal(false)}
-                >
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={(e) => e.stopPropagation()}
-                        className="bg-white rounded-t-3xl h-[85%]"
-                    >
-                        <Box className="p-4 border-b border-gray-100 flex-row justify-between items-center">
-                            <Text className="text-lg font-semibold">Select Date & Time</Text>
-                            <Pressable onPress={() => setShowDateTimeModal(false)}>
-                                <X size={24} color="#000" />
-                            </Pressable>
-                        </Box>
-
-                        <ScrollView className="flex-1" keyboardShouldPersistTaps="handled">
-                            <Calendar
-                                current={selectedDateString}
-                                onDayPress={(day: DateData) => {
-                                    setSelectedDateString(day.dateString);
-                                    // Create date from timestamp to avoid timezone issues
-                                    // timestamp is UTC midnight for that day
-                                    const newDate = new Date(day.timestamp);
-                                    // Adjust for local timezone offset if needed, or just use the date part
-                                    // For display purposes, dateString is best.
-                                    // For the Date object state:
-                                    setDate(newDate);
-                                }}
-                                theme={{
-                                    todayTextColor: colors.primary[500],
-                                    selectedDayBackgroundColor: colors.primary[500],
-                                    arrowColor: colors.primary[500],
-                                    textDayFontWeight: '500',
-                                    textMonthFontWeight: 'bold',
-                                    textDayHeaderFontWeight: '500',
-                                }}
-                                markedDates={{
-                                    [selectedDateString]: {
-                                        selected: true,
-                                        selectedColor: colors.primary[500]
-                                    }
-                                }}
-                            />
-
-                            <Box className="px-4 py-4">
-                                <Text className="text-sm font-semibold text-neutral-500 mb-3 uppercase">Time</Text>
-
-                                <Box className="flex-row gap-3">
-                                    {/* Start Time */}
-                                    <Pressable
-                                        className={`flex-1 border rounded-xl p-3 ${showStartTimePicker ? 'border-teal-500 bg-teal-50' : 'border-neutral-200 bg-white'}`}
-                                        onPress={() => {
-                                            setShowStartTimePicker(true);
-                                            setShowEndTimePicker(false);
-                                        }}
-                                    >
-                                        <Text className="text-xs text-neutral-500 mb-1">Start Time *</Text>
-                                        <Box className="flex-row items-center">
-                                            <Clock size={16} color={showStartTimePicker ? "#0d9488" : "#666"} />
-                                            <Text className={`ml-2 text-base font-medium ${showStartTimePicker ? 'text-teal-700' : 'text-neutral-900'}`}>
-                                                {formatTime(startTime)}
-                                            </Text>
-                                        </Box>
-                                    </Pressable>
-
-                                    {/* End Time or Add Button */}
-                                    {endTime ? (
-                                        <Box style={{ flex: 1, position: 'relative' }}>
-                                            <Pressable
-                                                className={`border rounded-xl p-3 ${showEndTimePicker ? 'border-teal-500 bg-teal-50' : 'border-neutral-200 bg-white'}`}
-                                                onPress={() => {
-                                                    setShowEndTimePicker(true);
-                                                    setShowStartTimePicker(false);
-                                                }}
-                                            >
-                                                <Text className="text-xs text-neutral-500 mb-1">
-                                                    End Time {isNextDay(startTime, endTime) && `(${getNextDayDate(date)})`}
-                                                </Text>
-                                                <Box className="flex-row items-center">
-                                                    <Clock size={16} color={showEndTimePicker ? "#0d9488" : "#666"} />
-                                                    <Text className={`ml-2 text-base font-medium ${showEndTimePicker ? 'text-teal-700' : 'text-neutral-900'}`}>
-                                                        {formatTime(endTime)}
-                                                    </Text>
-                                                </Box>
-                                            </Pressable>
-                                            {/* Close button */}
-                                            <TouchableOpacity
-                                                onPress={removeEndTime}
-                                                style={{
-                                                    position: 'absolute',
-                                                    top: -8,
-                                                    right: -8,
-                                                    width: 24,
-                                                    height: 24,
-                                                    borderRadius: 12,
-                                                    backgroundColor: '#ffffff',
-                                                    borderWidth: 2,
-                                                    borderColor: '#dc2626',
-                                                    justifyContent: 'center',
-                                                    alignItems: 'center',
-                                                    shadowColor: '#000',
-                                                    shadowOffset: { width: 0, height: 2 },
-                                                    shadowOpacity: 0.1,
-                                                    shadowRadius: 3,
-                                                    elevation: 3,
-                                                }}
-                                            >
-                                                <X size={14} color="#dc2626" strokeWidth={3} />
-                                            </TouchableOpacity>
-                                        </Box>
-                                    ) : (
-                                        <Pressable
-                                            className="flex-1 border-2 border-dashed border-neutral-300 rounded-xl p-3 bg-white justify-center items-center"
-                                            onPress={addEndTime}
-                                        >
-                                            <Text className="text-sm font-medium text-teal-600">+ Add End Time</Text>
-                                        </Pressable>
-                                    )}
-                                </Box>
-
-                                {/* Time Picker Display (Custom) */}
-                                {(showStartTimePicker || showEndTimePicker) && (
-                                    <Box className="mt-4">
-                                        <CustomTimePicker
-                                            key={showStartTimePicker ? 'start' : 'end'} // Force remount when switching between start/end
-                                            value={showStartTimePicker ? startTime : (endTime || startTime)}
-                                            onChange={(newDate) => {
-                                                if (showStartTimePicker) setStartTime(newDate);
-                                                else setEndTime(newDate);
-                                            }}
-                                        />
-                                    </Box>
-                                )}
-                            </Box>
-                        </ScrollView>
-
-                        <Box className="p-4 border-t border-gray-100 pb-8">
-                            <PrimaryButton
-                                title="Done"
-                                onPress={() => setShowDateTimeModal(false)}
-                            />
-                        </Box>
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
-
-            {/* Location Selection Modal */}
-            <Modal
-                visible={isLocationModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setIsLocationModalVisible(false)}
-            >
-                <TouchableOpacity
-                    activeOpacity={1}
-                    onPress={() => setIsLocationModalVisible(false)}
-                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
-                >
-                    <TouchableOpacity
-                        activeOpacity={1}
-                        onPress={(e) => e.stopPropagation()}
-                        style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            backgroundColor: '#f9fafb',
-                            borderTopLeftRadius: 24,
-                            borderTopRightRadius: 24,
-                            height: '85%',
-                        }}
-                    >
-                        <ScrollView
-                            style={{ flex: 1 }}
-                            contentContainerStyle={{ paddingBottom: 100 }}
-                            keyboardShouldPersistTaps="handled"
-                        >
-                            {/* Header */}
-                            <Box className="px-4 py-4 border-b border-gray-200 flex-row items-center justify-between">
-                                <Text className="text-xl font-semibold text-neutral-900">Select Location</Text>
-                                <TouchableOpacity onPress={() => setIsLocationModalVisible(false)}>
-                                    <X size={24} color="#666" />
-                                </TouchableOpacity>
-                            </Box>
-
-                            <Box className="px-4 py-4">
-                                {!showAddPersonalLocation ? (
-                                    <>
-                                        {/* Search Bar */}
-                                        <Box className="mb-4">
-                                            <Box className="bg-white rounded-lg border border-neutral-300 px-3 py-2 flex-row items-center">
-                                                <MapPin size={20} color="#6B7280" />
-                                                <TextInput
-                                                    className="flex-1 ml-2 text-base"
-                                                    placeholder="Search locations..."
-                                                    value={locationQuery}
-                                                    onChangeText={setLocationQuery}
-                                                    placeholderTextColor="#9CA3AF"
-                                                    style={{ outlineStyle: 'none' } as any}
-                                                />
-                                            </Box>
-                                        </Box>
-
-                                        {/* Add Personal Location Button */}
-                                        <TouchableOpacity
-                                            onPress={() => setShowAddPersonalLocation(true)}
-                                            className="bg-teal-50 border-2 border-dashed border-teal-500 rounded-xl p-4 mb-4 flex-row items-center justify-center"
-                                        >
-                                            <Text className="text-teal-600 font-semibold text-base">+ Add Personal Location</Text>
-                                        </TouchableOpacity>
-
-                                        {/* Location List */}
-                                        <Box className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                            <Text className="px-4 py-3 text-sm font-semibold text-neutral-500 uppercase bg-gray-50">Available Locations</Text>
-                                            {locations
-                                                .filter(l => l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase())))
-                                                .map((l, idx, arr) => (
-                                                    <TouchableOpacity
-                                                        key={l.id}
-                                                        className={`px-4 py-3 flex-row items-center justify-between ${idx < arr.length - 1 ? 'border-b border-gray-100' : ''}`}
-                                                        onPress={() => {
-                                                            setLocationQuery(l.name || '');
-                                                            setSelectedLocationId(l.id);
-                                                            setIsLocationModalVisible(false);
-                                                        }}
-                                                    >
-                                                        <Box className="flex-row items-center flex-1">
-                                                            <MapPin size={18} color="#6B7280" />
-                                                            <Text className="ml-3 text-base text-neutral-900">{l.name}</Text>
-                                                        </Box>
-                                                        {selectedLocationId === l.id && (
-                                                            <Box className="w-5 h-5 rounded-full bg-teal-500 items-center justify-center">
-                                                                <Text className="text-white text-xs">✓</Text>
-                                                            </Box>
-                                                        )}
-                                                    </TouchableOpacity>
-                                                ))}
-                                            {locations.filter(l => l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase()))).length === 0 && (
-                                                <Box className="px-4 py-8 items-center">
-                                                    <Text className="text-neutral-400">No locations found</Text>
-                                                </Box>
-                                            )}
-                                        </Box>
-                                    </>
-                                ) : (
-                                    <>
-                                        {/* Add Personal Location Form */}
-                                        <Box className="mb-4 flex-row items-center">
-                                            <TouchableOpacity onPress={() => setShowAddPersonalLocation(false)} className="mr-3">
-                                                <ArrowLeft size={24} color="#000" />
-                                            </TouchableOpacity>
-                                            <Text className="text-xl font-semibold text-neutral-900">Add Personal Location</Text>
-                                        </Box>
-
-                                        <Box className="space-y-4">
-                                            <TextInputField
-                                                label="Label"
-                                                required
-                                                placeholder="e.g., Home, Sarah's Place, My Apartment"
-                                                value={personalLocationLabel}
-                                                onChangeText={setPersonalLocationLabel}
-                                            />
-
-                                            <TextInputField
-                                                label="Street"
-                                                required
-                                                placeholder="e.g., Main Street"
-                                                value={personalLocationStreet}
-                                                onChangeText={setPersonalLocationStreet}
-                                            />
-
-                                            <TextInputField
-                                                label="House Number"
-                                                required
-                                                placeholder="e.g., 123"
-                                                value={personalLocationHouseNr}
-                                                onChangeText={setPersonalLocationHouseNr}
-                                                keyboardType="numeric"
-                                            />
-
-                                            <TextInputField
-                                                label="City"
-                                                required
-                                                placeholder="e.g., New York"
-                                                value={personalLocationCity}
-                                                onChangeText={setPersonalLocationCity}
-                                            />
-
-                                            <Box className="mt-6">
-                                                <TouchableOpacity
-                                                    onPress={() => {
-                                                        // TODO: Save personal location to database
-                                                        // For now, just close and set the label as location
-                                                        setLocationQuery(personalLocationLabel);
-                                                        setShowAddPersonalLocation(false);
-                                                        setIsLocationModalVisible(false);
-                                                        // Reset form
-                                                        setPersonalLocationLabel('');
-                                                        setPersonalLocationStreet('');
-                                                        setPersonalLocationHouseNr('');
-                                                        setPersonalLocationCity('');
-                                                    }}
-                                                    disabled={!personalLocationLabel || !personalLocationStreet || !personalLocationHouseNr || !personalLocationCity}
-                                                    className={`py-4 rounded-xl items-center ${personalLocationLabel && personalLocationStreet && personalLocationHouseNr && personalLocationCity
-                                                        ? 'bg-teal-500'
-                                                        : 'bg-gray-300'
-                                                        }`}
-                                                >
-                                                    <Text className="text-white font-semibold text-base">Save Location</Text>
-                                                </TouchableOpacity>
-                                            </Box>
-                                        </Box>
-                                    </>
-                                )}
-                            </Box>
-                        </ScrollView>
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
         </Box>
     );
 };
