@@ -25,12 +25,11 @@ const CustomTimePicker = ({ value, onChange }: { value: Date; onChange: (date: D
     const [selectedMinute, setSelectedMinute] = useState(value.getMinutes());
     const [activeField, setActiveField] = useState<'hour' | 'minute' | null>(null);
 
-    // Update internal state when value prop changes
+    // Update internal state when value prop changes, but don't reset activeField
     useEffect(() => {
         setSelectedHour(value.getHours());
         setSelectedMinute(value.getMinutes());
-        setActiveField(null); // Reset active field when time value changes
-    }, [value]);
+    }, [value.getTime()]); // Use getTime() to only trigger when the actual time changes, not on every render
 
     const handleHourChange = (increment: boolean) => {
         let newHour = selectedHour + (increment ? 1 : -1);
@@ -609,6 +608,7 @@ export const CreateParty = () => {
                                 {(showStartTimePicker || showEndTimePicker) && (
                                     <Box className="mt-4">
                                         <CustomTimePicker
+                                            key={showStartTimePicker ? 'start' : 'end'} // Force remount when switching between start/end
                                             value={showStartTimePicker ? startTime : (endTime || startTime)}
                                             onChange={(newDate) => {
                                                 if (showStartTimePicker) setStartTime(newDate);
