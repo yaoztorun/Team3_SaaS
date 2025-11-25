@@ -196,6 +196,7 @@ export type Database = {
       }
       Event: {
         Row: {
+          cover_image: string | null
           created_at: string
           description: string | null
           end_time: string | null
@@ -206,8 +207,11 @@ export type Database = {
           organiser_id: string | null
           price: number | null
           start_time: string | null
+          type: Database["public"]["Enums"]["event_type"]
+          user_location_id: string | null
         }
         Insert: {
+          cover_image?: string | null
           created_at?: string
           description?: string | null
           end_time?: string | null
@@ -218,8 +222,11 @@ export type Database = {
           organiser_id?: string | null
           price?: number | null
           start_time?: string | null
+          type?: Database["public"]["Enums"]["event_type"]
+          user_location_id?: string | null
         }
         Update: {
+          cover_image?: string | null
           created_at?: string
           description?: string | null
           end_time?: string | null
@@ -230,6 +237,8 @@ export type Database = {
           organiser_id?: string | null
           price?: number | null
           start_time?: string | null
+          type?: Database["public"]["Enums"]["event_type"]
+          user_location_id?: string | null
         }
         Relationships: [
           {
@@ -473,6 +482,44 @@ export type Database = {
         }
         Relationships: []
       }
+      UserLocations: {
+        Row: {
+          city: string | null
+          created_at: string
+          creator_id: string | null
+          house_nr: number | null
+          id: string
+          label: string | null
+          street: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          creator_id?: string | null
+          house_nr?: number | null
+          id?: string
+          label?: string | null
+          street?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          creator_id?: string | null
+          house_nr?: number | null
+          id?: string
+          label?: string | null
+          street?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "UserLocations_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -489,6 +536,7 @@ export type Database = {
     Enums: {
       cocktail_origin: "system" | "user"
       difficulty: "easy" | "medium" | "hard"
+      event_type: "party" | "event"
       friendship_status: "pending" | "accepted" | "declined" | "blocked"
       log_permissions: "private" | "public" | "friends" | "only_me"
       notification_type:
@@ -627,6 +675,7 @@ export const Constants = {
     Enums: {
       cocktail_origin: ["system", "user"],
       difficulty: ["easy", "medium", "hard"],
+      event_type: ["party", "event"],
       friendship_status: ["pending", "accepted", "declined", "blocked"],
       log_permissions: ["private", "public", "friends", "only_me"],
       notification_type: [

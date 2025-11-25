@@ -6,6 +6,7 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { MapPin, X, ChevronRight, ArrowLeft } from 'lucide-react-native';
 import { TextInputField } from './TextInputField';
 import fetchLocations from '@/src/api/location';
+import { fetchUserLocations, createUserLocation, type DBUserLocation } from '@/src/api/userLocations';
 
 interface LocationSelectorProps {
     selectedLocation: string;
@@ -20,7 +21,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
 }) => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [locationQuery, setLocationQuery] = useState(selectedLocation);
-    const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [locations, setLocations] = useState<Array<{ id: string; name: string | null; type: 'public' | 'personal' }>>([]);
     const [showAddPersonalLocation, setShowAddPersonalLocation] = useState(false);
     const [personalLocationLabel, setPersonalLocationLabel] = useState('');
     const [personalLocationStreet, setPersonalLocationStreet] = useState('');
@@ -31,9 +32,22 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
     useEffect(() => {
         let mounted = true;
         (async () => {
-            const data = await fetchLocations();
+            const [publicLocations, userLocations] = await Promise.all([
+                fetchLocations(),
+                fetchUserLocations()
+            ]);
             if (!mounted) return;
-            setLocations(data.map(l => ({ id: l.id, name: l.name })));
+
+            const allLocations = [
+                ...publicLocations.map(l => ({ id: l.id, name: l.name, type: 'public' as const })),
+                ...userLocations.map(l => ({
+                    id: l.id,
+                    name: `${l.label} (${l.street} ${l.house_nr}, ${l.city})`,
+                    type: 'personal' as const
+                }))
+            ];
+
+            setLocations(allLocations);
         })();
         return () => { mounted = false };
     }, []);
@@ -49,13 +63,35 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         setIsModalVisible(false);
     };
 
-    const handleSavePersonalLocation = () => {
-        // TODO: Save personal location to database
-        // For now, just close and set the label as location
-        onLocationChange(personalLocationLabel, null);
+    const handleSavePersonalLocation = async () => {
+        const houseNr = parseInt(personalLocationHouseNr);
+        if (isNaN(houseNr)) {
+            console.error('Invalid house number');
+            return;
+        }
+
+        const newLocation = await createUserLocation({
+            label: personalLocationLabel,
+            street: personalLocationStreet,
+            house_nr: houseNr,
+            city: personalLocationCity,
+        });
+
+        if (newLocation) {
+            // Add to locations list
+            const locationDisplay = `${newLocation.label} (${newLocation.street} ${newLocation.house_nr}, ${newLocation.city})`;
+            setLocations(prev => [
+                ...prev,
+                { id: newLocation.id, name: locationDisplay, type: 'personal' }
+            ]);
+
+            // Select the new location
+            onLocationChange(locationDisplay, newLocation.id);
+        }
+
+        // Close and reset
         setShowAddPersonalLocation(false);
         setIsModalVisible(false);
-        // Reset form
         setPersonalLocationLabel('');
         setPersonalLocationStreet('');
         setPersonalLocationHouseNr('');
@@ -164,7 +200,12 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                                                         >
                                                             <Box className="flex-row items-center flex-1">
                                                                 <MapPin size={18} color="#6B7280" />
-                                                                <Text className="ml-3 text-base text-neutral-900">{l.name}</Text>
+                                                                <Box className="ml-3 flex-1">
+                                                                    <Text className="text-base text-neutral-900">{l.name}</Text>
+                                                                    {l.type === 'personal' && (
+                                                                        <Text className="text-xs text-teal-600 mt-0.5">Personal Location</Text>
+                                                                    )}
+                                                                </Box>
                                                             </Box>
                                                             {selectedLocationId === l.id && (
                                                                 <Box className="w-5 h-5 rounded-full bg-teal-500 items-center justify-center">
