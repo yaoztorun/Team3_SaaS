@@ -201,10 +201,13 @@ export type Database = {
           description: string | null
           end_time: string | null
           id: string
+          isApprovalRequired: boolean
+          isPublic: boolean
           location_id: string | null
           max_attendees: number | null
           name: string | null
           organiser_id: string | null
+          party_type: Database["public"]["Enums"]["party_type"]
           price: number | null
           start_time: string | null
           type: Database["public"]["Enums"]["event_type"]
@@ -216,10 +219,13 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           id?: string
+          isApprovalRequired: boolean
+          isPublic: boolean
           location_id?: string | null
           max_attendees?: number | null
           name?: string | null
           organiser_id?: string | null
+          party_type: Database["public"]["Enums"]["party_type"]
           price?: number | null
           start_time?: string | null
           type?: Database["public"]["Enums"]["event_type"]
@@ -231,10 +237,13 @@ export type Database = {
           description?: string | null
           end_time?: string | null
           id?: string
+          isApprovalRequired?: boolean
+          isPublic?: boolean
           location_id?: string | null
           max_attendees?: number | null
           name?: string | null
           organiser_id?: string | null
+          party_type?: Database["public"]["Enums"]["party_type"]
           price?: number | null
           start_time?: string | null
           type?: Database["public"]["Enums"]["event_type"]
@@ -545,6 +554,11 @@ export type Database = {
         | "friend_request"
         | "friend_accepted"
         | "close_friend_post"
+      party_type:
+        | "house party"
+        | "outdoor event"
+        | "bar meetup"
+        | "themed party"
       registration_status: "registered" | "cancelled" | "waitlisted"
     }
     CompositeTypes: {
@@ -684,6 +698,12 @@ export const Constants = {
         "friend_request",
         "friend_accepted",
         "close_friend_post",
+      ],
+      party_type: [
+        "house party",
+        "outdoor event",
+        "bar meetup",
+        "themed party",
       ],
       registration_status: ["registered", "cancelled", "waitlisted"],
     },
