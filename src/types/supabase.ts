@@ -264,6 +264,13 @@ export type Database = {
             referencedRelation: "Profile"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "Event_user_location_id_fkey"
+            columns: ["user_location_id"]
+            isOneToOne: false
+            referencedRelation: "UserLocations"
+            referencedColumns: ["id"]
+          },
         ]
       }
       EventRegistration: {

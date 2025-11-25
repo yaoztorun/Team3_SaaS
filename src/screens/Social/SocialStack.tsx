@@ -4,21 +4,13 @@ import { SocialScreen } from './SocialScreen';
 import { CreateParty } from './CreateParty';
 import { UserProfile } from './UserProfile';
 import { globalScreenOptions } from '@/src/theme/navigationTransitions';
+import type { EventWithDetails } from '@/src/api/event';
 
 export type SocialStackParamList = {
     SocialMain: { initialView?: 'friends' | 'parties' } | undefined;
     CreateParty: undefined;
     UserProfile: { userId: string };
-    PartyDetails: { party: {
-        id: number;
-        title: string;
-        host: string;
-        time: string;
-        attendees: number;
-        status: string;
-        emoji?: string;
-        about?: string;
-    } } | undefined;
+    PartyDetails: { party: EventWithDetails } | undefined;
 };
 
 const Stack = createStackNavigator<SocialStackParamList>();
