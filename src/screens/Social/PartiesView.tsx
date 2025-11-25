@@ -123,10 +123,10 @@ export const PartiesView = () => {
         console.log(`  - isApprovalRequired: ${event.isApprovalRequired}`);
         console.log(`  - registrationStatus[${event.id}]: ${currentStatus}`);
         console.log(`  - Will show button: ${isMyEvent ? 'Manage Event' :
-                processingEvents.has(event.id) ? 'Processing...' :
-                    currentStatus === 'registered' ? '✓ Going - Cancel' :
-                        currentStatus === 'waitlisted' ? '⏳ Request Sent - Cancel' :
-                            event.isApprovalRequired ? 'Request to Join' : "I'm Going"
+            processingEvents.has(event.id) ? 'Processing...' :
+                currentStatus === 'registered' ? '✓ Going - Cancel' :
+                    currentStatus === 'waitlisted' ? '⏳ Request Sent - Cancel' :
+                        event.isApprovalRequired ? 'Request to Join' : "I'm Going"
             }`);
 
         return (
@@ -224,7 +224,7 @@ export const PartiesView = () => {
                             ) : registrationStatus[event.id] === 'registered' ? (
                                 <Text className="text-white font-medium">✓ Going - Cancel</Text>
                             ) : registrationStatus[event.id] === 'waitlisted' ? (
-                                <Text className="text-white font-medium">⏳ Request Sent - Cancel</Text>
+                                <Text className="text-white font-medium">Request Sent - Cancel</Text>
                             ) : event.isApprovalRequired ? (
                                 <Text className="text-[#00a294] font-medium">Request to Join</Text>
                             ) : (

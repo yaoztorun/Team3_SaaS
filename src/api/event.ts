@@ -413,6 +413,7 @@ export async function updateRegistrationStatus(
 export async function fetchEventAttendees(eventId: string): Promise<{
         registered: Array<{ id: string; full_name: string | null; avatar_url: string | null }>;
         waitlisted: Array<{ id: string; full_name: string | null; avatar_url: string | null }>;
+        pendingCount: number;
 }> {
         // Fetch all registrations for this event (excluding cancelled)
         const { data: registrations, error: regError } = await supabase
@@ -423,14 +424,14 @@ export async function fetchEventAttendees(eventId: string): Promise<{
 
         if (regError || !registrations) {
                 console.error('Error fetching registrations:', regError);
-                return { registered: [], waitlisted: [] };
+                return { registered: [], waitlisted: [], pendingCount: 0 };
         }
 
         // Get unique user IDs
         const userIds = [...new Set(registrations.map(r => r.user_id))];
 
         if (userIds.length === 0) {
-                return { registered: [], waitlisted: [] };
+                return { registered: [], waitlisted: [], pendingCount: 0 };
         }
 
         // Fetch profile data for all attendees
@@ -441,7 +442,7 @@ export async function fetchEventAttendees(eventId: string): Promise<{
 
         if (profileError || !profiles) {
                 console.error('Error fetching profiles:', profileError);
-                return { registered: [], waitlisted: [] };
+                return { registered: [], waitlisted: [], pendingCount: 0 };
         }
 
         // Map profiles to registrations
@@ -461,7 +462,7 @@ export async function fetchEventAttendees(eventId: string): Promise<{
                 }
         });
 
-        return { registered, waitlisted };
+        return { registered, waitlisted, pendingCount: waitlisted.length };
 }
 
 /**

@@ -4,6 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
 import { Center } from '@/src/components/ui/center';
+import { Button } from '@/src/components/ui/button';
 import { useRoute, useNavigation, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SocialStackParamList } from './SocialStack';
@@ -14,18 +15,19 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { PrimaryButton } from '@/src/components/global';
 import { Calendar, MapPin, Users, Shirt, DollarSign, Edit } from 'lucide-react-native';
 import type { EventWithDetails } from '@/src/api/event';
-import { fetchEventAttendees, updateRegistrationStatus } from '@/src/api/event';
+import { fetchEventAttendees, updateRegistrationStatus, getUserEventRegistration, registerForEvent, cancelEventRegistration } from '@/src/api/event';
 import { supabase } from '@/src/lib/supabase';
 
 export const PartyDetails: React.FC = () => {
     const route = useRoute<RouteProp<SocialStackParamList, 'PartyDetails'>>();
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
     const party = route.params?.party as EventWithDetails;
-    const [going, setGoing] = useState(false);
     const [registeredAttendees, setRegisteredAttendees] = useState<Array<{ id: string; full_name: string | null; avatar_url: string | null }>>([]);
     const [waitlistedAttendees, setWaitlistedAttendees] = useState<Array<{ id: string; full_name: string | null; avatar_url: string | null }>>([]);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set());
+    const [userRegistrationStatus, setUserRegistrationStatus] = useState<'registered' | 'waitlisted' | null>(null);
+    const [isRegistering, setIsRegistering] = useState(false);
 
     // Fetch current user and attendees on mount
     useEffect(() => {
@@ -36,6 +38,7 @@ export const PartyDetails: React.FC = () => {
             }
             if (party?.id) {
                 loadAttendees();
+                loadUserRegistrationStatus();
             }
         };
         loadUserAndAttendees();
@@ -47,8 +50,41 @@ export const PartyDetails: React.FC = () => {
         setWaitlistedAttendees(waitlisted);
     };
 
+    const loadUserRegistrationStatus = async () => {
+        const { status } = await getUserEventRegistration(party.id);
+        // Treat cancelled as null
+        setUserRegistrationStatus(status === 'cancelled' ? null : status);
+    };
+
     // Check if current user is the host
     const isHost = currentUserId && party?.organiser_id === currentUserId;
+
+    // Check if max attendees is reached
+    const isMaxAttendeesReached = party.max_attendees ? registeredAttendees.length >= party.max_attendees : false;
+
+    // Handle user registration toggle
+    const handleRegistrationToggle = async () => {
+        setIsRegistering(true);
+        try {
+            if (userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted') {
+                // Cancel registration
+                await cancelEventRegistration(party.id);
+                setUserRegistrationStatus(null);
+            } else {
+                // Register for event
+                const success = await registerForEvent(party.id, party.isApprovalRequired);
+                if (success) {
+                    setUserRegistrationStatus(party.isApprovalRequired ? 'waitlisted' : 'registered');
+                }
+            }
+            // Reload attendees to reflect changes
+            await loadAttendees();
+        } catch (error) {
+            console.error('Failed to toggle registration:', error);
+        } finally {
+            setIsRegistering(false);
+        }
+    };
 
     // Handle approval/rejection of waitlisted users
     const handleApproval = async (userId: string, approve: boolean) => {
@@ -314,13 +350,15 @@ export const PartyDetails: React.FC = () => {
                                                     <Pressable
                                                         className="rounded-lg px-4 py-2"
                                                         onPress={() => handleApproval(attendee.id, true)}
-                                                        disabled={processingRequests.has(attendee.id)}
+                                                        disabled={processingRequests.has(attendee.id) || isMaxAttendeesReached}
                                                         style={{
                                                             backgroundColor: '#00a294',
-                                                            opacity: processingRequests.has(attendee.id) ? 0.5 : 1
+                                                            opacity: (processingRequests.has(attendee.id) || isMaxAttendeesReached) ? 0.5 : 1
                                                         }}
                                                     >
-                                                        <Text className="text-sm font-semibold" style={{ color: '#ffffff' }}>Accept</Text>
+                                                        <Text className="text-sm font-semibold" style={{ color: '#ffffff' }}>
+                                                            {isMaxAttendeesReached ? 'Full' : 'Accept'}
+                                                        </Text>
                                                     </Pressable>
                                                     <Pressable
                                                         className="rounded-lg px-4 py-2"
@@ -349,12 +387,30 @@ export const PartyDetails: React.FC = () => {
                         <Text className="text-sm text-neutral-600 mb-4">No attendees yet</Text>
                     )}
 
-                    {/* RSVP Button - Only for non-hosts */}
+                    {/* Registration Button - Only for non-hosts */}
                     {!isHost && (
-                        <PrimaryButton
-                            title={going ? "I'm Going" : "RSVP"}
-                            onPress={() => setGoing(g => !g)}
-                        />
+                        <Button
+                            variant={(userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted') ? "solid" : "outline"}
+                            className={(userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted')
+                                ? "bg-[#00a294] w-full"
+                                : "border-[#00a294] w-full"}
+                            onPress={handleRegistrationToggle}
+                            disabled={isRegistering}
+                        >
+                            {isRegistering ? (
+                                <Text className={(userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted') ? "text-white font-medium" : "text-[#00a294] font-medium"}>
+                                    Processing...
+                                </Text>
+                            ) : userRegistrationStatus === 'registered' ? (
+                                <Text className="text-white font-medium">✓ Going - Cancel</Text>
+                            ) : userRegistrationStatus === 'waitlisted' ? (
+                                <Text className="text-white font-medium">Request Sent - Cancel</Text>
+                            ) : party.isApprovalRequired ? (
+                                <Text className="text-[#00a294] font-medium">Request to Join</Text>
+                            ) : (
+                                <Text className="text-[#00a294] font-medium">I'm Going</Text>
+                            )}
+                        </Button>
                     )}
                 </Box>
             </ScrollView>
