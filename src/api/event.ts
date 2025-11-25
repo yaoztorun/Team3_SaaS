@@ -463,3 +463,52 @@ export async function fetchEventAttendees(eventId: string): Promise<{
 
         return { registered, waitlisted };
 }
+
+/**
+ * Update an existing event (only by organizer)
+ */
+export async function updateEvent(
+        eventId: string,
+        updates: {
+                name?: string;
+                description?: string;
+                party_type?: 'house party' | 'bar meetup' | 'outdoor event' | 'themed party';
+                location_id?: string | null;
+                user_location_id?: string | null;
+                start_time?: string;
+                end_time?: string | null;
+                max_attendees?: number | null;
+                price?: number | null;
+                isPublic?: boolean;
+                isApprovalRequired?: boolean;
+                cover_image?: string | null;
+        }
+): Promise<EventWithDetails | null> {
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) {
+                console.error('No authenticated user found');
+                return null;
+        }
+
+        // Only organizer can update
+        const { data, error } = await supabase
+                .from('Event')
+                .update(updates)
+                .eq('id', eventId)
+                .eq('organiser_id', user.id) // Ensure user is the organizer
+                .select(`
+                        *,
+                        organizer_profile:Profile!Event_organiser_id_fkey(id, full_name, email, avatar_url),
+                        location:Location(id, name, street_name, street_nr, city),
+                        user_location:UserLocations(id, label, street, house_nr, city)
+                `)
+                .single();
+
+        if (error) {
+                console.error('Error updating event:', error);
+                return null;
+        }
+
+        return data as EventWithDetails;
+}

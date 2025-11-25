@@ -12,30 +12,61 @@ import { spacing } from '@/src/theme/spacing';
 import { colors } from '@/src/theme/colors';
 import { Pressable } from '@/src/components/ui/pressable';
 import { PrimaryButton } from '@/src/components/global';
-import { Calendar, MapPin, Users, Shirt, DollarSign, MessageCircle, Send } from 'lucide-react-native';
+import { Calendar, MapPin, Users, Shirt, DollarSign, Edit } from 'lucide-react-native';
 import type { EventWithDetails } from '@/src/api/event';
-import { fetchEventAttendees } from '@/src/api/event';
+import { fetchEventAttendees, updateRegistrationStatus } from '@/src/api/event';
+import { supabase } from '@/src/lib/supabase';
 
 export const PartyDetails: React.FC = () => {
     const route = useRoute<RouteProp<SocialStackParamList, 'PartyDetails'>>();
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
     const party = route.params?.party as EventWithDetails;
     const [going, setGoing] = useState(false);
-    const [questionText, setQuestionText] = useState('');
     const [registeredAttendees, setRegisteredAttendees] = useState<Array<{ id: string; full_name: string | null; avatar_url: string | null }>>([]);
     const [waitlistedAttendees, setWaitlistedAttendees] = useState<Array<{ id: string; full_name: string | null; avatar_url: string | null }>>([]);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set());
 
-    // Fetch attendees on mount
+    // Fetch current user and attendees on mount
     useEffect(() => {
-        if (party?.id) {
-            loadAttendees();
-        }
+        const loadUserAndAttendees = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                setCurrentUserId(user.id);
+            }
+            if (party?.id) {
+                loadAttendees();
+            }
+        };
+        loadUserAndAttendees();
     }, [party?.id]);
 
     const loadAttendees = async () => {
         const { registered, waitlisted } = await fetchEventAttendees(party.id);
         setRegisteredAttendees(registered);
         setWaitlistedAttendees(waitlisted);
+    };
+
+    // Check if current user is the host
+    const isHost = currentUserId && party?.organiser_id === currentUserId;
+
+    // Handle approval/rejection of waitlisted users
+    const handleApproval = async (userId: string, approve: boolean) => {
+        setProcessingRequests(prev => new Set(prev).add(userId));
+        try {
+            const newStatus = approve ? 'registered' : 'cancelled';
+            await updateRegistrationStatus(party.id, userId, newStatus);
+            // Reload attendees to reflect changes
+            await loadAttendees();
+        } catch (error) {
+            console.error('Failed to update registration status:', error);
+        } finally {
+            setProcessingRequests(prev => {
+                const next = new Set(prev);
+                next.delete(userId);
+                return next;
+            });
+        }
     };
 
     // Format date helper
@@ -69,28 +100,6 @@ export const PartyDetails: React.FC = () => {
     const organizerName = party?.organizer_profile?.full_name || 'Unknown';
     const organizerInitials = getInitials(organizerName);
 
-    // Sample Q&A - TODO: Fetch from database
-    const questions = [
-        {
-            author: 'Mike Rodriguez',
-            question: 'Is there parking available nearby?',
-            answer: "Yes! There's a parking garage right next to the building.",
-            time: '2 days ago'
-        },
-        {
-            author: 'Emma Wilson',
-            question: 'What time does the party usually end?',
-            answer: "We usually wrap up around 2 AM, but you can leave whenever you like!",
-            time: '1 day ago'
-        },
-        {
-            author: 'Alex Kim',
-            question: 'Can I bring a +1?',
-            answer: null,
-            time: '5 hours ago'
-        }
-    ];
-
     if (!party) {
         return (
             <Box className="flex-1 items-center justify-center bg-neutral-50">
@@ -101,7 +110,11 @@ export const PartyDetails: React.FC = () => {
 
     return (
         <Box className="flex-1 bg-gray-100">
-            <TopBar title="Party Details" showBack onBackPress={() => navigation.goBack()} />
+            <TopBar
+                title="Party Details"
+                showBack
+                onBackPress={() => navigation.goBack()}
+            />
 
             <ScrollView
                 contentContainerStyle={{
@@ -129,6 +142,16 @@ export const PartyDetails: React.FC = () => {
                                 <Text className="text-white text-xs font-semibold">€{party.price}</Text>
                             </Box>
                         </View>
+                    )}
+                    {/* Edit Button for Host - Positioned on Cover Image */}
+                    {isHost && (
+                        <Pressable
+                            onPress={() => navigation.navigate('EditParty', { party })}
+                            className="absolute left-4 bottom-4 bg-white rounded-lg px-4 py-2 flex-row items-center shadow-lg"
+                        >
+                            <Edit size={18} color="#000" />
+                            <Text className="text-black text-sm font-semibold ml-2">Edit Party</Text>
+                        </Pressable>
                     )}
                 </Box>
 
@@ -223,70 +246,19 @@ export const PartyDetails: React.FC = () => {
                     <Text className="text-sm text-neutral-700">{party.description || 'No additional details provided.'}</Text>
                 </Box>
 
-                {/* Q&A Section */}
-                <Box className="bg-white rounded-2xl p-4 mb-4">
-                    <HStack className="items-center mb-4">
-                        <MessageCircle size={20} color="#000" />
-                        <Text className="text-base font-semibold text-neutral-950 ml-2">Questions & Answers</Text>
-                    </HStack>
-
-                    {/* Ask Question Input */}
-                    <Box className="mb-2">
-                        <Box className="bg-gray-50 border border-transparent rounded-lg px-3 py-2 mb-2">
-                            <TextInput
-                                value={questionText}
-                                onChangeText={setQuestionText}
-                                placeholder="Ask a question about this party..."
-                                placeholderTextColor="#717182"
-                                className="text-sm text-neutral-700"
-                                multiline
-                            />
-                        </Box>
-                        <Pressable
-                            className="bg-[#009689] rounded-lg py-2 flex-row items-center justify-center"
-                            style={{ opacity: questionText ? 1 : 0.5 }}
-                            disabled={!questionText}
-                        >
-                            <Send size={16} color="#fff" />
-                            <Text className="text-white text-sm font-medium ml-2">Ask Question</Text>
-                        </Pressable>
-                    </Box>
-
-                    {/* Questions List */}
-                    <Box className="mt-4 space-y-3">
-                        {questions.map((q, index) => (
-                            <Box
-                                key={index}
-                                className="bg-gray-50 border-l-4 border-[#00bba7] rounded-br-lg rounded-tr-lg p-3"
-                            >
-                                <HStack className="justify-between items-center mb-2">
-                                    <Text className="text-sm font-medium text-[#009689]">{q.author}</Text>
-                                    <Text className="text-xs text-neutral-600">{q.time}</Text>
-                                </HStack>
-                                <Text className="text-sm text-neutral-950 mb-2">{q.question}</Text>
-                                {q.answer && (
-                                    <Box className="border-l-2 border-neutral-300 pl-3 ml-3">
-                                        <Text className="text-sm italic text-neutral-600">"{q.answer}"</Text>
-                                    </Box>
-                                )}
-                            </Box>
-                        ))}
-                    </Box>
-                </Box>
-
                 {/* Going List */}
                 <Box className="bg-white rounded-2xl p-4 mb-8">
-                    <Text className="text-base font-semibold text-neutral-950 mb-3">
+                    <Text className="text-base font-semibold text-neutral-950 mb-4">
                         Attendees ({registeredAttendees.length + waitlistedAttendees.length})
                     </Text>
 
                     {/* Confirmed Attendees */}
                     {registeredAttendees.length > 0 && (
                         <Box className="mb-4">
-                            <Text className="text-sm font-medium text-neutral-700 mb-2">
+                            <Text className="text-sm font-medium text-neutral-700 mb-3">
                                 ✓ Going ({registeredAttendees.length})
                             </Text>
-                            <Box className="space-y-2">
+                            <Box className="space-y-3">
                                 {registeredAttendees.map((attendee) => (
                                     <HStack key={attendee.id} className="items-center">
                                         {attendee.avatar_url ? (
@@ -313,28 +285,60 @@ export const PartyDetails: React.FC = () => {
                     {/* Pending Approval (Waitlisted) */}
                     {party.isApprovalRequired && waitlistedAttendees.length > 0 && (
                         <Box className="mb-4">
-                            <Text className="text-sm font-medium text-neutral-700 mb-2">
+                            <Text className="text-sm font-medium text-neutral-700 mb-3">
                                 ⏳ Pending Approval ({waitlistedAttendees.length})
                             </Text>
-                            <Box className="space-y-2">
+                            <Box className="space-y-3">
                                 {waitlistedAttendees.map((attendee) => (
-                                    <HStack key={attendee.id} className="items-center">
-                                        {attendee.avatar_url ? (
-                                            <Image
-                                                source={{ uri: attendee.avatar_url }}
-                                                style={{ width: 40, height: 40, borderRadius: 20 }}
-                                            />
-                                        ) : (
-                                            <Center className="w-10 h-10 rounded-full bg-gray-200">
-                                                <Text className="text-gray-600 text-base font-medium">
-                                                    {getInitials(attendee.full_name)}
+                                    <Box key={attendee.id} className="bg-gray-50 rounded-xl p-3">
+                                        <HStack className="items-center justify-between">
+                                            <HStack className="items-center flex-1">
+                                                {attendee.avatar_url ? (
+                                                    <Image
+                                                        source={{ uri: attendee.avatar_url }}
+                                                        style={{ width: 40, height: 40, borderRadius: 20 }}
+                                                    />
+                                                ) : (
+                                                    <Center className="w-10 h-10 rounded-full bg-gray-200">
+                                                        <Text className="text-gray-600 text-base font-medium">
+                                                            {getInitials(attendee.full_name)}
+                                                        </Text>
+                                                    </Center>
+                                                )}
+                                                <Text className="text-base text-neutral-950 ml-3 flex-1">
+                                                    {attendee.full_name || 'Unknown User'}
                                                 </Text>
-                                            </Center>
-                                        )}
-                                        <Text className="text-base text-neutral-700 ml-3">
-                                            {attendee.full_name || 'Unknown User'}
-                                        </Text>
-                                    </HStack>
+                                            </HStack>
+                                            {isHost && (
+                                                <HStack className="gap-2">
+                                                    <Pressable
+                                                        className="rounded-lg px-4 py-2"
+                                                        onPress={() => handleApproval(attendee.id, true)}
+                                                        disabled={processingRequests.has(attendee.id)}
+                                                        style={{
+                                                            backgroundColor: '#00a294',
+                                                            opacity: processingRequests.has(attendee.id) ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        <Text className="text-sm font-semibold" style={{ color: '#ffffff' }}>Accept</Text>
+                                                    </Pressable>
+                                                    <Pressable
+                                                        className="rounded-lg px-4 py-2"
+                                                        onPress={() => handleApproval(attendee.id, false)}
+                                                        disabled={processingRequests.has(attendee.id)}
+                                                        style={{
+                                                            backgroundColor: '#ffffff',
+                                                            borderWidth: 1,
+                                                            borderColor: '#d1d5db',
+                                                            opacity: processingRequests.has(attendee.id) ? 0.5 : 1
+                                                        }}
+                                                    >
+                                                        <Text className="text-sm font-semibold" style={{ color: '#000000' }}>Decline</Text>
+                                                    </Pressable>
+                                                </HStack>
+                                            )}
+                                        </HStack>
+                                    </Box>
                                 ))}
                             </Box>
                         </Box>
@@ -345,11 +349,13 @@ export const PartyDetails: React.FC = () => {
                         <Text className="text-sm text-neutral-600 mb-4">No attendees yet</Text>
                     )}
 
-                    {/* RSVP Button */}
-                    <PrimaryButton
-                        title={going ? "I'm Going" : "RSVP"}
-                        onPress={() => setGoing(g => !g)}
-                    />
+                    {/* RSVP Button - Only for non-hosts */}
+                    {!isHost && (
+                        <PrimaryButton
+                            title={going ? "I'm Going" : "RSVP"}
+                            onPress={() => setGoing(g => !g)}
+                        />
+                    )}
                 </Box>
             </ScrollView>
         </Box>
