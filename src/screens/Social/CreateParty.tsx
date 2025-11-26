@@ -74,7 +74,7 @@ export const CreateParty = () => {
             const { data: { user }, error: userErr } = await supabase.auth.getUser();
 
             if (userErr) {
-                console.error('Error fetching user', userErr);
+                // console.error('Error fetching user', userErr);
                 alert('Authentication error. Please sign in and try again.');
                 return;
             }
@@ -99,7 +99,7 @@ export const CreateParty = () => {
             let uploadedUrl: string | null = null;
             if (coverImage) {
                 uploadedUrl = await uploadImageUri(coverImage, user.id);
-                console.log('Uploaded cover image URL:', uploadedUrl);
+                // console.log('Uploaded cover image URL:', uploadedUrl);
             }
 
             // Combine date and time into ISO strings
@@ -164,7 +164,7 @@ export const CreateParty = () => {
             // Show confirmation modal
             setModalVisible(true);
         } catch (e) {
-            console.error('Error creating party', e);
+            // console.error('Error creating party', e);
             alert('Failed to create party. See console for details.');
         } finally {
             setIsUploading(false);

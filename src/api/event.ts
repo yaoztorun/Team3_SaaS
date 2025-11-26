@@ -160,7 +160,7 @@ async function fetchEventsWithDetails(events: DBEvent[]): Promise<EventWithDetai
                 .from('EventRegistration')
                 .select('event_id, status')
                 .in('event_id', eventIds)
-                .eq('status', 'confirmed');
+                .eq('status', 'registered');
 
         const attendeeCounts = (registrations ?? []).reduce((acc, reg) => {
                 acc[reg.event_id] = (acc[reg.event_id] || 0) + 1;
@@ -351,12 +351,11 @@ export async function getUserEventRegistration(eventId: string): Promise<{
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
-                console.log(`getUserEventRegistration: No user logged in`);
+                // console.log(`getUserEventRegistration: No user logged in`);
                 return { isRegistered: false, status: null };
         }
 
-        console.log(`getUserEventRegistration: Fetching for eventId=${eventId}, userId=${user.id}`);
-
+        // console.log(`getUserEventRegistration: Fetching for eventId=${eventId}, userId=${user.id}`);
         const { data, error } = await supabase
                 .from('EventRegistration')
                 .select('status')
@@ -364,20 +363,20 @@ export async function getUserEventRegistration(eventId: string): Promise<{
                 .eq('user_id', user.id)
                 .maybeSingle();
 
-        console.log(`getUserEventRegistration: data=`, data, `error=`, error);
+        // console.log(`getUserEventRegistration: data=`, data, `error=`, error);
 
         if (error || !data) {
-                console.log(`getUserEventRegistration: No registration found`);
+                // console.log(`getUserEventRegistration: No registration found`);
                 return { isRegistered: false, status: null };
         }
 
         // If status is 'cancelled', treat it as no registration for UI purposes
         if (data.status === 'cancelled') {
-                console.log(`getUserEventRegistration: Status is 'cancelled', treating as null`);
+                // console.log(`getUserEventRegistration: Status is 'cancelled', treating as null`);
                 return { isRegistered: false, status: null };
         }
 
-        console.log(`getUserEventRegistration: Returning status=${data.status}`);
+        // console.log(`getUserEventRegistration: Returning status=${data.status}`);
         return {
                 isRegistered: data.status === 'registered' || data.status === 'waitlisted',
                 status: data.status as 'registered' | 'cancelled' | 'waitlisted',

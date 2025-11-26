@@ -156,7 +156,7 @@ export const EditParty = () => {
             let uploadedUrl: string | null = originalValues.coverImage;
             if (coverImage && coverImage !== originalValues.coverImage) {
                 uploadedUrl = await uploadImageUri(coverImage, user.id);
-                console.log('Uploaded new cover image URL:', uploadedUrl);
+                // console.log('Uploaded new cover image URL:', uploadedUrl);
             } else if (!coverImage && originalValues.coverImage) {
                 // Image was removed
                 uploadedUrl = null;
@@ -204,7 +204,7 @@ export const EditParty = () => {
             // Show confirmation modal
             setModalVisible(true);
         } catch (e) {
-            console.error('Error updating party', e);
+            // console.error('Error updating party', e);
             alert('Failed to update party. See console for details.');
         } finally {
             setIsUploading(false);

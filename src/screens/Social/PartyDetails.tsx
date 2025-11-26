@@ -80,7 +80,7 @@ export const PartyDetails: React.FC = () => {
             // Reload attendees to reflect changes
             await loadAttendees();
         } catch (error) {
-            console.error('Failed to toggle registration:', error);
+            // console.error('Failed to toggle registration:', error);
         } finally {
             setIsRegistering(false);
         }
@@ -95,7 +95,7 @@ export const PartyDetails: React.FC = () => {
             // Reload attendees to reflect changes
             await loadAttendees();
         } catch (error) {
-            console.error('Failed to update registration status:', error);
+            // console.error('Failed to update registration status:', error);
         } finally {
             setProcessingRequests(prev => {
                 const next = new Set(prev);

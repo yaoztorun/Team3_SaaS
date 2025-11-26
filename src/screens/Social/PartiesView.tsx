@@ -27,10 +27,10 @@ export const PartiesView = () => {
     const loadEvents = async () => {
         setLoading(true);
         const { myEvents, friendsEvents, publicEvents } = await fetchAllVisibleEvents();
-        console.log('=== LOADED EVENTS ===');
-        console.log('My Events:', myEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
-        console.log('Friends Events:', friendsEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
-        console.log('Public Events:', publicEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
+        // console.log('=== LOADED EVENTS ===');
+        // console.log('My Events:', myEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
+        // console.log('Friends Events:', friendsEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
+        // console.log('Public Events:', publicEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
 
         setMyEvents(myEvents);
         setFriendsEvents(friendsEvents);
@@ -38,13 +38,13 @@ export const PartiesView = () => {
 
         // Fetch registration status for all events (excluding user's own events)
         const allOtherEvents = [...friendsEvents, ...publicEvents];
-        console.log('=== FETCHING REGISTRATION STATUS ===');
-        console.log('Total events to check:', allOtherEvents.length);
+        // console.log('=== FETCHING REGISTRATION STATUS ===');
+        // console.log('Total events to check:', allOtherEvents.length);
 
         const statusPromises = allOtherEvents.map(async (event) => {
             const result = await getUserEventRegistration(event.id);
-            console.log(`getUserEventRegistration result for "${event.name}":`, JSON.stringify(result));
-            console.log(`Event "${event.name}" (${event.id}): status = ${result.status}`);
+            // console.log(`getUserEventRegistration result for "${event.name}":`, JSON.stringify(result));
+            // console.log(`Event "${event.name}" (${event.id}): status = ${result.status}`);
             return { eventId: event.id, status: result.status };
         });
         const statuses = await Promise.all(statusPromises);
@@ -52,8 +52,8 @@ export const PartiesView = () => {
         statuses.forEach(({ eventId, status }) => {
             statusMap[eventId] = status;
         });
-        console.log('=== FINAL STATUS MAP ===');
-        console.log('Final statusMap:', JSON.stringify(statusMap, null, 2));
+        // console.log('=== FINAL STATUS MAP ===');
+        // console.log('Final statusMap:', JSON.stringify(statusMap, null, 2));
         setRegistrationStatus(statusMap);
 
         setLoading(false);
@@ -117,17 +117,17 @@ export const PartiesView = () => {
         const organizerName = event.organizer_profile?.full_name || 'Unknown';
 
         const currentStatus = registrationStatus[event.id];
-        console.log(`=== RENDERING CARD ===`);
-        console.log(`Event: "${event.name}" (${event.id})`);
-        console.log(`  - isMyEvent: ${isMyEvent}`);
-        console.log(`  - isApprovalRequired: ${event.isApprovalRequired}`);
-        console.log(`  - registrationStatus[${event.id}]: ${currentStatus}`);
-        console.log(`  - Will show button: ${isMyEvent ? 'Manage Event' :
-            processingEvents.has(event.id) ? 'Processing...' :
-                currentStatus === 'registered' ? '✓ Going - Cancel' :
-                    currentStatus === 'waitlisted' ? '⏳ Request Sent - Cancel' :
-                        event.isApprovalRequired ? 'Request to Join' : "I'm Going"
-            }`);
+        // console.log(`=== RENDERING CARD ===`);
+        // console.log(`Event: "${event.name}" (${event.id})`);
+        // console.log(`  - isMyEvent: ${isMyEvent}`);
+        // console.log(`  - isApprovalRequired: ${event.isApprovalRequired}`);
+        // console.log(`  - registrationStatus[${event.id}]: ${currentStatus}`);
+        // console.log(`  - Will show button: ${isMyEvent ? 'Manage Event' :
+        //     processingEvents.has(event.id) ? 'Processing...' :
+        //         currentStatus === 'registered' ? '✓ Going - Cancel' :
+        //             currentStatus === 'waitlisted' ? '⏳ Request Sent - Cancel' :
+        //                 event.isApprovalRequired ? 'Request to Join' : "I'm Going"
+        //     }`);
 
         return (
             <Pressable
