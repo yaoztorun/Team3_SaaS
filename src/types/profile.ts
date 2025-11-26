@@ -1,10 +1,10 @@
+import { Tables } from './supabase';
 import { UserSettings } from './settings';
 
-export type Profile = {
-    id: string;
-    created_at: string;
-    full_name: string | null;
-    email: string | null;
-    avatar_url: string | null;
+// Base Profile type from database
+export type ProfileRow = Tables<'Profile'>;
+
+// Application Profile type with properly typed settings JSON field
+export type Profile = Omit<ProfileRow, 'settings'> & {
     settings: UserSettings | null;
 };
