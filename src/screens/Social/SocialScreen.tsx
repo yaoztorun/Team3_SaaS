@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ScrollView, View, Text } from 'react-native';
-import { useRoute } from '@react-navigation/native';
+import { useRoute, useFocusEffect } from '@react-navigation/native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
@@ -14,6 +14,14 @@ export const SocialScreen = () => {
     const route = useRoute();
     const initialView = (route.params as { initialView?: ViewType })?.initialView || 'friends';
     const [activeView, setActiveView] = useState<ViewType>(initialView);
+    const [refreshKey, setRefreshKey] = useState(0);
+
+    // Refresh friends data when screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            setRefreshKey(prev => prev + 1);
+        }, [])
+    );
 
     return (
         <Box className="flex-1 bg-neutral-50">
@@ -49,7 +57,7 @@ export const SocialScreen = () => {
                     paddingBottom: spacing.screenBottom,
                 }}
             >
-                {activeView === 'friends' ? <FriendsView /> : <PartiesView />}
+                {activeView === 'friends' ? <FriendsView key={refreshKey} /> : <PartiesView />}
             </ScrollView>
         </Box>
     );

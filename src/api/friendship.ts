@@ -122,6 +122,36 @@ export async function rejectFriendRequest(friendshipId: string): Promise<{ succe
     return { success: true };
 }
 
+// Cancel a sent friend request
+export async function cancelFriendRequest(friendshipId: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase
+        .from('Friendship')
+        .delete()
+        .eq('id', friendshipId);
+
+    if (error) {
+        console.error('Error cancelling friend request:', error);
+        return { success: false, error: error.message };
+    }
+
+    return { success: true };
+}
+
+// Unfriend a user (deletes the friendship)
+export async function unfriendUser(friendshipId: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase
+        .from('Friendship')
+        .delete()
+        .eq('id', friendshipId);
+
+    if (error) {
+        console.error('Error unfriending user:', error);
+        return { success: false, error: error.message };
+    }
+
+    return { success: true };
+}
+
 // Get all accepted friends
 export async function getFriends(userId: string): Promise<Friend[]> {
     const { data, error } = await supabase
