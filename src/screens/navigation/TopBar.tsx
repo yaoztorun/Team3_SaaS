@@ -17,6 +17,7 @@ import { spacing } from '@/src/theme/spacing';
 import { NotificationModal, Notification } from './NotificationModal';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/lib/supabase';
+import { Heading } from '@/src/components/global';
 import {
   fetchNotifications,
   getUnreadNotificationCount,
@@ -268,16 +269,15 @@ export const TopBar: React.FC<TopBarProps> = ({
               }}
             />
           ) : (
-            <Text
+            <Heading
+              level="h2"
               style={{
-                fontSize: 26,
-                fontWeight: '700',
                 color: '#111827',
                 letterSpacing: -0.5,
               }}
             >
               {title}
-            </Text>
+            </Heading>
           )}
         </View>
 

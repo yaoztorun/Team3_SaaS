@@ -9,7 +9,7 @@ import { fetchLocations } from '@/src/api/location';
 import { Location } from '@/src/types/location';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SearchBar } from '@/src/components/global';
+import { SearchBar, Heading } from '@/src/components/global';
 
 type RootStackParamList = {
     BarDetail: { bar: Location };
@@ -36,7 +36,7 @@ const BarCard = ({ bar, onPress }: { bar: Location; onPress: () => void }) => {
             </View>
             <Box className="p-4">
                 <HStack className="items-center justify-between mb-2">
-                    <Text className="text-xl font-semibold flex-1">{bar.name || 'Unnamed Bar'}</Text>
+                    <Heading level="h4" className="flex-1">{bar.name || 'Unnamed Bar'}</Heading>
                     {bar.rating !== null && bar.rating !== undefined && (
                         <HStack className="items-center ml-2">
                             <Star size={16} color="#fbbf24" fill="#fbbf24" />

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { ScrollView } from 'react-native';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 
@@ -82,9 +82,9 @@ const ResetPasswordScreen: React.FC = () => {
                     >
                         <Text className="text-3xl font-bold text-primary-500">P</Text>
                     </Box>
-                    <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
+                    <Heading level="h3" className="text-neutral-900 mt-6 mb-2">
                         Reset Password
-                    </Text>
+                    </Heading>
                     <Text className="text-neutral-500 text-center px-4">
                         Enter your new password below
                     </Text>

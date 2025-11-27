@@ -14,7 +14,7 @@ import { supabase } from '@/src/lib/supabase';
 import { SocialStackParamList } from './SocialStack';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { PrimaryButton, TextInputField, ImageUploadBox, DateTimePicker, LocationSelector } from '@/src/components/global';
+import { PrimaryButton, TextInputField, ImageUploadBox, DateTimePicker, LocationSelector, Heading } from '@/src/components/global';
 import type { EventWithDetails } from '@/src/api/event';
 
 type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party';

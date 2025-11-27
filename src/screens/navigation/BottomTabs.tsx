@@ -26,6 +26,11 @@ export default function BottomTabs() {
                 tabBarShowLabel: true,
                 tabBarActiveTintColor: colors.primary[500],
                 tabBarInactiveTintColor: colors.neutral[400],
+                tabBarLabelStyle: {
+                    fontFamily: 'Inter, system-ui, sans-serif',
+                    fontSize: 12,
+                    fontWeight: '500',
+                },
                 tabBarStyle: {
                     backgroundColor: colors.white,
                     borderTopWidth: 0,

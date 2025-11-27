@@ -9,6 +9,7 @@ import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
 import { SocialStackParamList } from './SocialStack';
 import { fetchAllVisibleEvents, registerForEvent, cancelEventRegistration, getUserEventRegistration, type EventWithDetails } from '@/src/api/event';
+import { Heading } from '@/src/components/global';
 
 export const PartiesView = () => {
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
@@ -139,7 +140,7 @@ export const PartiesView = () => {
                 <Box className="p-4">
                     <HStack className="justify-between items-start mb-3">
                         <Box className="flex-1 pr-2">
-                            <Text className="text-lg font-semibold text-gray-900 mb-1">{event.name}</Text>
+                            <Heading level="h5" className="text-gray-900 mb-1">{event.name}</Heading>
                             <Text className="text-sm text-gray-500">Organized by {organizerName}</Text>
                         </Box>
                         {event.price && event.price > 0 && (

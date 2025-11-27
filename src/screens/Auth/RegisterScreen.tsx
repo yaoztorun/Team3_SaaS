@@ -8,7 +8,7 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
@@ -101,9 +101,9 @@ const RegisterScreen: React.FC = () => {
                 </Box>
 
                 <Box className="items-center mt-2">
-                    <Text className="text-2xl font-bold text-neutral-900 mb-2">
+                    <Heading level="h3" className="text-neutral-900 mb-2">
                         Create Account
-                    </Text>
+                    </Heading>
                     <Text className="text-neutral-500 text-center">
                         Create your account to discover cocktails and get personalized recommendations
                     </Text>

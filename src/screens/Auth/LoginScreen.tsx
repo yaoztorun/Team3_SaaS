@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
 import { spacing } from '@/src/theme/spacing';
@@ -104,9 +104,9 @@ const LoginScreen: React.FC = () => {
                             resizeMode: 'contain',
                         }}
                     />
-                    <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
-                        Welcome Back!
-                    </Text>
+                    <Heading level="h3" className="text-neutral-900 mt-6 mb-2">
+                        Welcome Back
+                    </Heading>
                     <Text className="text-neutral-500 text-center">
                         Sign in to access your cocktail recipes and personalized recommendations
                     </Text>
