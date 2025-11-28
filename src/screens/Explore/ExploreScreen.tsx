@@ -14,6 +14,8 @@ import { fetchLocations } from '@/src/api/location';
 import type { DBLocation } from '@/src/api/location';
 import { fetchShopItems } from '@/src/api/shop';
 import type { DBShopItem } from '@/src/api/shop';
+import { fetchPublicEventsWithDetails } from '@/src/api/event';
+import type { EventWithDetails } from '@/src/api/event';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -33,6 +35,8 @@ export const ExploreScreen = () => {
     const [loadingBars, setLoadingBars] = useState(true);
     const [shopItems, setShopItems] = useState<DBShopItem[]>([]);
     const [loadingShop, setLoadingShop] = useState(true);
+    const [publicEvents, setPublicEvents] = useState<EventWithDetails[]>([]);
+    const [loadingEvents, setLoadingEvents] = useState(true);
 
     useEffect(() => {
         const loadBars = async () => {
@@ -69,7 +73,7 @@ export const ExploreScreen = () => {
             const data = await fetchShopItems();
             // Filter for specific items
             const targetItems = ['Smoking Kit', 'Bar Mat', 'Pure Sugar Cane Syrup'];
-            const selectedItems = data.filter(item => 
+            const selectedItems = data.filter(item =>
                 targetItems.some(target => item.name?.includes(target))
             );
             // If we found the items, use them, otherwise fall back to first 3
@@ -77,6 +81,17 @@ export const ExploreScreen = () => {
             setLoadingShop(false);
         };
         loadShopItems();
+    }, []);
+
+    useEffect(() => {
+        const loadPublicEvents = async () => {
+            setLoadingEvents(true);
+            const events = await fetchPublicEventsWithDetails();
+            // Show only first 2 for preview
+            setPublicEvents(events.slice(0, 2));
+            setLoadingEvents(false);
+        };
+        loadPublicEvents();
     }, []);
 
     const navigateToSection = (route: keyof RootStackParamList) => {
@@ -245,28 +260,41 @@ export const ExploreScreen = () => {
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
-                    >
-                        <Box className="mr-3">
-                            <EventCard
-                                title="Craft Cocktail Night"
-                                dateTime="Tomorrow 8pm"
-                                attending={23}
-                                price="$15"
-                                onPress={() => navigateToSection('UpcomingEvents')}
-                            />
+                    {loadingEvents ? (
+                        <Box className="px-4 py-8 items-center">
+                            <ActivityIndicator size="large" color="#14b8a6" />
                         </Box>
-                        <EventCard
-                            title="Mojito Happy Hour"
-                            dateTime="Saturday 7pm"
-                            attending={45}
-                            price="Free"
-                            onPress={() => navigateToSection('UpcomingEvents')}
-                        />
-                    </ScrollView>
+                    ) : publicEvents.length > 0 ? (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
+                        >
+                            {publicEvents.map((event, index) => {
+                                const startDate = event.start_time ? new Date(event.start_time) : null;
+                                const dateTimeStr = startDate
+                                    ? `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${startDate.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })}`
+                                    : 'TBA';
+                                const priceStr = event.price === null || event.price === 0 ? 'Free' : `€${event.price}`;
+
+                                return (
+                                    <Box key={event.id} className={index < publicEvents.length - 1 ? "mr-3" : ""}>
+                                        <EventCard
+                                            title={event.name}
+                                            dateTime={dateTimeStr}
+                                            attending={event.attendee_count || 0}
+                                            price={priceStr}
+                                            onPress={() => navigation.navigate('PartyDetails' as any, { party: event })}
+                                        />
+                                    </Box>
+                                );
+                            })}
+                        </ScrollView>
+                    ) : (
+                        <Box className="px-4">
+                            <Text className="text-gray-500 text-center">No upcoming events</Text>
+                        </Box>
+                    )}
                 </Box>
 
                 {/* Divider */}
