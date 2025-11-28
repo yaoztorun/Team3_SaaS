@@ -200,11 +200,10 @@ export const PartiesView = () => {
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                className={`px-3 py-1.5 rounded-lg border-2 ${
-                                    registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
+                                className={`px-3 py-1.5 rounded-lg border-2 ${registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
                                         ? 'bg-[#00a294] border-[#00a294]'
                                         : 'bg-white border-[#00a294]'
-                                }`}
+                                    }`}
                                 onPress={(e) => {
                                     e.stopPropagation();
                                     handleRegistration(event.id, event.isApprovalRequired);
@@ -212,20 +211,19 @@ export const PartiesView = () => {
                                 disabled={processingEvents.has(event.id)}
                                 activeOpacity={0.8}
                             >
-                                <Text className={`text-sm font-medium ${
-                                    registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
+                                <Text className={`text-sm font-medium ${registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
                                         ? 'text-white'
                                         : 'text-[#00a294]'
-                                }`}>
+                                    }`}>
                                     {processingEvents.has(event.id)
                                         ? 'Processing...'
                                         : registrationStatus[event.id] === 'registered'
-                                        ? 'Going'
-                                        : registrationStatus[event.id] === 'waitlisted'
-                                        ? 'Requested'
-                                        : event.isApprovalRequired
-                                        ? 'Request'
-                                        : 'Join'}
+                                            ? 'Going'
+                                            : registrationStatus[event.id] === 'waitlisted'
+                                                ? 'Requested'
+                                                : event.isApprovalRequired
+                                                    ? 'Request'
+                                                    : 'Join'}
                                 </Text>
                             </TouchableOpacity>
                         )}
