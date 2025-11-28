@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import {
   ScrollView,
   ActivityIndicator,
@@ -158,6 +158,7 @@ const DUMMY_POSTS_FOR_YOU: FeedPost[] = [
 export const HomeScreen: React.FC = () => {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
 
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('friends');
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
@@ -174,6 +175,7 @@ export const HomeScreen: React.FC = () => {
   const [sendingComment, setSendingComment] = useState(false);
   const [lastDeletedComment, setLastDeletedComment] =
     useState<CommentRow | null>(null);
+  const [pendingOpenPostId, setPendingOpenPostId] = useState<string | null>(null);
 
   // carousel state - animated index with slide effect
   const [currentCocktailIndex, setCurrentCocktailIndex] = useState(0);
@@ -366,6 +368,37 @@ export const HomeScreen: React.FC = () => {
 
     loadFeed();
   }, [feedFilter, user]);
+
+  // Handle deep-link param from navigation to open a specific post
+  useEffect(() => {
+    const id: string | undefined = route?.params?.openDrinkLogId;
+    if (id) {
+      setPendingOpenPostId(id);
+    }
+  }, [route?.params?.openDrinkLogId]);
+
+  // Also react on focus to handle cases where params didn't trigger change
+  useFocusEffect(
+    React.useCallback(() => {
+      const id: string | undefined = route?.params?.openDrinkLogId;
+      if (id) {
+        setPendingOpenPostId(id);
+      }
+      return () => {};
+    }, [route?.params?.openDrinkLogId])
+  );
+
+  // Once feed is loaded and contains the post, open comments and clear pending
+  useEffect(() => {
+    if (pendingOpenPostId && feedPosts.some(p => p.id === pendingOpenPostId)) {
+      openComments(pendingOpenPostId);
+      setPendingOpenPostId(null);
+      // Clear the route param so subsequent navigations with same id work
+      try {
+        navigation.setParams({ openDrinkLogId: undefined });
+      } catch {}
+    }
+  }, [pendingOpenPostId, feedPosts]);
 
   // ---------- like toggle ----------
 

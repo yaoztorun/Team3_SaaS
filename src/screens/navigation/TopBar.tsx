@@ -1,5 +1,6 @@
 // src/screens/navigation/TopBar.tsx
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { View, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/src/components/ui/box';
@@ -56,6 +57,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
 
   // notifications state
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -174,6 +176,17 @@ export const TopBar: React.FC<TopBarProps> = ({
         type: notification.type,
         drinkLogId: notification.drinkLogId,
       });
+    } else if (notification.drinkLogId) {
+      // Fallback: open Home tab and deep-link to the post
+      try {
+        navigation.navigate('Home' as never, { openDrinkLogId: notification.drinkLogId } as never);
+      } catch (e) {
+        // As a fallback, go via Main -> Home
+        navigation.navigate('Main' as never, {
+          screen: 'Home',
+          params: { openDrinkLogId: notification.drinkLogId },
+        } as never);
+      }
     }
 
     // close modal + mark all read in DB (doesn't block UI)
