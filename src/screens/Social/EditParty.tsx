@@ -155,7 +155,7 @@ export const EditParty = () => {
             // Upload new cover image if changed
             let uploadedUrl: string | null = originalValues.coverImage;
             if (coverImage && coverImage !== originalValues.coverImage) {
-                uploadedUrl = await uploadImageUri(coverImage, user.id);
+                uploadedUrl = await uploadImageUri(coverImage, user.id, undefined, 'party_images');
                 // console.log('Uploaded new cover image URL:', uploadedUrl);
             } else if (!coverImage && originalValues.coverImage) {
                 // Image was removed

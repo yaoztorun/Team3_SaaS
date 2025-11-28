@@ -98,7 +98,7 @@ export const CreateParty = () => {
             // Upload cover image if present
             let uploadedUrl: string | null = null;
             if (coverImage) {
-                uploadedUrl = await uploadImageUri(coverImage, user.id);
+                uploadedUrl = await uploadImageUri(coverImage, user.id, undefined, 'party_images');
                 // console.log('Uploaded cover image URL:', uploadedUrl);
             }
 
