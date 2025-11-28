@@ -8,26 +8,29 @@
 
 ### Option 1: Using the Heading Component (Recommended for Headings)
 
-The `Heading` component automatically applies Rubik font with semantic sizing:
+The `Heading` component automatically applies Rubik font with semantic sizing and colors:
 
 ```tsx
 import { Heading } from '@/src/components/global';
 
-// Different heading levels with automatic sizing
-<Heading level="h1">Page Title</Heading>        // text-4xl font-bold
-<Heading level="h2">Section Title</Heading>     // text-3xl font-bold
-<Heading level="h3">Subsection</Heading>        // text-2xl font-semibold
-<Heading level="h4">Small Heading</Heading>     // text-xl font-semibold
-<Heading level="h5">Card Title</Heading>        // text-lg font-semibold
-<Heading level="h6">Tiny Heading</Heading>      // text-base font-semibold
+// Different heading levels with automatic sizing and color
+<Heading level="h1">Page Title</Heading>        // text-4xl font-semibold text-neutral-950
+<Heading level="h2">Section Title</Heading>     // text-3xl font-medium text-neutral-950
+<Heading level="h3">Subsection</Heading>        // text-2xl font-medium text-neutral-900
+<Heading level="h4">Small Heading</Heading>     // text-xl font-medium text-neutral-900
+<Heading level="h5">Card Title</Heading>        // text-lg font-normal text-neutral-900
+<Heading level="h6">Tiny Heading</Heading>      // text-base font-normal text-neutral-900
 
-// You can add custom classes
+// You can override color with custom classes
 <Heading level="h3" className="text-primary-600 mb-4">
   Colored Heading
 </Heading>
 ```
 
 **Default is h3** if you don't specify a level.
+**Colors:**
+- h1, h2: text-neutral-950 (rgb 10, 10, 10) - Nearly black
+- h3, h4, h5, h6: text-neutral-900 (rgb 23, 23, 23) - Very dark grey
 
 ### Option 2: Using Tailwind Classes Directly
 
@@ -76,41 +79,74 @@ Only use this when necessary:
 ## Font Weights Available
 
 ### Rubik (for headings)
-- Regular (400)
-- Medium (500)
-- SemiBold (600)
-- Bold (700)
-- ExtraBold (800)
+- Regular (400) - `font-normal`
+- Medium (500) - `font-medium`
+- SemiBold (600) - `font-semibold`
+- Bold (700) - `font-bold`
+- ExtraBold (800) - `font-extrabold`
 
-Usage: `font-medium`, `font-semibold`, `font-bold`, etc.
+**Current Usage:**
+- h1, h2: font-semibold (600) / font-medium (500)
+- h3, h4: font-medium (500)
+- h5, h6: font-normal (400)
 
 ### Inter (for body)
-- Light (300)
-- Regular (400)
-- Medium (500)
-- SemiBold (600)
-- Bold (700)
+- Light (300) - `font-light`
+- Regular (400) - `font-normal`
+- Medium (500) - `font-medium`
+- SemiBold (600) - `font-semibold`
+- Bold (700) - `font-bold`
 
-Usage: `font-light`, `font-medium`, `font-semibold`, `font-bold`, etc.
+## Common Patterns & Actual Usage
 
-## Common Patterns
-
-### Page Title
+### Navigation Bar Titles (h2)
 ```tsx
-<Heading level="h1">My App Title</Heading>
-// or
-<Heading level="h2">Page Title</Heading>
+<Heading level="h2">Explore</Heading>
+<Heading level="h2">Profile</Heading>
+// Used in: TopBar component
 ```
 
-### Section Header
+### Auth Screen Titles (h2)
 ```tsx
-<Heading level="h3">Section Header</Heading>
+<Heading level="h2">Welcome Back</Heading>
+<Heading level="h2">Create Account</Heading>
+// Used in: LoginScreen, RegisterScreen, ForgotPassword, ResetPassword
 ```
 
-### Card or Component Title
+### Detail Page Main Titles (h3)
 ```tsx
-<Heading level="h4">Card Title</Heading>
+<Heading level="h3">{cocktail.name}</Heading>
+<Heading level="h3">{bar.name}</Heading>
+<Heading level="h3">{user.full_name}</Heading>
+// Used in: CocktailDetail, BarDetail, ItemDetail, UserProfile
 ```
+
+### Section Headers (h4)
+```tsx
+<Heading level="h4">All Cocktails</Heading>
+<Heading level="h4">AI Assistant</Heading>
+<Heading level="h4">Settings</Heading>
+// Used in: ExploreScreen sections, Settings pages, BestBars list, Modals
+```
+
+### Card Titles & Subsections (h5)
+```tsx
+<Heading level="h5">{party.name}</Heading>
+<Heading level="h5">Ingredients</Heading>
+<Heading level="h5">About</Heading>
+// Used in: PartiesView, PartyDetails, CocktailDetail subsections, CocktailCarouselCard
+```
+
+### Small Labels & Names (h6)
+```tsx
+<Heading level="h6">{cocktail.name}</Heading>
+<Heading level="h6">{user.full_name}</Heading>
+<Heading level="h6">Description</Heading>
+// Used in: CocktailCard overlay, FriendsView user names, ItemDetail
+```
+
+### Page Title (h1) - Currently Unused
+Reserved for future use.
 
 ### Body Paragraph
 ```tsx
@@ -137,12 +173,26 @@ Usage: `font-light`, `font-medium`, `font-semibold`, `font-bold`, etc.
 
 The fonts are loaded via:
 1. **Web**: Google Fonts CDN in `public/index.html` and `global.css`
+   - Rubik: weights 400, 500, 600, 700, 800
+   - Inter: weights 300, 400, 500, 600, 700
+   - Roboto: weights 400, 500 (for Google Sign-In button compliance)
 2. **Tailwind Config**: Font families defined in `tailwind.config.js`
-3. **Base Text Component**: Uses `font-body` (Inter) by default in `src/components/ui/text/styles.tsx`
+   - `font-heading` → Rubik
+   - `font-body` → Inter
+3. **Heading Component**: `src/components/global/Heading.tsx`
+   - Automatically applies `font-heading` (Rubik)
+   - h1, h2: text-neutral-950 (nearly black)
+   - h3, h4, h5, h6: text-neutral-900 (very dark grey)
+   - Semantic sizing based on h1-h6 levels
+4. **Base Text Component**: `src/components/ui/text/styles.tsx`
+   - Uses Inter by default (no explicit font class needed)
 
 ## Notes
 
-- The base `<Text>` component from `@/src/components/ui/text` already uses `font-body` (Inter) by default
-- Always use `className` with Tailwind classes when possible for consistency
-- For headings, explicitly add `font-heading` class
+- **ALWAYS use the `<Heading>` component for any headings/titles** - never use `<Text>` with manual font classes
+- The `<Heading>` component handles font family, weight, size, AND color automatically
+- Do NOT add `text-neutral-900` or `text-neutral-950` to headings - it's already included
+- Only override color when you need a different color (e.g., `className="text-primary-600"`)
+- The base `<Text>` component uses Inter by default for all body text
 - System fallback fonts are included for better cross-platform support
+- Heading colors: h1/h2 use text-neutral-950 (nearly black), h3/h4/h5/h6 use text-neutral-900 (very dark grey)
