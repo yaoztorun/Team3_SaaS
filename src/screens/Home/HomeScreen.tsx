@@ -24,6 +24,7 @@ import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
 import { getTagsForLogs, TaggedUser } from '@/src/api/tags';
+import { fetchCocktailById } from '@/src/api/cocktail';
 import {
   getCommentCountsForLogs,
   getCommentsForLog,
@@ -59,6 +60,7 @@ type DbDrinkLog = {
 
 export type FeedPost = {
   id: string;
+  cocktailId: string;
   userName: string;
   userInitials: string;
   userId?: string;
@@ -126,6 +128,7 @@ const COCKTAILS: CarouselItem[] = [
 const DUMMY_POSTS_FRIENDS: FeedPost[] = [
   {
     id: 'dummy-1',
+    cocktailId: '',
     userName: 'Your Friend',
     userInitials: 'YF',
     timeAgo: '5 min ago',
@@ -142,6 +145,7 @@ const DUMMY_POSTS_FRIENDS: FeedPost[] = [
 const DUMMY_POSTS_FOR_YOU: FeedPost[] = [
   {
     id: 'dummy-2',
+    cocktailId: '',
     userName: 'Community Member',
     userInitials: 'CM',
     timeAgo: '10 min ago',
@@ -340,6 +344,7 @@ export const HomeScreen: React.FC = () => {
           const fullName = log.Profile?.full_name ?? 'Unknown user';
           const initials = getInitials(fullName);
           const cocktailName = log.Cocktail?.name ?? 'Unknown cocktail';
+          const cocktailId = log.Cocktail?.id ?? '';
           const imageUrl = log.image_url ?? log.Cocktail?.image_url ?? '';
 
           const likes = likeCounts.get(log.id) ?? 0;
@@ -349,6 +354,7 @@ export const HomeScreen: React.FC = () => {
 
           return {
             id: log.id,
+            cocktailId,
             userName: fullName,
             userInitials: initials,
             userId: log.Profile?.id ?? log.user_id,
@@ -509,6 +515,29 @@ export const HomeScreen: React.FC = () => {
     setCommentsForPost([]);
     setNewComment('');
     setLastDeletedComment(null);
+  };
+
+  // ---------- cocktail navigation ----------
+
+  const handlePressCocktail = async (cocktailId: string) => {
+    if (!cocktailId) {
+      console.log('No cocktail ID provided');
+      return;
+    }
+    
+    // Fetch the full cocktail data (RLS ensures we only get public or own cocktails)
+    const cocktail = await fetchCocktailById(cocktailId);
+    
+    if (!cocktail) {
+      console.log('Cocktail not found or not accessible');
+      return;
+    }
+    
+    // Navigate to CocktailDetail in the Explore stack
+    navigation.navigate('Explore' as never, { 
+      screen: 'CocktailDetail',
+      params: { cocktail }
+    } as never);
   };
 
   const handleSendComment = async () => {
@@ -830,6 +859,7 @@ export const HomeScreen: React.FC = () => {
                   setTagsModalVisible(true);
                 }
               }}
+              onPressCocktail={handlePressCocktail}
             />
           </Box>
         ))}
@@ -878,6 +908,7 @@ export const HomeScreen: React.FC = () => {
                         setTagsModalVisible(true);
                       }
                     }}
+                    onPressCocktail={handlePressCocktail}
                   />
                 </Box>
               )}

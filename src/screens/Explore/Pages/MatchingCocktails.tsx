@@ -4,7 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
-import { fetchCocktails } from '@/src/api/cocktail';
+import { fetchPublicCocktails } from '@/src/api/cocktail';
 import { Cocktail } from '@/src/types/cocktail';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -41,7 +41,7 @@ export const MatchingCocktails = () => {
         (async () => {
             setLoading(true);
             try {
-                const data = await fetchCocktails();
+                const data = await fetchPublicCocktails();
                 if (mounted) setCocktails(data as any);
             } catch (e) {
                 console.warn('Failed to load cocktails', e);

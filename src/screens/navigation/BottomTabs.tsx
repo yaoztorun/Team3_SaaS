@@ -8,6 +8,7 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { Text } from '@/src/components/ui/text';
 import { HomeIcon, SearchIcon, Users, UserIcon, PlusIcon } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
+import { CommonActions } from '@react-navigation/native';
 
 // Import screens
 import { HomeScreen } from '@/src/screens/Home/HomeScreen';
@@ -60,6 +61,18 @@ export default function BottomTabs() {
             <Tab.Screen
                 name="Explore"
                 component={ExploreStack}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => {
+                        // Reset to the initial screen when tab is pressed
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: 'Explore' }],
+                            })
+                        );
+                    },
+                })}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
@@ -85,6 +98,18 @@ export default function BottomTabs() {
             <Tab.Screen
                 name="Social"
                 component={SocialStack}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => {
+                        // Reset to the initial screen when tab is pressed
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: 'Social' }],
+                            })
+                        );
+                    },
+                })}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
@@ -101,6 +126,18 @@ export default function BottomTabs() {
             <Tab.Screen
                 name="Profile"
                 component={ProfileStack}
+                listeners={({ navigation }) => ({
+                    tabPress: (e) => {
+                        // Reset to the initial screen when tab is pressed
+                        e.preventDefault();
+                        navigation.dispatch(
+                            CommonActions.reset({
+                                index: 0,
+                                routes: [{ name: 'Profile' }],
+                            })
+                        );
+                    },
+                })}
                 options={{
                     tabBarIcon: ({ focused }) => (
                         <IconButton
