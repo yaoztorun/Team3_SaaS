@@ -1,4 +1,3 @@
-// src/components/global/FeedPostCard.tsx
 import React, { useState } from 'react';
 import { Image, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
@@ -6,6 +5,8 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { shareSystemSheet, shareToWhatsApp, copyLinkForLog } from '@/src/utils/share';
+import { posthogCapture, trackFirstTime, ANALYTICS_EVENTS } from '@/src/analytics';
+import { useAuth } from '@/src/hooks/useAuth';
 import { TaggedUser } from '@/src/api/tags';
 
 interface FeedPostCardProps {
@@ -52,17 +53,65 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   onPressTags,
 }) => {
   const [shareOpen, setShareOpen] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const handleWhatsApp = async () => {
-    await shareToWhatsApp(id, cocktailName);
+    // Track first share with TTFA if it's user's first time
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'whatsapp',
+    });
+    
+    // Also track regular share event (for all shares)
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'whatsapp',
+      });
+    }
+    
+    await shareToWhatsApp(id, cocktailName, userId);
     setShareOpen(false);
   };
+  
   const handleCopyLink = async () => {
-    await copyLinkForLog(id);
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'copy_link',
+    });
+    
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'copy_link',
+      });
+    }
+    
+    await copyLinkForLog(id, userId);
     setShareOpen(false);
   };
+  
   const handleSystemShare = async () => {
-    await shareSystemSheet(id, cocktailName);
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'system',
+    });
+    
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'system',
+      });
+    }
+    
+    await shareSystemSheet(id, cocktailName, userId, 'system');
     setShareOpen(false);
   };
   return (

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { GluestackUIProvider } from '@/src/components/ui/gluestack-ui-provider';
 import { RootStack } from './src/screens/navigation/RootStack';
@@ -10,12 +10,21 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import '@/global.css';
 import {colors} from '@/src/theme/colors';
 import { initAnalytics } from './src/analytics';
+import { trackShareLinkOpen } from './src/utils/referral';
 
 // Maximum width for the app content (similar to mobile screen width)
 const MAX_CONTENT_WIDTH = 480; // ~iPhone 14 Pro Max width
 
 export default function App() {
   initAnalytics();
+  
+  // Track if user arrived via shared link (UTM parameters)
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      trackShareLinkOpen();
+    }
+  }, []);
+  
   const { user, loading, isPasswordRecovery } = useAuth();
   const { width } = useWindowDimensions();
 

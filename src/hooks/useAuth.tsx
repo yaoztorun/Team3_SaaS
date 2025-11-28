@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/src/lib/supabase';
-import { identifyUser, resetUser, startSession } from '@/src/analytics';
+import { identifyUser, resetUser, startSession, posthogCapture, trackWithTTFA, ANALYTICS_EVENTS } from '@/src/analytics';
+import { getStoredReferralInfo, clearReferralInfo } from '@/src/utils/referral';
 
 export function useAuth() {
   const [user, setUser] = useState<any>(null);
@@ -32,8 +33,13 @@ export function useAuth() {
 
       // Identify user if logged in
       if (data.session?.user) {
+        const referralInfo = getStoredReferralInfo();
+        
         identifyUser(data.session.user.id, {
           email: data.session.user.email,
+          referred_by: referralInfo?.referredBy,
+          utm_source: referralInfo?.utmSource,
+          utm_medium: referralInfo?.utmMedium,
         });
         startSession();
       }
@@ -64,10 +70,45 @@ export function useAuth() {
 
       // Handle user login/logout
       if (session?.user) {
+        const isNewUser = new Date(session.user.created_at).getTime() > Date.now() - 10000; // Created in last 10 seconds
+        const referralInfo = getStoredReferralInfo();
+        
         identifyUser(session.user.id, {
           email: session.user.email,
+          referred_by: referralInfo?.referredBy,
+          utm_source: referralInfo?.utmSource,
+          utm_medium: referralInfo?.utmMedium,
         });
         startSession();
+        
+        // Track Google OAuth signup/login completion
+        // SIGNED_IN event fires after OAuth redirect
+        if (event === 'SIGNED_IN') {
+          if (isNewUser) {
+            // New user - track signup completion
+            trackWithTTFA(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
+              method: 'google',
+              has_name: !!session.user.user_metadata?.full_name,
+              referred_by: referralInfo?.referredBy,
+              utm_source: referralInfo?.utmSource,
+            });
+            
+            // Track share conversion if from referral
+            if (referralInfo?.utmSource === 'share') {
+              posthogCapture(ANALYTICS_EVENTS.SHARE_CONVERTED, {
+                referred_by: referralInfo.referredBy,
+                utm_medium: referralInfo.utmMedium,
+              });
+            }
+            
+            clearReferralInfo();
+          } else {
+            // Existing user - track login
+            trackWithTTFA(ANALYTICS_EVENTS.LOGIN_COMPLETED, {
+              method: 'google',
+            });
+          }
+        }
       } else {
         resetUser();
       }
