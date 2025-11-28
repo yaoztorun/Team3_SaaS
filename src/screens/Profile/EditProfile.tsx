@@ -9,7 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile, updateProfile } from '@/src/api/profile';
-import { uploadProfileImage } from '@/src/api/storage';
+import { uploadProfileImage, deleteProfileImage } from '@/src/api/storage';
 import type { Profile } from '@/src/types/profile';
 import { Center } from '@/src/components/ui/center';
 import { createCameraHandlers } from '@/src/utils/camera';
@@ -64,6 +64,16 @@ const EditProfile: React.FC = () => {
         // If user selected a new image, upload it to Storage first
         if (tempImageUri) {
             setUploading(true);
+            
+            // Delete old avatar if it exists and is stored in our bucket
+            if (avatarUrl && avatarUrl.includes('/storage/v1/object/public/avatars/')) {
+                const { error: deleteError } = await deleteProfileImage(avatarUrl);
+                if (deleteError) {
+                    console.warn('Failed to delete old avatar:', deleteError);
+                    // Continue anyway - don't block the update
+                }
+            }
+            
             const uploadResult = await uploadProfileImage(user.id, tempImageUri);
             setUploading(false);
             
