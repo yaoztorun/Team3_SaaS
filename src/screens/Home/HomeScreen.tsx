@@ -584,7 +584,7 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <Box className="flex-1 bg-neutral-50">
-      <TopBar title="Feed" onNotificationPress={handleNotificationSelect} showLogo />
+      <TopBar title="Home" onNotificationPress={handleNotificationSelect} showLogo />
 
       <ScrollView
         className="flex-1"
