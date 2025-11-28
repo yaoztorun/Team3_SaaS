@@ -9,6 +9,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { fetchPublicEventsWithDetails, getUserEventRegistration, registerForEvent, cancelEventRegistration } from '@/src/api/event';
 import type { EventWithDetails } from '@/src/api/event';
 import { spacing } from '@/src/theme/spacing';
+import { supabase } from '@/src/lib/supabase';
 
 type EventType = 'All' | 'house party' | 'bar meetup' | 'outdoor event' | 'themed party';
 
@@ -20,16 +21,25 @@ export const UpcomingEvents = () => {
     const [loading, setLoading] = useState(true);
     const [registrationStatus, setRegistrationStatus] = useState<Record<string, 'registered' | 'waitlisted' | null>>({});
     const [processingEvents, setProcessingEvents] = useState<Set<string>>(new Set());
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     const filterTypes: EventType[] = ['All', 'house party', 'bar meetup', 'outdoor event', 'themed party'];
 
     const loadEvents = async () => {
         setLoading(true);
+
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        setCurrentUserId(user?.id || null);
+
         const publicEvents = await fetchPublicEventsWithDetails();
-        setEvents(publicEvents);
+
+        // Filter out events created by current user to avoid showing duplicates
+        const filteredEvents = publicEvents.filter(event => event.organiser_id !== user?.id);
+        setEvents(filteredEvents);
 
         // Fetch registration status for all events
-        const statusPromises = publicEvents.map(async (event) => {
+        const statusPromises = filteredEvents.map(async (event) => {
             const result = await getUserEventRegistration(event.id);
             return { eventId: event.id, status: result.status };
         });
@@ -176,6 +186,13 @@ export const UpcomingEvents = () => {
                         ))}
                     </Box>
                 </ScrollView>
+            </Box>
+
+            {/* Social Events Header */}
+            <Box className="bg-blue-50 border-b border-blue-200 px-4 py-2">
+                <Text className="text-xs text-blue-700 font-medium">
+                    📍 These are public social events. Manage your own events in the Social tab.
+                </Text>
             </Box>
 
             <ScrollView
