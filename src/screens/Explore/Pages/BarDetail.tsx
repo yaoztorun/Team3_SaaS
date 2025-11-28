@@ -7,10 +7,10 @@ import { HStack } from '@/src/components/ui/hstack';
 import { MapPin, Star } from 'lucide-react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import { Location } from '@/src/types/location';
+import { DBLocation } from '@/src/api/location';
 
 type RootStackParamList = {
-    BarDetail: { bar: Location };
+    BarDetail: { bar: DBLocation };
 };
 
 type BarDetailRouteProp = RouteProp<RootStackParamList, 'BarDetail'>;

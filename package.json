@@ -7,7 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "pwa": "npx expo export -p web && npx workbox-cli generateSW workbox-config.js && serve dist"
+    "pwa": "npx expo export -p web && npx workbox-cli generateSW workbox-config.js && serve dist",
+    "types:generate": "supabase gen types typescript --project-id jyoevzczpuipvnfqmfud > src/types/supabase.ts"
   },
   "dependencies": {
     "@expo/html-elements": "^0.10.1",
