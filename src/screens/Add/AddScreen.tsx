@@ -297,9 +297,9 @@ export const AddScreen = () => {
             >
                 <View className="flex-1 bg-black/50 items-center justify-center p-4">
                     <Box className="w-full max-w-sm bg-white rounded-2xl p-6">
-                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                        <Heading level="h2" className="mb-3 text-center">
                             {modalMessage ?? 'Success!'}
-                        </Text>
+                        </Heading>
                         <Text className="text-neutral-600 mb-6 text-center">
                             {activeView === 'log' ? 'Your drink has been logged.' : 'Your recipe has been created.'}
                         </Text>

@@ -560,9 +560,9 @@ export const ProfileScreen = () => {
 
             {/* Cocktail Breakdown */}
             <Box className="bg-white rounded-2xl p-4">
-              <Text className="text-lg text-neutral-900 mb-4">
+              <Heading level="h3" className="mb-4">
                 Cocktail Breakdown
-              </Text>
+              </Heading>
               {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 ? (
                 <>
                   <Box className="items-center justify-center mb-4">

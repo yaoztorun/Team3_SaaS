@@ -460,9 +460,9 @@ export const UserProfile = () => {
                 {/* Cocktail Breakdown */}
                 {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 && (
                     <Box className="bg-white rounded-2xl p-4">
-                        <Text className="text-lg text-neutral-900 mb-4">
+                        <Heading level="h3" className="mb-4">
                             Cocktail Breakdown
-                        </Text>
+                        </Heading>
                         <Box className="items-center justify-center mb-4">
                             <PieChart
                                 data={userStats.cocktailBreakdown.map(item => ({

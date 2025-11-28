@@ -49,28 +49,6 @@ export const SocialScreen = () => {
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="Social" showLogo />
 
-            {/* View Toggle */}
-            <Box className="bg-[#F3F4F6] p-4">
-                <View className="bg-[#E5E7EB] flex-row rounded-xl p-1">
-                    <Pressable
-                        onPress={() => setActiveView('friends')}
-                        className={activeView === 'friends' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
-                    >
-                        <Text className={activeView === 'friends' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
-                            Friends
-                        </Text>
-                    </Pressable>
-                    <Pressable
-                        onPress={() => setActiveView('parties')}
-                        className={activeView === 'parties' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
-                    >
-                        <Text className={activeView === 'parties' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
-                            Parties
-                        </Text>
-                    </Pressable>
-                </View>
-            </Box>
-
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
@@ -79,6 +57,46 @@ export const SocialScreen = () => {
                     paddingBottom: spacing.screenBottom,
                 }}
             >
+                {/* View Toggle */}
+                <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
+                    <Pressable
+                        onPress={() => setActiveView('friends')}
+                        className={
+                            activeView === 'friends'
+                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
+                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
+                        }
+                    >
+                        <Text
+                            className={
+                                activeView === 'friends'
+                                    ? 'text-sm text-center text-white font-medium'
+                                    : 'text-sm text-center text-neutral-900'
+                            }
+                        >
+                            Friends
+                        </Text>
+                    </Pressable>
+                    <Pressable
+                        onPress={() => setActiveView('parties')}
+                        className={
+                            activeView === 'parties'
+                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
+                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
+                        }
+                    >
+                        <Text
+                            className={
+                                activeView === 'parties'
+                                    ? 'text-sm text-center text-white font-medium'
+                                    : 'text-sm text-center text-neutral-900'
+                            }
+                        >
+                            Parties
+                        </Text>
+                    </Pressable>
+                </Box>
+
                 {activeView === 'friends' ? <FriendsView key={refreshKey} /> : <PartiesView />}
             </ScrollView>
         </Box>

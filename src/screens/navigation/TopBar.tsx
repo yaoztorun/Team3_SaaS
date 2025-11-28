@@ -263,14 +263,24 @@ export const TopBar: React.FC<TopBarProps> = ({
 
           {/* Logo (shown only on main pages) */}
           {showLogo ? (
-            <Image
-              source={require('../../../assets/icon.png')}
-              style={{
-                width: 40,
-                height: 40,
-                resizeMode: 'contain',
-              }}
-            />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Image
+                source={require('../../../assets/icon.png')}
+                style={{
+                  width: 40,
+                  height: 40,
+                  resizeMode: 'contain',
+                }}
+              />
+              <Heading
+                level="h2"
+                style={{
+                  letterSpacing: -0.5,
+                }}
+              >
+                {title}
+              </Heading>
+            </View>
           ) : (
             <Heading
               level="h2"

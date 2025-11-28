@@ -18,7 +18,7 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard, TextInputField } from '@/src/components/global';
+import { FeedPostCard, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
@@ -529,7 +529,7 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <Box className="flex-1 bg-neutral-50">
-      <TopBar title="Feed" onNotificationPress={handleNotificationSelect} showLogo />
+      <TopBar title="Home" onNotificationPress={handleNotificationSelect} showLogo />
 
       <ScrollView
         className="flex-1"
@@ -541,9 +541,9 @@ export const HomeScreen: React.FC = () => {
       >
         {/* Popular Right Now – Animated Cocktail Carousel */}
         <Box className="mb-6">
-          <Text className="text-lg font-medium text-neutral-900 mb-3">
+          <Heading level="h3" className="mb-3">
             Popular right now
-          </Text>
+          </Heading>
 
           <Box className="h-72 items-center justify-center">
             <Box
