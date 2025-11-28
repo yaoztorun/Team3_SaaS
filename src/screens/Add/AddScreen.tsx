@@ -238,7 +238,7 @@ export const AddScreen = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Post your drink" showLogo />
+            <TopBar title="Add Drink" showLogo />
 
             <ScrollView
                 className="flex-1"
