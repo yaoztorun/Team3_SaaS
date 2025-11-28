@@ -36,11 +36,13 @@ Track user signups and registrations.
 - `has_name`: whether user provided a name during signup
 
 **Implementation locations:**
-- `/src/screens/Auth/RegisterScreen.tsx`
-- `/src/screens/Auth/LoginScreen.tsx`
+- `/src/screens/Auth/RegisterScreen.tsx` - Email signup flow
+- `/src/screens/Auth/LoginScreen.tsx` - Email login & Google OAuth initiation
+- `/src/hooks/useAuth.tsx` - Google OAuth completion tracking (SIGNED_IN event)
 
 **Example:**
 ```typescript
+// Email signup
 posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
   method: 'email',
 });
@@ -48,6 +50,20 @@ posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
 trackWithTTFA(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
   method: 'email',
   has_name: true,
+});
+
+// Google OAuth (tracked automatically in useAuth.tsx)
+// signup_started → tracked when user clicks Google button
+// signup_completed → tracked on SIGNED_IN event if new user
+// login_completed → tracked on SIGNED_IN event if existing user
+```
+
+**Google OAuth Flow:**
+1. User clicks "Sign in with Google" → `signup_started` tracked
+2. User completes Google authentication (redirects away and back)
+3. `useAuth.tsx` detects `SIGNED_IN` event
+4. Checks if user is new (created < 10 seconds ago)
+5. Tracks `signup_completed` (new user) or `login_completed` (existing user)
 });
 ```
 
