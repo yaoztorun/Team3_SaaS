@@ -7,6 +7,7 @@ interface TextInputFieldProps extends TextInputProps {
     label?: string;
     required?: boolean;
     icon?: React.ReactNode;
+    iconPosition?: 'left' | 'right';
     error?: string;
 }
 
@@ -14,6 +15,7 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
     label, 
     required = false,
     icon,
+    iconPosition = 'right',
     error,
     ...props 
 }) => {
@@ -37,19 +39,24 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
                     borderColor: error ? '#EF4444' : (isFocused ? '#9CA3AF' : '#E5E7EB'),
                 }}
             >
-                {icon && (
+                {icon && iconPosition === 'left' && (
                     <Box className="pl-3">
                         {icon}
                     </Box>
                 )}
                 <RNTextInput 
-                    className={`flex-1 p-3 ${icon ? 'pl-2' : ''}`}
+                    className={`flex-1 p-3 ${icon && iconPosition === 'left' ? 'pl-2' : ''} ${icon && iconPosition === 'right' ? 'pr-2' : ''}`}
                     placeholderTextColor="#717182"
                     style={{ outlineStyle: 'none' } as any}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     {...props}
                 />
+                {icon && iconPosition === 'right' && (
+                    <Box className="pr-3">
+                        {icon}
+                    </Box>
+                )}
             </View>
             {error && (
                 <Text className="text-sm text-red-500">{error}</Text>
