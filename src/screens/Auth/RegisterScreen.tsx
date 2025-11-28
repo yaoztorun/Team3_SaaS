@@ -12,6 +12,7 @@ import { PrimaryButton, TextInputField, Heading } from '@/src/components/global'
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
+import { getStoredReferralInfo, clearReferralInfo } from '@/src/utils/referral';
 
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -62,16 +63,35 @@ const RegisterScreen: React.FC = () => {
 
         // Track successful signup
         if (data.user) {
+            // Get referral info if user came from a shared link
+            const referralInfo = getStoredReferralInfo();
+            
             identifyUser(data.user.id, {
                 email: data.user.email,
                 name: name || undefined,
                 created_at: new Date().toISOString(),
+                referred_by: referralInfo?.referredBy,
+                utm_source: referralInfo?.utmSource,
+                utm_medium: referralInfo?.utmMedium,
             });
             
             trackWithTTFA(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
                 method: 'email',
                 has_name: !!name,
+                referred_by: referralInfo?.referredBy,
+                utm_source: referralInfo?.utmSource,
             });
+            
+            // If user came from a share link, track conversion
+            if (referralInfo?.utmSource === 'share') {
+                posthogCapture(ANALYTICS_EVENTS.SHARE_CONVERTED, {
+                    referred_by: referralInfo.referredBy,
+                    utm_medium: referralInfo.utmMedium,
+                });
+            }
+            
+            // Clear referral info after use
+            clearReferralInfo();
         }
 
         setMessage('Registration successful! Please check your email to verify your account.');
