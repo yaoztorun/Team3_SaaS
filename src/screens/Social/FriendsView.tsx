@@ -17,6 +17,7 @@ import {
         getSentFriendRequests,
         acceptFriendRequest,
         rejectFriendRequest,
+        cancelFriendRequest,
         getFriends,
 } from '@/src/api/friendship';
 import type { Profile } from '@/src/types/profile';
@@ -113,6 +114,18 @@ export const FriendsView = () => {
                         await loadFriendData();
                 } else {
                         alert(result.error || 'Failed to reject friend request');
+                }
+                setProcessingRequest(null);
+        };
+
+        const handleCancelRequest = async (friendshipId: string) => {
+                setProcessingRequest(friendshipId);
+                const result = await cancelFriendRequest(friendshipId);
+
+                if (result.success) {
+                        await loadFriendData();
+                } else {
+                        alert(result.error || 'Failed to cancel friend request');
                 }
                 setProcessingRequest(null);
         };
@@ -356,6 +369,18 @@ export const FriendsView = () => {
                                                                                                         Friend request sent · Pending
                                                                                                 </Text>
                                                                                         </Box>
+
+                                                                                        <Button
+                                                                                                size="sm"
+                                                                                                variant="outline"
+                                                                                                className="min-w-[80px]"
+                                                                                                onPress={() => handleCancelRequest(request.id)}
+                                                                                                disabled={processingRequest === request.id}
+                                                                                        >
+                                                                                                <Text>
+                                                                                                        {processingRequest === request.id ? '...' : 'Cancel'}
+                                                                                                </Text>
+                                                                                        </Button>
                                                                                 </HStack>
                                                                         </Pressable>
                                                                 );

@@ -9,9 +9,10 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Location } from '@/src/types/location';
 import { Heading } from '@/src/components/global';
+import { DBLocation } from '@/src/api/location';
 
 type RootStackParamList = {
-    BarDetail: { bar: Location };
+    BarDetail: { bar: DBLocation };
 };
 
 type BarDetailRouteProp = RouteProp<RootStackParamList, 'BarDetail'>;
