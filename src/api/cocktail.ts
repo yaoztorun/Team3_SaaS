@@ -22,9 +22,9 @@ export async function fetchPublicCocktails(): Promise<DBCocktail[]> {
 }
 
 /**
- * Fetch the current user's personal recipes only
+ * Fetch the current user's private personal recipes only
  */
-export async function fetchPersonalRecipes(): Promise<DBCocktail[]> {
+export async function fetchPrivatePersonalRecipes(): Promise<DBCocktail[]> {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
@@ -35,10 +35,11 @@ export async function fetchPersonalRecipes(): Promise<DBCocktail[]> {
                 .from('Cocktail')
                 .select('*')
                 .eq('creator_id', user.id) // Only user's own recipes
+                .eq('is_public', false) // Only private recipes (public ones are already in fetchPublicCocktails)
                 .order('created_at', { ascending: false });
 
         if (error) {
-                console.error('Error fetching personal recipes:', error);
+                console.error('Error fetching private personal recipes:', error);
                 return [];
         }
 

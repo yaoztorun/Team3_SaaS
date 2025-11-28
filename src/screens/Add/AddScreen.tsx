@@ -13,7 +13,7 @@ import { createCameraHandlers } from '@/src/utils/camera';
 import uploadImageUri from '@/src/utils/storage';
 import { supabase } from '@/src/lib/supabase';
 import fetchLocations from '@/src/api/location';
-import { fetchPublicCocktails, fetchPersonalRecipes } from '@/src/api/cocktail';
+import { fetchPublicCocktails, fetchPrivatePersonalRecipes } from '@/src/api/cocktail';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { colors } from '@/src/theme/colors';
 import { ANALYTICS_EVENTS, posthogCapture, trackWithTTFA } from '@/src/analytics';
@@ -52,10 +52,10 @@ export const AddScreen = () => {
             setLocations(data.map(l => ({ id: l.id, name: l.name })));
         })();
         (async () => {
-            // Fetch both public cocktails and user's personal recipes
+            // Fetch both public cocktails and user's private personal recipes
             const [publicCocktails, personalRecipes] = await Promise.all([
                 fetchPublicCocktails(),
-                fetchPersonalRecipes()
+                fetchPrivatePersonalRecipes()
             ]);
             if (!mounted) return;
             const allCocktails = [...publicCocktails, ...personalRecipes];
