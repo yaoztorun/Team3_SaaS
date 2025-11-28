@@ -7,7 +7,7 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/src/screens/navigation/types';
-import { PrimaryButton } from '@/src/components/global';
+import { PrimaryButton, Heading } from '@/src/components/global';
 import { colors } from '@/src/theme/colors';
 import { supabase } from '@/src/lib/supabase';
 import { ArrowLeft } from 'lucide-react-native';
@@ -127,7 +127,7 @@ const Settings: React.FC = () => {
                 <Pressable onPress={() => navigation.goBack()} className="mr-4">
                     <ArrowLeft size={24} color="#000" />
                 </Pressable>
-                <Text className="text-xl font-semibold">Settings</Text>
+                <Heading level="h4">Settings</Heading>
             </Box>
 
             {loading ? (

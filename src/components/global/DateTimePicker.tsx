@@ -6,6 +6,7 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { Calendar as CalendarIcon, Clock, X, ChevronRight } from 'lucide-react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { colors } from '@/src/theme/colors';
+import { Heading } from './Heading';
 
 interface DateTimePickerProps {
     date: Date;

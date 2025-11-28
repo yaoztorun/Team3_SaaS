@@ -7,6 +7,7 @@ import { MapPin, X, ChevronRight, ArrowLeft } from 'lucide-react-native';
 import { TextInputField } from './TextInputField';
 import fetchLocations from '@/src/api/location';
 import { fetchUserLocations, createUserLocation, type DBUserLocation } from '@/src/api/userLocations';
+import { Heading } from './Heading';
 
 interface LocationSelectorProps {
     selectedLocation: string;
@@ -150,7 +151,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                         >
                             {/* Header */}
                             <Box className="px-4 py-4 border-b border-gray-200 flex-row items-center justify-between">
-                                <Text className="text-xl font-semibold text-neutral-900">Select Location</Text>
+                                <Heading level="h4">Select Location</Heading>
                                 <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                                     <X size={24} color="#666" />
                                 </TouchableOpacity>
@@ -228,7 +229,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                                                 <TouchableOpacity onPress={() => setShowAddPersonalLocation(false)} className="mr-3">
                                                     <ArrowLeft size={24} color="#000" />
                                                 </TouchableOpacity>
-                                                <Text className="text-xl font-semibold text-neutral-900">Add Personal Location</Text>
+                                                <Heading level="h4">Add Personal Location</Heading>
                                             </Box>
 
                                             <Box className="space-y-4">

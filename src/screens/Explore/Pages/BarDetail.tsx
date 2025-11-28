@@ -7,6 +7,8 @@ import { HStack } from '@/src/components/ui/hstack';
 import { MapPin, Star } from 'lucide-react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import { Location } from '@/src/types/location';
+import { Heading } from '@/src/components/global';
 import { DBLocation } from '@/src/api/location';
 
 type RootStackParamList = {
@@ -36,7 +38,7 @@ export const BarDetail = () => {
                 </View>
 
                 <Box className="p-4">
-                    <Text className="text-2xl font-bold mb-2">{bar.name}</Text>
+                    <Heading level="h3" className="mb-2">{bar.name}</Heading>
 
                     {bar.rating !== null && bar.rating !== undefined && (
                         <HStack className="items-center mb-4">

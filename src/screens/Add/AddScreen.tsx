@@ -5,7 +5,7 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { ToggleSwitch, PrimaryButton } from '@/src/components/global';
+import { ToggleSwitch, PrimaryButton, Heading } from '@/src/components/global';
 import { useNavigation } from '@react-navigation/native';
 import LogView from './LogView';
 import RecipeView from './RecipeView';

@@ -12,7 +12,7 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { colors } from '@/src/theme/colors';
 import { Pressable } from '@/src/components/ui/pressable';
-import { PrimaryButton } from '@/src/components/global';
+import { PrimaryButton, Heading } from '@/src/components/global';
 import { Calendar, MapPin, Users, Shirt, DollarSign, Edit } from 'lucide-react-native';
 import type { EventWithDetails } from '@/src/api/event';
 import { fetchEventAttendees, updateRegistrationStatus, getUserEventRegistration, registerForEvent, cancelEventRegistration } from '@/src/api/event';
@@ -193,7 +193,7 @@ export const PartyDetails: React.FC = () => {
 
                 {/* Party Info Card */}
                 <Box className="bg-white rounded-2xl p-4 mb-4">
-                    <Text className="text-lg font-semibold text-neutral-950 mb-2">{party.name}</Text>
+                    <Heading level="h5" className="mb-2">{party.name}</Heading>
 
                     {/* Host Info */}
                     <HStack className="items-center mb-4">
@@ -278,7 +278,7 @@ export const PartyDetails: React.FC = () => {
 
                 {/* About Section */}
                 <Box className="bg-white rounded-2xl p-4 mb-4">
-                    <Text className="text-lg font-semibold text-neutral-950 mb-2">About</Text>
+                    <Heading level="h5" className="mb-2">About</Heading>
                     <Text className="text-sm text-neutral-700">{party.description || 'No additional details provided.'}</Text>
                 </Box>
 

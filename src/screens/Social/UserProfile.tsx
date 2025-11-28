@@ -22,6 +22,7 @@ import {
 } from '@/src/api/friendship';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { LineChart, PieChart } from 'react-native-chart-kit';
+import { Heading } from '@/src/components/global';
 
 type RouteParams = {
     UserProfile: { userId: string };
@@ -236,9 +237,9 @@ export const UserProfile = () => {
                     </Center>
 
                     <Center className="mb-4">
-                        <Text className="text-2xl font-semibold text-neutral-900 mb-1">
+                        <Heading level="h3" className="mb-1">
                             {profile.full_name || 'User'}
-                        </Text>
+                        </Heading>
                         <Text className="text-base text-neutral-600">
                             {profile.email}
                         </Text>
