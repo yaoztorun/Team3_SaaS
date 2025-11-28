@@ -10,6 +10,7 @@ import { fetchPublicEventsWithDetails, getUserEventRegistration, registerForEven
 import type { EventWithDetails } from '@/src/api/event';
 import { spacing } from '@/src/theme/spacing';
 import { supabase } from '@/src/lib/supabase';
+import { User } from 'lucide-react-native';
 
 type EventType = 'All' | 'house party' | 'bar meetup' | 'outdoor event' | 'themed party';
 
@@ -218,11 +219,12 @@ export const UpcomingEvents = () => {
                             const timeStr = formatTime(event.start_time, event.end_time);
                             const locationStr = getLocationString(event);
                             const currentStatus = registrationStatus[event.id];
+                            const organizerName = getOrganizerName(event);
 
                             return (
                                 <TouchableOpacity
                                     key={event.id}
-                                    className="bg-white rounded-2xl overflow-hidden shadow-sm"
+                                    className="bg-white rounded-xl mb-3 border-[3px] border-gray-200 overflow-hidden"
                                     activeOpacity={0.7}
                                     onPress={() => navigation.navigate('PartyDetails' as any, { party: event })}
                                 >
@@ -237,56 +239,72 @@ export const UpcomingEvents = () => {
                                             <Text className="text-6xl">🎉</Text>
                                         </Box>
                                     )}
+
+                                    {/* Party Type Badge */}
                                     <Box className="absolute top-3 left-3">
-                                        <Box className="px-2 py-1 rounded-full bg-[#00BBA7]">
-                                            <Text className="text-white text-xs font-medium capitalize">{event.party_type}</Text>
+                                        <Box className="px-3 py-1 rounded-full bg-[#00a294]">
+                                            <Text className="text-white text-xs font-medium">
+                                                {event.party_type?.replace('-', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Party'}
+                                            </Text>
                                         </Box>
                                     </Box>
-                                    {/* Separator line */}
-                                    <Box className="h-px bg-gray-200" />
-                                    <Box className="p-3 space-y-1.5">
-                                        <HStack className="justify-between items-start">
-                                            <Text className="text-base font-medium text-neutral-900">{event.name}</Text>
-                                            <Text className="text-base font-medium text-neutral-900">
-                                                {priceStr}
+
+                                    {/* Party Info */}
+                                    <Box className="p-3">
+                                        {/* Title and Price on same line */}
+                                        <HStack className="justify-between items-center mb-2">
+                                            <Text className="text-base font-medium text-neutral-900 flex-1 mr-2">{event.name}</Text>
+                                            {priceStr && (
+                                                <Text className="text-base font-semibold text-neutral-900">
+                                                    {priceStr}
+                                                </Text>
+                                            )}
+                                        </HStack>
+
+                                        {/* Organizer */}
+                                        <HStack className="items-center mb-2">
+                                            <User size={16} color="#6b7280" />
+                                            <Text className="text-sm text-neutral-600 ml-2">Organized by {organizerName}</Text>
+                                        </HStack>
+
+                                        {/* Date & Time */}
+                                        <HStack className="items-center mb-2">
+                                            <Text className="text-sm text-neutral-600">📅</Text>
+                                            <Text className="text-sm text-neutral-600 ml-2">
+                                                {dateStr} · {timeStr}
                                             </Text>
                                         </HStack>
-                                        <HStack space="xs" className="items-center">
-                                            <Text className="text-sm text-neutral-600">📍</Text>
-                                            <Text className="text-sm text-neutral-600">{locationStr}</Text>
-                                        </HStack>
-                                        <HStack space="xs" className="items-center">
-                                            <Text className="text-sm text-neutral-600">📅</Text>
-                                            <Text className="text-sm text-neutral-600">{dateStr} · {timeStr}</Text>
-                                        </HStack>
+
+                                        {/* Attendees and Button */}
                                         <HStack className="justify-between items-center pt-2 border-t border-neutral-100">
                                             <Text className="text-xs text-neutral-600">
-                                                {event.attendee_count || 0}{event.max_attendees ? ` / ${event.max_attendees}` : ''} attending
+                                                {event.attendee_count || 0}{event.max_attendees ? `/${event.max_attendees}` : ''} attending
                                             </Text>
                                             <TouchableOpacity
-                                                className="px-3 py-1.5 rounded-lg"
+                                                className={`px-3 py-1.5 rounded-lg border-2 ${currentStatus === 'registered' || currentStatus === 'waitlisted'
+                                                        ? 'bg-[#00a294] border-[#00a294]'
+                                                        : 'bg-white border-[#00a294]'
+                                                    }`}
                                                 onPress={(e) => {
                                                     e.stopPropagation();
                                                     handleRegistration(event.id, event.isApprovalRequired);
                                                 }}
                                                 disabled={processingEvents.has(event.id)}
-                                                style={{
-                                                    backgroundColor: (currentStatus === 'registered' || currentStatus === 'waitlisted') ? '#00a294' : '#ffffff',
-                                                    borderWidth: (currentStatus === 'registered' || currentStatus === 'waitlisted') ? 0 : 1,
-                                                    borderColor: '#00a294',
-                                                    opacity: processingEvents.has(event.id) ? 0.5 : 1
-                                                }}
+                                                activeOpacity={0.8}
                                             >
-                                                <Text
-                                                    className="text-sm font-medium"
-                                                    style={{
-                                                        color: (currentStatus === 'registered' || currentStatus === 'waitlisted') ? '#ffffff' : '#00a294'
-                                                    }}
-                                                >
-                                                    {processingEvents.has(event.id) ? 'Processing...' :
-                                                        currentStatus === 'registered' ? '✓ Going' :
-                                                            currentStatus === 'waitlisted' ? 'Request Sent' :
-                                                                event.isApprovalRequired ? 'Request to Join' : "I'm Going"}
+                                                <Text className={`text-sm font-medium ${currentStatus === 'registered' || currentStatus === 'waitlisted'
+                                                        ? 'text-white'
+                                                        : 'text-[#00a294]'
+                                                    }`}>
+                                                    {processingEvents.has(event.id)
+                                                        ? 'Processing...'
+                                                        : currentStatus === 'registered'
+                                                            ? 'Going'
+                                                            : currentStatus === 'waitlisted'
+                                                                ? 'Requested'
+                                                                : event.isApprovalRequired
+                                                                    ? 'Request'
+                                                                    : 'Join'}
                                                 </Text>
                                             </TouchableOpacity>
                                         </HStack>

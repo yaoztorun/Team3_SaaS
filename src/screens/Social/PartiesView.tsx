@@ -19,7 +19,6 @@ export const PartiesView = () => {
     const [loading, setLoading] = useState(true);
     const [myEvents, setMyEvents] = useState<EventWithDetails[]>([]);
     const [friendsEvents, setFriendsEvents] = useState<EventWithDetails[]>([]);
-    const [publicEvents, setPublicEvents] = useState<EventWithDetails[]>([]);
     const [myEventsCollapsed, setMyEventsCollapsed] = useState(false);
     const [friendsEventsCollapsed, setFriendsEventsCollapsed] = useState(false);
 
@@ -30,18 +29,13 @@ export const PartiesView = () => {
 
     const loadEvents = async () => {
         setLoading(true);
-        const { myEvents, friendsEvents, publicEvents } = await fetchAllVisibleEvents();
-        // console.log('=== LOADED EVENTS ===');
-        // console.log('My Events:', myEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
-        // console.log('Friends Events:', friendsEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
-        // console.log('Public Events:', publicEvents.map(e => ({ id: e.id, name: e.name, isApprovalRequired: e.isApprovalRequired })));
+        const { myEvents, friendsEvents } = await fetchAllVisibleEvents();
 
         setMyEvents(myEvents);
         setFriendsEvents(friendsEvents);
-        setPublicEvents(publicEvents);
 
         // Fetch registration status for all events (excluding user's own events)
-        const allOtherEvents = [...friendsEvents, ...publicEvents];
+        const allOtherEvents = [...friendsEvents];
         // console.log('=== FETCHING REGISTRATION STATUS ===');
         // console.log('Total events to check:', allOtherEvents.length);
 
@@ -307,18 +301,8 @@ export const PartiesView = () => {
                             </Box>
                         )}
 
-                        {/* Public Events Section */}
-                        {publicEvents.length > 0 && (
-                            <Box className="mb-6">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">
-                                    Public Parties ({publicEvents.length})
-                                </Text>
-                                {publicEvents.map(event => renderPartyCard(event, false))}
-                            </Box>
-                        )}
-
                         {/* Empty State */}
-                        {myEvents.length === 0 && friendsEvents.length === 0 && publicEvents.length === 0 && (
+                        {myEvents.length === 0 && friendsEvents.length === 0 && (
                             <Box className="py-12 items-center">
                                 <Text className="text-6xl mb-4">🎉</Text>
                                 <Heading level="h3" className="mb-2">No parties yet</Heading>
