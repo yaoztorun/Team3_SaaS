@@ -6,7 +6,7 @@ import { Box } from '@/src/components/ui/box';
 import { Center } from '@/src/components/ui/center';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Text } from '@/src/components/ui/text';
-import { HomeIcon, SearchIcon, MessageCircle, UserIcon, PlusIcon } from 'lucide-react-native';
+import { HomeIcon, SearchIcon, Users, UserIcon, PlusIcon } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 
 // Import screens
@@ -26,11 +26,17 @@ export default function BottomTabs() {
                 tabBarShowLabel: true,
                 tabBarActiveTintColor: colors.primary[500],
                 tabBarInactiveTintColor: colors.neutral[400],
+                tabBarLabelStyle: {
+                    fontFamily: 'Inter, system-ui, sans-serif',
+                    fontSize: 12,
+                    fontWeight: '500',
+                },
                 tabBarStyle: {
                     backgroundColor: colors.white,
-                    borderTopWidth: 0,
+                    borderTopWidth: 1,
+                    borderTopColor: '#e5e7eb',
                     elevation: 10,
-                    height: 70,
+                    height: 60,
                 },
             }}
         >
@@ -83,7 +89,7 @@ export default function BottomTabs() {
                     tabBarIcon: ({ focused }) => (
                         <IconButton
                             icon={
-                                <MessageCircle
+                                <Users
                                     size={24}
                                     color={focused ? colors.primary[500] : colors.neutral[400]}
                                 />

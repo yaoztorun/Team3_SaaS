@@ -5,7 +5,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
 import { ArrowLeft, ExternalLink, Package } from 'lucide-react-native';
-import { PrimaryButton } from '@/src/components/global';
+import { PrimaryButton, Heading } from '@/src/components/global';
 import { fetchShopItemById, DBShopItem } from '@/src/api/shop';
 
 export const ItemDetail = () => {
@@ -78,7 +78,7 @@ export const ItemDetail = () => {
 
                 {/* Product Info Card */}
                 <Box className="bg-white rounded-xl p-4 mb-4">
-                    <Text className="text-2xl font-bold mb-2">{item.name || 'Unnamed Item'}</Text>
+                    <Heading level="h3" className="mb-2">{item.name || 'Unnamed Item'}</Heading>
                     
                     {item.category && (
                         <Box className="bg-[#00BBA7]/10 self-start rounded-full px-3 py-1 mb-3">
@@ -93,7 +93,7 @@ export const ItemDetail = () => {
                     {/* Description */}
                     {item.description && (
                         <Box className="mb-4">
-                            <Text className="text-lg font-semibold mb-2">Description</Text>
+                            <Heading level="h6" className="mb-2">Description</Heading>
                             <Text className="text-gray-700 leading-6">{item.description}</Text>
                         </Box>
                     )}

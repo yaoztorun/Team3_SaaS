@@ -8,6 +8,7 @@ import { ArrowLeft, Heart, Star, Clock, Info, Users, Minus, Plus } from 'lucide-
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { DBCocktail } from '@/src/api/cocktail';
+import { Heading } from '@/src/components/global';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -134,9 +135,9 @@ export const CocktailDetail = () => {
                 <View style={{ height: 24 }} />
                 {/* Title and Metadata */}
                 <Box className="mb-6">
-                    <Text className="text-2xl font-bold text-neutral-950 mb-3">
+                    <Heading level="h3" className="mb-3">
                         {cocktail.name ?? 'Unnamed Cocktail'}
-                    </Text>
+                    </Heading>
                     <HStack className="items-center gap-4">
                         {/* Rating */}
                         <HStack className="items-center gap-1">
@@ -222,7 +223,7 @@ export const CocktailDetail = () => {
 
                 {/* Ingredients Section */}
                 <Box className="mb-6">
-                    <Text className="text-lg font-semibold text-neutral-950 mb-4">Ingredients</Text>
+                    <Heading level="h5" className="mb-4">Ingredients</Heading>
                     <Box className="gap-3">
                         {ingredients.map((ingredient, index) => (
                             <Pressable
@@ -272,7 +273,7 @@ export const CocktailDetail = () => {
 
                 {/* Instructions Section */}
                 <Box className="mb-6">
-                    <Text className="text-lg font-semibold text-neutral-950 mb-4">Instructions</Text>
+                    <Heading level="h5" className="mb-4">Instructions</Heading>
                     <Box className="gap-3">
                         {instructions.map((instruction, index) => (
                             <HStack key={index} className="gap-3 items-start">

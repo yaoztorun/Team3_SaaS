@@ -13,3 +13,6 @@ export { FeedPostCard } from './FeedPostCard';
 export { CocktailCarouselCard } from './CocktailCarouselCard';
 export { PreviewCard } from './PreviewCard';
 export { EventCard } from './EventCard';
+export { DateTimePicker } from './DateTimePicker';
+export { LocationSelector } from './LocationSelector';
+export { Heading } from './Heading';

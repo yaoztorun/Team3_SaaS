@@ -1,3 +1,6 @@
+import { Tables } from './supabase';
+
+// JSON field types for Cocktail table
 export interface Ingredient {
         name: string;
         amount: number;
@@ -9,14 +12,13 @@ export interface InstructionStep {
         description: string;
 }
 
-export interface Cocktail {
-        id: string; // uuid
-        created_at: string;
-        name: string | null;
+// Base Cocktail type from database
+export type CocktailRow = Tables<'Cocktail'>;
+
+// Application Cocktail type with properly typed JSON fields
+export type Cocktail = Omit<CocktailRow, 'ingredients' | 'instructions' | 'difficulty' | 'origin_type'> & {
         ingredients: Ingredient[];
         instructions: InstructionStep[];
-        is_public: boolean | null;
-        image_url: string | null;
-        creator_id: string | null;
-        origin_type?: string | null;
-}
+        difficulty: 'easy' | 'medium' | 'hard';
+        origin_type: 'system' | 'user' | null;
+};

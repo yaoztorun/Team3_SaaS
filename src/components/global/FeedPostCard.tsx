@@ -1,12 +1,14 @@
 // src/components/global/FeedPostCard.tsx
-import React from 'react';
-import { Image } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
+import { shareSystemSheet, shareToWhatsApp, copyLinkForLog } from '@/src/utils/share';
 
 interface FeedPostCardProps {
+  id: string;
   userName: string;
   userInitials: string;
   timeAgo: string;
@@ -28,6 +30,7 @@ interface FeedPostCardProps {
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({
+  id,
   userName,
   userInitials,
   timeAgo,
@@ -43,6 +46,20 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   onPressComments,
   onPressUser,
 }) => {
+  const [shareOpen, setShareOpen] = useState(false);
+
+  const handleWhatsApp = async () => {
+    await shareToWhatsApp(id, cocktailName);
+    setShareOpen(false);
+  };
+  const handleCopyLink = async () => {
+    await copyLinkForLog(id);
+    setShareOpen(false);
+  };
+  const handleSystemShare = async () => {
+    await shareSystemSheet(id, cocktailName);
+    setShareOpen(false);
+  };
   return (
     <Box
       className="rounded-2xl bg-white overflow-hidden"
@@ -73,7 +90,16 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
       </Pressable>
 
       {/* Cocktail Image */}
-      <Box className="w-full h-[414px] relative">
+      <Box 
+        className="w-full h-[414px] relative"
+        style={{
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: '#e5e7eb',
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}
+      >
         <Image
           source={{ uri: imageUrl }}
           style={{ width: '100%', height: '100%' }}
@@ -81,10 +107,25 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         />
         {/* Cocktail name and rating badge */}
         <Box className="absolute bottom-4 left-4 right-4 flex-row items-center justify-between">
-          <Box className="bg-white/90 rounded-xl px-3 py-2">
+          <Box 
+            className="rounded-xl px-3 py-2 flex-row items-center"
+            style={{
+              borderWidth: 2,
+              borderColor: '#14b8a6',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            }}
+          >
+            <Text className="text-base mr-1">🍸</Text>
             <Text className="text-sm text-neutral-900">{cocktailName}</Text>
           </Box>
-          <Box className="bg-white/90 rounded-xl px-3 py-2 flex-row items-center">
+          <Box 
+            className="rounded-xl px-3 py-2 flex-row items-center"
+            style={{
+              borderWidth: 2,
+              borderColor: '#14b8a6',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            }}
+          >
             <Text className="text-yellow-500 mr-1">⭐</Text>
             <Text className="text-sm text-neutral-900">{rating}</Text>
           </Box>
@@ -123,11 +164,59 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
           </Pressable>
 
           {/* Share (no handler yet) */}
-          <Pressable>
+          <Pressable onPress={() => setShareOpen(true)}>
             <Share2 size={20} color="#4a5565" />
           </Pressable>
         </Box>
       </Box>
+
+      {/* Share Bottom Modal */}
+      <Modal
+        visible={shareOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareOpen(false)}
+      >
+        <Pressable className="flex-1 bg-black/40" onPress={() => setShareOpen(false)}>
+          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <Box
+                className="bg-white rounded-t-3xl border-t border-neutral-200"
+                style={{
+                  paddingHorizontal: 16,
+                  paddingTop: 12,
+                  paddingBottom: 24,
+                  maxHeight: 260,
+                }}
+              >
+                <Text className="text-center text-base font-semibold mb-3">Share</Text>
+                <Box className="flex-row items-center justify-around py-2">
+                  <Pressable onPress={handleWhatsApp} className="items-center">
+                    <Box className="w-12 h-12 rounded-full bg-[#25D366] items-center justify-center">
+                      <Text className="text-white font-bold">WA</Text>
+                    </Box>
+                    <Text className="mt-2 text-xs text-neutral-900">WhatsApp</Text>
+                  </Pressable>
+
+                  <Pressable onPress={handleCopyLink} className="items-center">
+                    <Box className="w-12 h-12 rounded-full bg-neutral-900 items-center justify-center">
+                      <Text className="text-white font-bold">⎘</Text>
+                    </Box>
+                    <Text className="mt-2 text-xs text-neutral-900">Copy link</Text>
+                  </Pressable>
+
+                  <Pressable onPress={handleSystemShare} className="items-center">
+                    <Box className="w-12 h-12 rounded-full bg-neutral-200 items-center justify-center">
+                      <Text className="text-neutral-900 font-bold">…</Text>
+                    </Box>
+                    <Text className="mt-2 text-xs text-neutral-900">More…</Text>
+                  </Pressable>
+                </Box>
+              </Box>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </Box>
   );
 };

@@ -6,7 +6,7 @@ import { ScrollView, TextInput, KeyboardAvoidingView, Platform, View, ActivityIn
 import { Send, ChevronLeft, Bot } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { useNavigation } from '@react-navigation/native';
-import { getGeminiModel, COCKTAIL_ASSISTANT_PROMPT } from '@/src/config/gemini';
+import { sendGeminiMessage, ChatMessage, createInitialChatHistory } from '@/src/api/gemini';
 
 // Example suggested questions that appear below the welcome message
 const suggestedQuestions = [
@@ -41,7 +41,7 @@ const formatAIResponse = (text: string): string => {
 export const AIAssistant = () => {
     const navigation = useNavigation();
     const scrollViewRef = useRef<ScrollView>(null);
-    const chatRef = useRef<any>(null); // Store chat instance to maintain conversation
+    const chatHistoryRef = useRef<ChatMessage[]>(createInitialChatHistory()); // Store chat history for context
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 1,
@@ -52,27 +52,6 @@ export const AIAssistant = () => {
     ]);
     const [inputText, setInputText] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-
-    // Initialize chat once when component mounts
-    useEffect(() => {
-        const model = getGeminiModel();
-        chatRef.current = model.startChat({
-            history: [
-                {
-                    role: 'user',
-                    parts: [{ text: COCKTAIL_ASSISTANT_PROMPT }],
-                },
-                {
-                    role: 'model',
-                    parts: [{ text: 'Understood! I\'m ready to help with all your cocktail questions.' }],
-                },
-            ],
-            generationConfig: {
-                maxOutputTokens: 1000,
-                temperature: 0.9,
-            },
-        });
-    }, []);
 
     // Auto-scroll to bottom when new messages arrive
     useEffect(() => {
@@ -96,74 +75,61 @@ export const AIAssistant = () => {
         setInputText('');
         setIsLoading(true);
 
-        // Retry logic for temporary failures
-        const maxRetries = 3;
-        let attempt = 0;
+        try {
+            // Add user message to chat history
+            chatHistoryRef.current.push({
+                role: 'user',
+                parts: [{ text: userMessage }],
+            });
 
-        while (attempt < maxRetries) {
-            try {
-                // Use the existing chat instance to maintain conversation history
-                if (!chatRef.current) {
-                    throw new Error('Chat not initialized');
-                }
+            // Call Edge Function instead of direct API
+            const responseText = await sendGeminiMessage(
+                userMessage,
+                chatHistoryRef.current
+            );
 
-                // Send message to the ongoing conversation
-                const result = await chatRef.current.sendMessage(userMessage);
-                const response = result.response;
-                const aiText = formatAIResponse(response.text());
+            const aiText = formatAIResponse(responseText);
 
-                // Add AI response to messages
-                const aiResponse: Message = {
-                    id: Date.now() + 1,
-                    text: aiText,
-                    isUser: false,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                };
-                
-                setMessages(prev => [...prev, aiResponse]);
-                setIsLoading(false);
-                return; // Success - exit function
-                
-            } catch (error: any) {
-                attempt++;
-                console.error(`Gemini API Error (attempt ${attempt}/${maxRetries}):`, error);
-                
-                // Check if it's a temporary error that should be retried
-                const is503Error = error?.message?.includes('overloaded') || error?.message?.includes('503');
-                const is429Error = error?.message?.includes('429');
-                
-                if ((is503Error || is429Error) && attempt < maxRetries) {
-                    // Wait before retrying (exponential backoff: 1s, 2s, 4s)
-                    const waitTime = Math.pow(2, attempt - 1) * 1000;
-                    console.log(`Retrying in ${waitTime}ms...`);
-                    await new Promise(resolve => setTimeout(resolve, waitTime));
-                    continue; // Retry
-                }
-                
-                // If all retries failed or it's a different error, show error message
-                let errorText = "Sorry, I'm having trouble connecting right now.";
-                
-                if (is503Error) {
-                    errorText = "The AI service is overloaded right now. I tried multiple times but couldn't connect. Please try again in a minute! 🔄";
-                } else if (is429Error) {
-                    errorText = "You've reached the rate limit. Please wait a moment before trying again.";
-                } else if (error?.message?.includes('404')) {
-                    errorText = "The AI model is not available. Please check your configuration.";
-                } else if (error?.message?.includes('401') || error?.message?.includes('API key')) {
-                    errorText = "There's an issue with the API key. Please check your configuration.";
-                }
-                
-                const errorMessage: Message = {
-                    id: Date.now() + 1,
-                    text: errorText,
-                    isUser: false,
-                    timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                };
-                
-                setMessages(prev => [...prev, errorMessage]);
-                setIsLoading(false);
-                return;
+            // Add AI response to chat history
+            chatHistoryRef.current.push({
+                role: 'model',
+                parts: [{ text: responseText }],
+            });
+
+            // Add AI response to messages
+            const aiResponse: Message = {
+                id: Date.now() + 1,
+                text: aiText,
+                isUser: false,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            setMessages(prev => [...prev, aiResponse]);
+            setIsLoading(false);
+            
+        } catch (error: any) {
+            console.error('AI Assistant Error:', error);
+            
+            // Determine error message based on error type
+            let errorText = "Sorry, I'm having trouble connecting right now. Please try again.";
+            
+            if (error?.message?.includes('overloaded') || error?.message?.includes('503')) {
+                errorText = "The AI service is temporarily overloaded. Please try again in a moment! 🔄";
+            } else if (error?.message?.includes('429')) {
+                errorText = "You've reached the rate limit. Please wait a moment before trying again.";
+            } else if (error?.message?.includes('Failed to get AI response')) {
+                errorText = "Unable to reach the AI service. Please check your connection.";
             }
+            
+            const errorMessage: Message = {
+                id: Date.now() + 1,
+                text: errorText,
+                isUser: false,
+                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            
+            setMessages(prev => [...prev, errorMessage]);
+            setIsLoading(false);
         }
     };
 
@@ -283,6 +249,14 @@ export const AIAssistant = () => {
                                 value={inputText}
                                 onChangeText={setInputText}
                                 onSubmitEditing={handleSend}
+                                blurOnSubmit={false}
+                                onKeyPress={(e: any) => {
+                                    // On web, check if it's Enter without Shift key
+                                    if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend();
+                                    }
+                                }}
                                 multiline
                             />
                         </Box>

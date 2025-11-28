@@ -1,6 +1,7 @@
 // src/screens/navigation/TopBar.tsx
 import React, { useEffect, useState, useCallback } from 'react';
-import { View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { View, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -17,6 +18,7 @@ import { spacing } from '@/src/theme/spacing';
 import { NotificationModal, Notification } from './NotificationModal';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/lib/supabase';
+import { Heading } from '@/src/components/global';
 import {
   fetchNotifications,
   getUnreadNotificationCount,
@@ -39,6 +41,7 @@ interface TopBarProps {
   onSettingsPress?: () => void;
   showBack?: boolean;
   onBackPress?: () => void;
+  showLogo?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -49,10 +52,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   showSettingsIcon = false,
   onSettingsPress,
   showBack = false,
+  showLogo = false,
   onBackPress,
 }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
 
   // notifications state
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -171,6 +176,17 @@ export const TopBar: React.FC<TopBarProps> = ({
         type: notification.type,
         drinkLogId: notification.drinkLogId,
       });
+    } else if (notification.drinkLogId) {
+      // Fallback: open Home tab and deep-link to the post
+      try {
+        navigation.navigate('Home' as never, { openDrinkLogId: notification.drinkLogId } as never);
+      } catch (e) {
+        // As a fallback, go via Main -> Home
+        navigation.navigate('Main' as never, {
+          screen: 'Home',
+          params: { openDrinkLogId: notification.drinkLogId },
+        } as never);
+      }
     }
 
     // close modal + mark all read in DB (doesn't block UI)
@@ -235,8 +251,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     <Box
       className="bg-white"
       style={{
-        paddingTop: insets.top + spacing.screenVertical,
-        paddingBottom: spacing.screenVertical,
+        paddingTop: insets.top + 16,
+        paddingBottom: 16,
         paddingLeft: spacing.screenHorizontal,
         paddingRight: spacing.screenHorizontal,
         borderBottomWidth: 1,
@@ -258,16 +274,36 @@ export const TopBar: React.FC<TopBarProps> = ({
             </Pressable>
           )}
 
-          <Text
-            style={{
-              fontSize: 26,
-              fontWeight: '700',
-              color: '#111827',
-              letterSpacing: -0.5,
-            }}
-          >
-            {title}
-          </Text>
+          {/* Logo (shown only on main pages) */}
+          {showLogo ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Image
+                source={require('../../../assets/icon.png')}
+                style={{
+                  width: 40,
+                  height: 40,
+                  resizeMode: 'contain',
+                }}
+              />
+              <Heading
+                level="h2"
+                style={{
+                  letterSpacing: -0.5,
+                }}
+              >
+                {title}
+              </Heading>
+            </View>
+          ) : (
+            <Heading
+              level="h2"
+              style={{
+                letterSpacing: -0.5,
+              }}
+            >
+              {title}
+            </Heading>
+          )}
         </View>
 
         {/* Right side: either settings icon (for profile) or stats + bell */}

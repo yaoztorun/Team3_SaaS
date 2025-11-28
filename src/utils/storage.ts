@@ -1,6 +1,6 @@
 import { supabase } from '@/src/lib/supabase';
 
-const BUCKET_NAME = 'Log images';
+const DEFAULT_BUCKET_NAME = 'Log images';
 
 async function uriToBlob(uri: string) {
         const res = await fetch(uri);
@@ -11,8 +11,9 @@ async function uriToBlob(uri: string) {
 /**
  * Upload an image URI to the storage bucket.
  * If `userId` is provided, the file will be uploaded under a top-level folder named after the user.
+ * @param bucketName - The name of the storage bucket to upload to. Defaults to 'Log images'.
  */
-export async function uploadImageUri(uri: string, userId?: string | null, destinationPath?: string) {
+export async function uploadImageUri(uri: string, userId?: string | null, destinationPath?: string, bucketName?: string) {
         try {
                 const blob = await uriToBlob(uri);
 
@@ -21,9 +22,10 @@ export async function uploadImageUri(uri: string, userId?: string | null, destin
 
                 const baseName = destinationPath || `${Date.now()}_${Math.random().toString(36).slice(2, 9)}${ext}`;
                 const filename = userId ? `${userId}/${baseName}` : baseName;
+                const bucket = bucketName || DEFAULT_BUCKET_NAME;
 
                 const { data, error: uploadError } = await supabase.storage
-                        .from(BUCKET_NAME)
+                        .from(bucket)
                         .upload(filename, blob, { cacheControl: '3600', upsert: false });
 
                 if (uploadError) {
@@ -31,7 +33,7 @@ export async function uploadImageUri(uri: string, userId?: string | null, destin
                         throw uploadError;
                 }
 
-                const { data: urlData } = supabase.storage.from(BUCKET_NAME).getPublicUrl(data.path);
+                const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(data.path);
                 return urlData.publicUrl;
         } catch (e) {
                 console.error('uploadImageUri error', e);

@@ -6,10 +6,10 @@ import { spacing } from '@/src/theme/spacing';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile, updateProfile } from '@/src/api/profile';
-import { uploadProfileImage } from '@/src/api/storage';
+import { uploadProfileImage, deleteProfileImage } from '@/src/api/storage';
 import type { Profile } from '@/src/types/profile';
 import { Center } from '@/src/components/ui/center';
 import { createCameraHandlers } from '@/src/utils/camera';
@@ -64,6 +64,16 @@ const EditProfile: React.FC = () => {
         // If user selected a new image, upload it to Storage first
         if (tempImageUri) {
             setUploading(true);
+            
+            // Delete old avatar if it exists and is stored in our bucket
+            if (avatarUrl && avatarUrl.includes('/storage/v1/object/public/avatars/')) {
+                const { error: deleteError } = await deleteProfileImage(avatarUrl);
+                if (deleteError) {
+                    console.warn('Failed to delete old avatar:', deleteError);
+                    // Continue anyway - don't block the update
+                }
+            }
+            
             const uploadResult = await uploadProfileImage(user.id, tempImageUri);
             setUploading(false);
             
@@ -95,7 +105,7 @@ const EditProfile: React.FC = () => {
                 <Pressable onPress={() => navigation.goBack()} className="mr-4">
                     <ArrowLeft size={24} color="#000" />
                 </Pressable>
-                <Text className="text-xl font-semibold">Edit Profile</Text>
+                <Heading level="h4">Edit Profile</Heading>
             </Box>
             <ScrollView
                 className="flex-1 px-4 pt-6"
@@ -181,7 +191,7 @@ const EditProfile: React.FC = () => {
                     >
                         <Box className="bg-white rounded-t-3xl p-6">
                             <Box className="flex-row justify-between items-center mb-4">
-                                <Text className="text-xl font-semibold">Change Profile Picture</Text>
+                                <Heading level="h2">Change Profile Picture</Heading>
                                 <Pressable onPress={() => setShowImagePicker(false)}>
                                     <X size={24} color="#666" />
                                 </Pressable>

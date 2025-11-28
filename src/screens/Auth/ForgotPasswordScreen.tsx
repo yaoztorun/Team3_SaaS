@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { ScrollView } from 'react-native';
+import { ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 
@@ -22,6 +22,14 @@ const ForgotPasswordScreen: React.FC = () => {
     const handleResetPassword = async () => {
         if (!email) {
             setMessage('Please enter your email address');
+            setIsSuccess(false);
+            return;
+        }
+
+        // Basic email validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            setMessage('Please enter a valid email address');
             setIsSuccess(false);
             return;
         }
@@ -63,21 +71,17 @@ const ForgotPasswordScreen: React.FC = () => {
             <Box className="p-6">
                 {/* Header */}
                 <Box className="items-center">
-                    <Box
+                    <Image
+                        source={require('../../../assets/icon.png')}
                         style={{
                             width: 120,
                             height: 120,
-                            borderRadius: 60,
-                            backgroundColor: '#f3f4f6',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            resizeMode: 'contain',
                         }}
-                    >
-                        <Text className="text-3xl font-bold text-primary-500">P</Text>
-                    </Box>
-                    <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
+                    />
+                    <Heading level="h2" className="mt-6 mb-2">
                         Forgot Password?
-                    </Text>
+                    </Heading>
                     <Text className="text-neutral-500 text-center px-4">
                         No worries! Enter your email and we'll send you a link to reset your password
                     </Text>
