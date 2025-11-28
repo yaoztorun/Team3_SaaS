@@ -6,7 +6,7 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
 import { ToggleSwitch, PrimaryButton, Heading } from '@/src/components/global';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import LogView from './LogView';
 import RecipeView from './RecipeView';
 import { createCameraHandlers } from '@/src/utils/camera';
@@ -23,6 +23,9 @@ type ViewType = 'log' | 'recipe';
 
 export const AddScreen = () => {
     const navigation = useNavigation();
+    const route = useRoute<any>();
+    const { prefilledCocktailId, prefilledCocktailName } = route.params || {};
+    
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
     const [isAtHome, setIsAtHome] = useState(false);
@@ -51,10 +54,17 @@ export const AddScreen = () => {
         (async () => {
             const data = await fetchCocktails();
             if (!mounted) return;
-            setCocktails(data.map((c: DBCocktail) => ({ id: c.id, name: c.name })));
+            const mappedCocktails = data.map((c: DBCocktail) => ({ id: c.id, name: c.name }));
+            setCocktails(mappedCocktails);
+            
+            // Pre-fill cocktail if parameters provided
+            if (prefilledCocktailId && prefilledCocktailName) {
+                setCocktailQuery(prefilledCocktailName);
+                setSelectedCocktailId(prefilledCocktailId);
+            }
         })();
         return () => { mounted = false };
-    }, []);
+    }, [prefilledCocktailId, prefilledCocktailName]);
 
     const [isUploading, setIsUploading] = useState(false);
     const [cocktails, setCocktails] = useState<Array<{ id: string; name: string | null }>>([]);
