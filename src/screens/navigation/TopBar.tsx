@@ -17,6 +17,7 @@ import { spacing } from '@/src/theme/spacing';
 import { NotificationModal, Notification } from './NotificationModal';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/lib/supabase';
+import { Heading } from '@/src/components/global';
 import {
   fetchNotifications,
   getUnreadNotificationCount,
@@ -261,7 +262,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           )}
 
           {/* Logo (shown only on main pages) */}
-          {showLogo && (
+          {showLogo ? (
             <Image
               source={require('../../../assets/icon.png')}
               style={{
@@ -270,19 +271,16 @@ export const TopBar: React.FC<TopBarProps> = ({
                 resizeMode: 'contain',
               }}
             />
+          ) : (
+            <Heading
+              level="h2"
+              style={{
+                letterSpacing: -0.5,
+              }}
+            >
+              {title}
+            </Heading>
           )}
-
-          {/* Title text */}
-          <Text
-            style={{
-              fontSize: 26,
-              fontWeight: '700',
-              color: '#111827',
-              letterSpacing: -0.5,
-            }}
-          >
-            {title === 'Feed' ? 'Home' : title}
-          </Text>
         </View>
 
         {/* Right side: either settings icon (for profile) or stats + bell */}

@@ -22,6 +22,7 @@ import { fetchProfile } from '@/src/api/profile';
 import type { Profile } from '@/src/types/profile';
 import { supabase } from '@/src/lib/supabase';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
+import { Heading } from '@/src/components/global';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 
 type View = 'logged-drinks' | 'stats';
@@ -279,14 +280,13 @@ export const ProfileScreen = () => {
             </Center>
           )}
           <Box className="ml-4 flex-1">
-            <Text className="text-xl font-semibold text-neutral-900">
+            <Heading level="h4">
               {loadingProfile
                 ? 'Loading...'
                 : profile?.full_name ||
                 user?.email?.split('@')[0] ||
                 'User'}
-            </Text>
-            
+            </Heading>            
             {/* Badges */}
             <Box className="mt-2">
               {loadingBadges ? (

@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase';
 import { Friendship, FriendRequest, Friend } from '../types/friendship';
 import { Profile } from '../types/profile';
+import { createNotification } from './notifications';
 
 // Search for users by name or email
 export async function searchUsers(query: string, currentUserId: string): Promise<Profile[]> {
@@ -33,18 +34,38 @@ export async function sendFriendRequest(userId: string, friendId: string): Promi
         return { success: false, error: 'Friend request already exists' };
     }
 
-    const { error } = await supabase
+    const { data: insertedFriendship, error } = await supabase
         .from('Friendship')
         .insert({
             user_id: userId,
             friend_id: friendId,
             status: 'pending'
-        });
+        })
+        .select()
+        .single();
 
     if (error) {
         console.error('Error sending friend request:', error);
         return { success: false, error: error.message };
     }
+
+    // Get sender's name for notification
+    const { data: senderProfile } = await supabase
+        .from('Profile')
+        .select('full_name')
+        .eq('id', userId)
+        .single();
+
+    const senderName = senderProfile?.full_name || 'Someone';
+
+    // Create notification for the friend request
+    await createNotification({
+        userId: friendId,
+        actorId: userId,
+        type: 'friend_request',
+        friendshipId: insertedFriendship.id,
+        message: `${senderName} sent you a friend request`,
+    });
 
     return { success: true };
 }
@@ -94,6 +115,18 @@ export async function getSentFriendRequests(userId: string): Promise<FriendReque
 
 // Accept a friend request
 export async function acceptFriendRequest(friendshipId: string): Promise<{ success: boolean; error?: string }> {
+    // Get the friendship details before updating
+    const { data: friendship, error: fetchError } = await supabase
+        .from('Friendship')
+        .select('user_id, friend_id')
+        .eq('id', friendshipId)
+        .single();
+
+    if (fetchError || !friendship) {
+        console.error('Error fetching friendship:', fetchError);
+        return { success: false, error: fetchError?.message };
+    }
+
     const { error } = await supabase
         .from('Friendship')
         .update({ status: 'accepted' })
@@ -102,6 +135,31 @@ export async function acceptFriendRequest(friendshipId: string): Promise<{ succe
     if (error) {
         console.error('Error accepting friend request:', error);
         return { success: false, error: error.message };
+    }
+
+    // Get current user (the one accepting)
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (user) {
+        // Get accepter's name for notification
+        const { data: accepterProfile } = await supabase
+            .from('Profile')
+            .select('full_name')
+            .eq('id', user.id)
+            .single();
+
+        const accepterName = accepterProfile?.full_name || 'Someone';
+
+        // Notify the original sender that their request was accepted
+        const originalSenderId = friendship.user_id;
+        
+        await createNotification({
+            userId: originalSenderId,
+            actorId: user.id,
+            type: 'friend_accepted',
+            friendshipId: friendshipId,
+            message: `${accepterName} accepted your friend request`,
+        });
     }
 
     return { success: true };
@@ -116,6 +174,36 @@ export async function rejectFriendRequest(friendshipId: string): Promise<{ succe
 
     if (error) {
         console.error('Error rejecting friend request:', error);
+        return { success: false, error: error.message };
+    }
+
+    return { success: true };
+}
+
+// Cancel a sent friend request
+export async function cancelFriendRequest(friendshipId: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase
+        .from('Friendship')
+        .delete()
+        .eq('id', friendshipId);
+
+    if (error) {
+        console.error('Error cancelling friend request:', error);
+        return { success: false, error: error.message };
+    }
+
+    return { success: true };
+}
+
+// Unfriend a user (deletes the friendship)
+export async function unfriendUser(friendshipId: string): Promise<{ success: boolean; error?: string }> {
+    const { error } = await supabase
+        .from('Friendship')
+        .delete()
+        .eq('id', friendshipId);
+
+    if (error) {
+        console.error('Error unfriending user:', error);
         return { success: false, error: error.message };
     }
 

@@ -1,52 +1,110 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, Platform, KeyboardAvoidingView, Image, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Users } from 'lucide-react-native';
 import { createCameraHandlers } from '@/src/utils/camera';
 import uploadImageUri from '@/src/utils/storage';
-import { createEvent } from '@/src/api/event';
+import { updateEvent } from '@/src/api/event';
 import { supabase } from '@/src/lib/supabase';
 
 import { SocialStackParamList } from './SocialStack';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { PrimaryButton, TextInputField, ImageUploadBox, DateTimePicker, LocationSelector, Heading } from '@/src/components/global';
+import type { EventWithDetails } from '@/src/api/event';
 
 type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party';
 
-export const CreateParty = () => {
+export const EditParty = () => {
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
-    const [coverImage, setCoverImage] = useState<string | null>(null);
-    const [partyTitle, setPartyTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [selectedType, setSelectedType] = useState<PartyType>('house-party');
+    const route = useRoute<RouteProp<SocialStackParamList, 'EditParty'>>();
+    const party = route.params?.party;
+
+    const [coverImage, setCoverImage] = useState<string | null>(party?.cover_image || null);
+    const [partyTitle, setPartyTitle] = useState(party?.name || '');
+    const [description, setDescription] = useState(party?.description || '');
+
+    // Map database party type to frontend type
+    const dbToFrontendType: Record<'house party' | 'bar meetup' | 'outdoor event' | 'themed party', PartyType> = {
+        'house party': 'house-party',
+        'bar meetup': 'bar-meetup',
+        'outdoor event': 'outdoor-event',
+        'themed party': 'themed-party',
+    };
+    const [selectedType, setSelectedType] = useState<PartyType>(
+        party?.party_type ? dbToFrontendType[party.party_type] : 'house-party'
+    );
+
     const [selectedLocation, setSelectedLocation] = useState('');
-    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-    const [maxAttendees, setMaxAttendees] = useState('');
-    const [entryFee, setEntryFee] = useState('');
-    const [cocktailTheme, setCocktailTheme] = useState('');
-    const [isPublic, setIsPublic] = useState(true);
-    const [requireApproval, setRequireApproval] = useState(false);
+    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(
+        party?.location_id || party?.user_location_id || null
+    );
+    const [maxAttendees, setMaxAttendees] = useState(party?.max_attendees?.toString() || '');
+    const [entryFee, setEntryFee] = useState(party?.price?.toString() || '');
+    const [isPublic, setIsPublic] = useState(party?.isPublic ?? true);
+    const [requireApproval, setRequireApproval] = useState(party?.isApprovalRequired ?? false);
 
     // Date & Time State
-    const initStartTime = () => {
-        const start = new Date();
-        start.setHours(22, 0, 0, 0);
-        return start;
-    };
+    const [date, setDate] = useState(party?.start_time ? new Date(party.start_time) : new Date());
+    const [startTime, setStartTime] = useState(party?.start_time ? new Date(party.start_time) : new Date());
+    const [endTime, setEndTime] = useState<Date | null>(party?.end_time ? new Date(party.end_time) : null);
 
-    const [date, setDate] = useState(new Date());
-    const [startTime, setStartTime] = useState(initStartTime());
-    const [endTime, setEndTime] = useState<Date | null>(null);
-
-    // Form interaction and submission state
-    const [hasInteracted, setHasInteracted] = useState(false);
+    // Form state
     const [isUploading, setIsUploading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
+    const [hasChanges, setHasChanges] = useState(false);
+
+    // Store original values to detect changes
+    const [originalValues] = useState({
+        coverImage: party?.cover_image || null,
+        partyTitle: party?.name || '',
+        description: party?.description || '',
+        selectedType: party?.party_type ? dbToFrontendType[party.party_type] : 'house-party',
+        maxAttendees: party?.max_attendees?.toString() || '',
+        entryFee: party?.price?.toString() || '',
+        isPublic: party?.isPublic ?? true,
+        requireApproval: party?.isApprovalRequired ?? false,
+        date: party?.start_time ? new Date(party.start_time).toDateString() : new Date().toDateString(),
+        startTime: party?.start_time ? new Date(party.start_time).toTimeString() : new Date().toTimeString(),
+        endTime: party?.end_time ? new Date(party.end_time).toTimeString() : '',
+        locationId: party?.location_id || party?.user_location_id || null,
+    });
+
+    // Initialize location display name
+    useEffect(() => {
+        if (party?.location?.name) {
+            setSelectedLocation(party.location.name);
+        } else if (party?.user_location) {
+            const addr = `${party.user_location.street || ''} ${party.user_location.house_nr || ''}, ${party.user_location.city || ''}`.trim();
+            setSelectedLocation(party.user_location.label ? `${party.user_location.label} (${addr})` : addr);
+        }
+    }, [party]);
+
+    // Detect if any changes have been made
+    useEffect(() => {
+        const changed =
+            coverImage !== originalValues.coverImage ||
+            partyTitle !== originalValues.partyTitle ||
+            description !== originalValues.description ||
+            selectedType !== originalValues.selectedType ||
+            maxAttendees !== originalValues.maxAttendees ||
+            entryFee !== originalValues.entryFee ||
+            isPublic !== originalValues.isPublic ||
+            requireApproval !== originalValues.requireApproval ||
+            date.toDateString() !== originalValues.date ||
+            startTime.toTimeString() !== originalValues.startTime ||
+            (endTime ? endTime.toTimeString() : '') !== originalValues.endTime ||
+            selectedLocationId !== originalValues.locationId;
+
+        setHasChanges(changed);
+    }, [
+        coverImage, partyTitle, description, selectedType, maxAttendees, entryFee,
+        isPublic, requireApproval, date, startTime, endTime, selectedLocationId
+    ]);
 
     // Camera handlers
     const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setCoverImage);
@@ -66,21 +124,20 @@ export const CreateParty = () => {
         'themed-party': 'themed party',
     };
 
-    const handleCreateParty = async () => {
+    const handleUpdateParty = async () => {
+        if (!party?.id) {
+            alert('Invalid party data');
+            return;
+        }
+
         try {
             setIsUploading(true);
 
             // Ensure user is signed in
             const { data: { user }, error: userErr } = await supabase.auth.getUser();
 
-            if (userErr) {
-                // console.error('Error fetching user', userErr);
+            if (userErr || !user) {
                 alert('Authentication error. Please sign in and try again.');
-                return;
-            }
-
-            if (!user) {
-                alert('You must be signed in to create a party. Please sign in and try again.');
                 return;
             }
 
@@ -95,11 +152,14 @@ export const CreateParty = () => {
                 return;
             }
 
-            // Upload cover image if present
-            let uploadedUrl: string | null = null;
-            if (coverImage) {
+            // Upload new cover image if changed
+            let uploadedUrl: string | null = originalValues.coverImage;
+            if (coverImage && coverImage !== originalValues.coverImage) {
                 uploadedUrl = await uploadImageUri(coverImage, user.id);
-                // console.log('Uploaded cover image URL:', uploadedUrl);
+                // console.log('Uploaded new cover image URL:', uploadedUrl);
+            } else if (!coverImage && originalValues.coverImage) {
+                // Image was removed
+                uploadedUrl = null;
             }
 
             // Combine date and time into ISO strings
@@ -120,8 +180,8 @@ export const CreateParty = () => {
             // Determine if using public location or user location
             const isUserLocation = selectedLocation.includes('('); // User locations include address in parentheses
 
-            // Create the event
-            const event = await createEvent({
+            // Update the event
+            const updatedEvent = await updateEvent(party.id, {
                 name: partyTitle.trim(),
                 description: description.trim(),
                 party_type: partyTypeMap[selectedType],
@@ -134,38 +194,18 @@ export const CreateParty = () => {
                 isPublic: isPublic,
                 isApprovalRequired: requireApproval,
                 cover_image: uploadedUrl,
-                type: 'party',
             });
 
-            if (!event) {
-                alert('Failed to create party. Please try again.');
+            if (!updatedEvent) {
+                alert('Failed to update party. Please try again.');
                 return;
             }
-
-            // Clear form fields
-            setCoverImage(null);
-            setPartyTitle('');
-            setDescription('');
-            setSelectedType('house-party');
-            setSelectedLocation('');
-            setSelectedLocationId(null);
-            setMaxAttendees('');
-            setEntryFee('');
-            setCocktailTheme('');
-            setIsPublic(true);
-            setRequireApproval(false);
-            setDate(new Date());
-            setStartTime(initStartTime());
-            setEndTime(null);
-
-            // Reset interaction state
-            setHasInteracted(false);
 
             // Show confirmation modal
             setModalVisible(true);
         } catch (e) {
-            // console.error('Error creating party', e);
-            alert('Failed to create party. See console for details.');
+            // console.error('Error updating party', e);
+            alert('Failed to update party. See console for details.');
         } finally {
             setIsUploading(false);
         }
@@ -173,8 +213,8 @@ export const CreateParty = () => {
 
     const handleModalConfirm = () => {
         setModalVisible(false);
-        // Navigate back to social main
-        navigation.navigate('SocialMain', { initialView: 'parties' });
+        // Navigate back to party details or social main
+        navigation.goBack();
     };
 
     // Track if user has filled in any required field
@@ -182,7 +222,7 @@ export const CreateParty = () => {
 
     return (
         <Box className="flex-1 bg-gray-50">
-            <TopBar title="Create Party" showBack onBackPress={() => navigation.goBack()} />
+            <TopBar title="Edit Party" showBack onBackPress={() => navigation.goBack()} />
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
@@ -194,7 +234,7 @@ export const CreateParty = () => {
                         paddingBottom: spacing.screenBottom,
                     }}
                 >
-                    {/* Cover Image Upload - Using ImageUploadBox */}
+                    {/* Cover Image Upload */}
                     <Box className="mb-6">
                         <Text className="text-sm text-neutral-950 mb-2">Party Cover Image</Text>
                         <ImageUploadBox
@@ -215,10 +255,8 @@ export const CreateParty = () => {
                             required
                             value={partyTitle}
                             onChangeText={(text) => {
-                                // Only allow letters and spaces
                                 const filtered = text.replace(/[^a-zA-Z\s]/g, '');
                                 setPartyTitle(filtered);
-                                if (!hasInteracted && filtered.length > 0) setHasInteracted(true);
                             }}
                             placeholder="e.g., Summer Cocktail Night"
                         />
@@ -230,10 +268,7 @@ export const CreateParty = () => {
                             label="Description"
                             required
                             value={description}
-                            onChangeText={(text) => {
-                                setDescription(text);
-                                if (!hasInteracted && text.trim().length > 0) setHasInteracted(true);
-                            }}
+                            onChangeText={setDescription}
                             placeholder="Tell people what your party is all about..."
                             multiline
                             numberOfLines={3}
@@ -266,7 +301,6 @@ export const CreateParty = () => {
                             label="Max Attendees"
                             value={maxAttendees}
                             onChangeText={(text) => {
-                                // Only allow numbers
                                 const filtered = text.replace(/[^0-9]/g, '');
                                 setMaxAttendees(filtered);
                             }}
@@ -282,7 +316,6 @@ export const CreateParty = () => {
                             label="Entry Fee (Optional)"
                             value={entryFee}
                             onChangeText={(text) => {
-                                // Only allow numbers
                                 const filtered = text.replace(/[^0-9]/g, '');
                                 setEntryFee(filtered);
                             }}
@@ -359,25 +392,20 @@ export const CreateParty = () => {
                         </Box>
                     </Box>
 
-                    {/* Cocktail Theme */}
-                    <Box className="mb-6">
-                        <TextInputField
-                            label="Cocktail Theme (Optional)"
-                            value={cocktailTheme}
-                            onChangeText={setCocktailTheme}
-                            placeholder="e.g., Tropical, Classic, Whiskey Night"
-                        />
-                    </Box>
-
-                    {/* Create Party Button */}
+                    {/* Update Party Button */}
                     <PrimaryButton
-                        title={isUploading ? 'Creating Party...' : 'Create Party'}
-                        onPress={handleCreateParty}
-                        disabled={!canSubmit || isUploading}
+                        title={isUploading ? 'Updating Party...' : 'Update Party'}
+                        onPress={handleUpdateParty}
+                        disabled={!canSubmit || isUploading || !hasChanges}
                     />
-                    {!canSubmit && hasInteracted && (
+                    {!canSubmit && (
                         <Text className="text-sm text-red-500 mt-2">
                             Please complete all required fields: party name, description, and location.
+                        </Text>
+                    )}
+                    {canSubmit && !hasChanges && (
+                        <Text className="text-sm text-neutral-600 mt-2 text-center">
+                            Make changes to enable the update button
                         </Text>
                     )}
                 </ScrollView>
@@ -392,11 +420,11 @@ export const CreateParty = () => {
             >
                 <View className="flex-1 bg-black/50 items-center justify-center p-4">
                     <Box className="w-full max-w-sm bg-white rounded-2xl p-6">
-                        <Heading level="h5" className="mb-3 text-center">
-                            Party Created Successfully!
-                        </Heading>
+                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                            Party Updated Successfully!
+                        </Text>
                         <Text className="text-neutral-600 mb-6 text-center">
-                            Your party has been created and is now visible to others.
+                            Your party details have been updated.
                         </Text>
                         <PrimaryButton
                             title="OK"

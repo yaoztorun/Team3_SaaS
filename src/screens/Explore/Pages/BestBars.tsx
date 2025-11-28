@@ -5,21 +5,20 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { MapPin, Star } from 'lucide-react-native';
-import { fetchLocations } from '@/src/api/location';
-import { Location } from '@/src/types/location';
+import { fetchLocations, DBLocation } from '@/src/api/location';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SearchBar } from '@/src/components/global';
+import { SearchBar, Heading } from '@/src/components/global';
 
 type RootStackParamList = {
-    BarDetail: { bar: Location };
+    BarDetail: { bar: DBLocation };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/300x200.png?text=Bar';
 
-const BarCard = ({ bar, onPress }: { bar: Location; onPress: () => void }) => {
+const BarCard = ({ bar, onPress }: { bar: DBLocation; onPress: () => void }) => {
     const address = [bar.street_name, bar.street_nr, bar.city, bar.country]
         .filter(Boolean)
         .join(' ');
@@ -36,7 +35,7 @@ const BarCard = ({ bar, onPress }: { bar: Location; onPress: () => void }) => {
             </View>
             <Box className="p-4">
                 <HStack className="items-center justify-between mb-2">
-                    <Text className="text-xl font-semibold flex-1">{bar.name || 'Unnamed Bar'}</Text>
+                    <Heading level="h4" className="flex-1">{bar.name || 'Unnamed Bar'}</Heading>
                     {bar.rating !== null && bar.rating !== undefined && (
                         <HStack className="items-center ml-2">
                             <Star size={16} color="#fbbf24" fill="#fbbf24" />
@@ -61,7 +60,7 @@ const BarCard = ({ bar, onPress }: { bar: Location; onPress: () => void }) => {
 };
 
 export const BestBars = () => {
-    const [bars, setBars] = useState<Location[]>([]);
+    const [bars, setBars] = useState<DBLocation[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const navigation = useNavigation<NavigationProp>();

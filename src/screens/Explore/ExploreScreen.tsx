@@ -3,6 +3,7 @@ import { ScrollView, ActivityIndicator } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
+import { Heading } from '@/src/components/global';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
@@ -100,7 +101,7 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">🍸</Text>
-                            <Text className="text-xl font-medium text-neutral-900">All Cocktails</Text>
+                            <Heading level="h4">All Cocktails</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
@@ -145,7 +146,7 @@ export const ExploreScreen = () => {
                     <Box className="flex-row items-center justify-between mb-3">
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">🤖</Text>
-                            <Text className="text-xl font-medium text-neutral-900">AI Assistant</Text>
+                            <Heading level="h4">AI Assistant</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Box>
@@ -172,7 +173,7 @@ export const ExploreScreen = () => {
                 <Box className="px-4 mb-6">
                     <Box className="flex-row items-center mb-3">
                         <Text className="text-2xl mr-2">🔮</Text>
-                        <Text className="text-xl font-medium text-neutral-900">What Can I Make?</Text>
+                        <Heading level="h4">What Can I Make?</Heading>
                     </Box>
                     <Pressable
                         onPress={() => navigateToSection('WhatCanIMake')}
@@ -194,7 +195,7 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">⭐</Text>
-                            <Text className="text-xl font-medium text-neutral-900">Best Bars</Text>
+                            <Heading level="h4">Best Bars</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
@@ -238,9 +239,9 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">📍</Text>
-                            <Text className="text-xl font-medium text-neutral-900">
+                            <Heading level="h4">
                                 Upcoming Events Nearby
-                            </Text>
+                            </Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
@@ -279,7 +280,7 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">🛍️</Text>
-                            <Text className="text-xl font-medium text-neutral-900">Our Shop</Text>
+                            <Heading level="h4">Our Shop</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>

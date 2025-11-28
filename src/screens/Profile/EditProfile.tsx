@@ -6,7 +6,7 @@ import { spacing } from '@/src/theme/spacing';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile, updateProfile } from '@/src/api/profile';
 import { uploadProfileImage } from '@/src/api/storage';
@@ -95,7 +95,7 @@ const EditProfile: React.FC = () => {
                 <Pressable onPress={() => navigation.goBack()} className="mr-4">
                     <ArrowLeft size={24} color="#000" />
                 </Pressable>
-                <Text className="text-xl font-semibold">Edit Profile</Text>
+                <Heading level="h4">Edit Profile</Heading>
             </Box>
             <ScrollView
                 className="flex-1 px-4 pt-6"

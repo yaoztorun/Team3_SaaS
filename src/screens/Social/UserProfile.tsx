@@ -16,10 +16,13 @@ import {
     getFriendshipStatus,
     acceptFriendRequest,
     rejectFriendRequest,
+    cancelFriendRequest,
+    unfriendUser,
     getFriends
 } from '@/src/api/friendship';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { LineChart, PieChart } from 'react-native-chart-kit';
+import { Heading } from '@/src/components/global';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 
 type RouteParams = {
@@ -39,6 +42,7 @@ export const UserProfile = () => {
     const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending' | 'accepted'>('none');
     const [processingRequest, setProcessingRequest] = useState(false);
     const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+    const [friendshipId, setFriendshipId] = useState<string | null>(null);
     const [userStats, setUserStats] = useState<UserStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(true);
     const [badges, setBadges] = useState<Badge[]>([]);
@@ -64,11 +68,28 @@ export const UserProfile = () => {
 
         // If pending, check if current user is the recipient
         if (status === 'pending') {
-            const { getPendingFriendRequests } = await import('@/src/api/friendship');
+            const { getPendingFriendRequests, getSentFriendRequests } = await import('@/src/api/friendship');
             const requests = await getPendingFriendRequests(currentUser.id);
             const request = requests.find(r => r.user_id === userId);
             if (request) {
                 setPendingRequestId(request.id);
+                setFriendshipId(request.id);
+            } else {
+                // Check sent requests to get the friendship ID
+                const sentRequests = await getSentFriendRequests(currentUser.id);
+                const sentRequest = sentRequests.find(r => r.friend_id === userId);
+                if (sentRequest) {
+                    setFriendshipId(sentRequest.id);
+                }
+            }
+        }
+
+        // If accepted, get the friendship_id
+        if (status === 'accepted') {
+            const friends = await getFriends(currentUser.id);
+            const friend = friends.find(f => f.id === userId);
+            if (friend) {
+                setFriendshipId(friend.friendship_id);
             }
         }
 
@@ -141,8 +162,40 @@ export const UserProfile = () => {
         
         if (result.success) {
             setFriendshipStatus('none');
+            setFriendshipId(null);
+            setPendingRequestId(null);
         } else {
             alert(result.error || 'Failed to reject friend request');
+        }
+        setProcessingRequest(false);
+    };
+
+    const handleCancelRequest = async () => {
+        if (!friendshipId) return;
+        
+        setProcessingRequest(true);
+        const result = await cancelFriendRequest(friendshipId);
+        
+        if (result.success) {
+            setFriendshipStatus('none');
+            setFriendshipId(null);
+        } else {
+            alert(result.error || 'Failed to cancel friend request');
+        }
+        setProcessingRequest(false);
+    };
+
+    const handleUnfriend = async () => {
+        if (!friendshipId) return;
+        
+        setProcessingRequest(true);
+        const result = await unfriendUser(friendshipId);
+        
+        if (result.success) {
+            setFriendshipStatus('none');
+            setFriendshipId(null);
+        } else {
+            alert(result.error || 'Failed to unfriend user');
         }
         setProcessingRequest(false);
     };
@@ -201,10 +254,10 @@ export const UserProfile = () => {
                         )}
                     </Center>
 
-                    <Center>
-                        <Text className="text-2xl font-semibold text-neutral-900 mb-1">
+                    <Center className="mb-4">
+                        <Heading level="h3" className="mb-1">
                             {profile.full_name || 'User'}
-                        </Text>
+                        </Heading>
                         
                         {/* Badges */}
                         <Box className="mt-2">
@@ -248,8 +301,12 @@ export const UserProfile = () => {
                             )}
                             
                             {friendshipStatus === 'pending' && !pendingRequestId && (
-                                <Button className="bg-gray-400" disabled>
-                                    <Text className="text-white">Request Sent</Text>
+                                <Button 
+                                    variant="outline"
+                                    onPress={handleCancelRequest}
+                                    disabled={processingRequest}
+                                >
+                                    <Text>{processingRequest ? 'Cancelling...' : 'Cancel Request'}</Text>
                                 </Button>
                             )}
 
@@ -277,11 +334,12 @@ export const UserProfile = () => {
                             )}
 
                             {friendshipStatus === 'accepted' && (
-                                <Button className="bg-[#00a294]" disabled>
-                                    <HStack space="xs" className="items-center justify-center">
-                                        <Text className="text-white">Friends</Text>
-                                        <Text className="text-white">✓</Text>
-                                    </HStack>
+                                <Button 
+                                    variant="outline"
+                                    onPress={handleUnfriend}
+                                    disabled={processingRequest}
+                                >
+                                    <Text>{processingRequest ? 'Unfriending...' : 'Unfriend'}</Text>
                                 </Button>
                             )}
 

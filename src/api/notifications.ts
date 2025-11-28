@@ -1,5 +1,6 @@
 // src/api/notifications.ts
 import { supabase } from '@/src/lib/supabase';
+import { fetchUserSettings } from '@/src/api/settings';
 
 export type NotificationType =
   | 'like'
@@ -109,6 +110,31 @@ export async function createNotification(input: {
     friendshipId = null,
     message = null,
   } = input;
+
+  // Check user's notification settings
+  const userSettings = await fetchUserSettings(userId);
+  
+  // Check if this notification type is enabled
+  const shouldSendNotification = (() => {
+    switch (type) {
+      case 'like':
+        return userSettings.notifications.likes;
+      case 'comment':
+        return userSettings.notifications.comments;
+      case 'friend_request':
+        return userSettings.notifications.friend_requests;
+      case 'friend_accepted':
+        return userSettings.notifications.friend_requests; // Use friend_requests setting for accepted too
+      case 'close_friend_post':
+        return true; // Always send for now, can add setting later
+      default:
+        return true;
+    }
+  })();
+
+  if (!shouldSendNotification) {
+    return { success: true, skipped: true };
+  }
 
   const { error } = await supabase.from('Notification').insert({
     user_id: userId,

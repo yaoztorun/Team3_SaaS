@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScrollView, Modal, View, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, Modal, View, Linking, Alert, ActivityIndicator } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { spacing } from '@/src/theme/spacing';
 import { Text } from '@/src/components/ui/text';
@@ -7,10 +7,12 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '@/src/screens/navigation/types';
-import { PrimaryButton } from '@/src/components/global';
+import { PrimaryButton, Heading } from '@/src/components/global';
 import { colors } from '@/src/theme/colors';
 import { supabase } from '@/src/lib/supabase';
 import { ArrowLeft } from 'lucide-react-native';
+import { fetchUserSettings, updateUserSettings } from '@/src/api/settings';
+import { UserSettings } from '@/src/types/settings';
 
 const Settings: React.FC = () => {
     const navigation = useNavigation();
@@ -18,6 +20,71 @@ const Settings: React.FC = () => {
     const [showLogoutDialog, setShowLogoutDialog] = useState(false);
     const [logoutMessage, setLogoutMessage] = useState<string | null>(null);
     const [showDeleteAccountDialog, setShowDeleteAccountDialog] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    // Settings state
+    const [settings, setSettings] = useState<UserSettings>({
+        privacy: {
+            is_private: false,
+        },
+        notifications: {
+            likes: true,
+            comments: true,
+            party_invites: false,
+            friend_requests: true,
+        },
+    });
+
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        setLoading(true);
+        const userSettings = await fetchUserSettings(user.id);
+        setSettings(userSettings);
+        setLoading(false);
+    };
+
+    const handleSaveSettings = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        setSaving(true);
+        const result = await updateUserSettings(user.id, settings);
+        setSaving(false);
+
+        if (result.success) {
+            Alert.alert('Success', 'Settings saved successfully');
+            navigation.goBack();
+        } else {
+            Alert.alert('Error', result.error || 'Failed to save settings');
+        }
+    };
+
+    const updateNotificationSetting = (key: keyof UserSettings['notifications'], value: boolean) => {
+        setSettings(prev => ({
+            ...prev,
+            notifications: {
+                ...prev.notifications,
+                [key]: value,
+            },
+        }));
+    };
+
+    const updatePrivacySetting = (key: keyof UserSettings['privacy'], value: boolean) => {
+        setSettings(prev => ({
+            ...prev,
+            privacy: {
+                ...prev.privacy,
+                [key]: value,
+            },
+        }));
+    };
 
     
     const handleLogout = async () => {
@@ -52,18 +119,7 @@ const Settings: React.FC = () => {
         await supabase.auth.signOut();
     };
 
-    
-    const [pushNotifications, setPushNotifications] = useState(true);
-    const [friendRequests, setFriendRequests] = useState(true);
-    const [partyInvites, setPartyInvites] = useState(false);
-    const [cocktailSuggestions, setCocktailSuggestions] = useState(false);
-
-    const [privateAccount, setPrivateAccount] = useState(false);
-    const [showActivityStatus, setShowActivityStatus] = useState(true);
-    const [locationServices, setLocationServices] = useState(true);
-
-    const [darkMode, setDarkMode] = useState(false);
-    const [compactView, setCompactView] = useState(false);
+    const appVersion = '1.0.0'; // From package.json
 
     return (
         <Box className="flex-1 bg-neutral-50">
@@ -71,162 +127,173 @@ const Settings: React.FC = () => {
                 <Pressable onPress={() => navigation.goBack()} className="mr-4">
                     <ArrowLeft size={24} color="#000" />
                 </Pressable>
-                <Text className="text-xl font-semibold">Settings</Text>
+                <Heading level="h4">Settings</Heading>
             </Box>
-            <ScrollView
-                className="flex-1 px-4 pt-6"
-                contentContainerStyle={{ paddingBottom: spacing.screenBottom }}
-            >
-                {/* Notifications */}
-                <Box className="mb-4 bg-white rounded-2xl p-4">
-                    <Text className="text-base text-neutral-900 mb-3">Notifications</Text>
-                    <Box className="mb-3 flex-row items-start justify-between">
-                        <Box style={{ flex: 1 }}>
-                            <Text className="text-sm font-medium text-neutral-800">Push Notifications</Text>
-                            <Text className="text-xs text-neutral-500">Get notified about new activities</Text>
-                        </Box>
-                        <Pressable onPress={() => setPushNotifications(!pushNotifications)} className={`w-12 h-6 rounded-full ${pushNotifications ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${pushNotifications ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
 
-                    <Box className="mb-3 flex-row items-start justify-between">
-                        <Box style={{ flex: 1 }}>
-                            <Text className="text-sm font-medium text-neutral-800">Friend Requests</Text>
-                            <Text className="text-xs text-neutral-500">Notify when someone sends a request</Text>
-                        </Box>
-                        <Pressable onPress={() => setFriendRequests(!friendRequests)} className={`w-12 h-6 rounded-full ${friendRequests ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${friendRequests ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-
-                    <Box className="mb-3 flex-row items-start justify-between">
-                        <Box style={{ flex: 1 }}>
-                            <Text className="text-sm font-medium text-neutral-800">Party Invites</Text>
-                            <Text className="text-xs text-neutral-500">Get notified about party invitations</Text>
-                        </Box>
-                        <Pressable onPress={() => setPartyInvites(!partyInvites)} className={`w-12 h-6 rounded-full ${partyInvites ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${partyInvites ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-
-                    <Box className="flex-row items-start justify-between">
-                        <Box style={{ flex: 1 }}>
-                            <Text className="text-sm font-medium text-neutral-800">Cocktail Suggestions</Text>
-                            <Text className="text-xs text-neutral-500">Daily cocktail recommendations</Text>
-                        </Box>
-                        <Pressable onPress={() => setCocktailSuggestions(!cocktailSuggestions)} className={`w-12 h-6 rounded-full ${cocktailSuggestions ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${cocktailSuggestions ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
+            {loading ? (
+                <Box className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color={colors.primary[500]} />
                 </Box>
+            ) : (
+                <ScrollView
+                    className="flex-1 px-4 pt-6"
+                    contentContainerStyle={{ paddingBottom: spacing.screenBottom }}
+                >
+                    {/* Notifications */}
+                    <Box className="mb-4 bg-white rounded-2xl p-4">
+                        <Text className="text-base text-neutral-900 mb-3">Notifications</Text>
 
-                {/* Privacy */}
-                <Box className="mb-4 bg-white rounded-2xl p-4">
-                    <Text className="text-base text-neutral-900 mb-3">Privacy</Text>
-                    <Box className="mb-3 flex-row items-center justify-between">
-                        <Text className="text-sm text-neutral-600">Private Account</Text>
-                        <Pressable onPress={() => setPrivateAccount(!privateAccount)} className={`w-12 h-6 rounded-full ${privateAccount ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${privateAccount ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-                    <Box className="mb-3 flex-row items-center justify-between">
-                        <Text className="text-sm text-neutral-600">Show Activity Status</Text>
-                        <Pressable onPress={() => setShowActivityStatus(!showActivityStatus)} className={`w-12 h-6 rounded-full ${showActivityStatus ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${showActivityStatus ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-                    <Box className="flex-row items-center justify-between">
-                        <Text className="text-sm text-neutral-600">Location Services</Text>
-                        <Pressable onPress={() => setLocationServices(!locationServices)} className={`w-12 h-6 rounded-full ${locationServices ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${locationServices ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-                </Box>
-
-                {/* Appearance */}
-                <Box className="mb-4 bg-white rounded-2xl p-4">
-                    <Text className="text-base text-neutral-900 mb-3">Appearance</Text>
-                    <Box className="mb-3 flex-row items-center justify-between">
-                        <Text className="text-sm text-neutral-600">Dark Mode</Text>
-                        <Pressable onPress={() => setDarkMode(!darkMode)} className={`w-12 h-6 rounded-full ${darkMode ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${darkMode ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-                    <Box className="flex-row items-center justify-between">
-                        <Text className="text-sm text-neutral-600">Compact View</Text>
-                        <Pressable onPress={() => setCompactView(!compactView)} className={`w-12 h-6 rounded-full ${compactView ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}>
-                            <Box className={`w-5 h-5 rounded-full bg-white shadow ${compactView ? 'ml-6' : 'ml-0'}`} />
-                        </Pressable>
-                    </Box>
-                </Box>
-
-                {/* Language / Help rows */}
-                <Box className="mb-4 bg-white rounded-2xl">
-                    <Pressable className="p-4 border-b border-neutral-100 flex-row justify-between items-center">
-                        <Box>
-                            <Text className="text-sm font-medium text-neutral-800">Language</Text>
-                            <Text className="text-xs text-neutral-500">English</Text>
+                        <Box className="mb-3 flex-row items-start justify-between">
+                            <Box style={{ flex: 1 }}>
+                                <Text className="text-sm font-medium text-neutral-800">Friend Requests</Text>
+                                <Text className="text-xs text-neutral-500">Notify when someone sends a friend request</Text>
+                            </Box>
+                            <Pressable 
+                                onPress={() => updateNotificationSetting('friend_requests', !settings.notifications.friend_requests)} 
+                                className={`w-12 h-6 rounded-full ${settings.notifications.friend_requests ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}
+                            >
+                                <Box className={`w-5 h-5 rounded-full bg-white shadow ${settings.notifications.friend_requests ? 'ml-6' : 'ml-0'}`} />
+                            </Pressable>
                         </Box>
-                        <Text className="text-neutral-400">›</Text>
-                    </Pressable>
-                    <Pressable className="p-4 flex-row justify-between items-center">
-                        <Box>
-                            <Text className="text-sm font-medium text-neutral-800">Help & Support</Text>
-                            <Text className="text-xs text-neutral-500">FAQs, Contact us</Text>
+
+                        <Box className="mb-3 flex-row items-start justify-between">
+                            <Box style={{ flex: 1 }}>
+                                <Text className="text-sm font-medium text-neutral-800">Party Invites</Text>
+                                <Text className="text-xs text-neutral-500">Notify when someone invites you to a party</Text>
+                            </Box>
+                            <Pressable 
+                                onPress={() => updateNotificationSetting('party_invites', !settings.notifications.party_invites)} 
+                                className={`w-12 h-6 rounded-full ${settings.notifications.party_invites ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}
+                            >
+                                <Box className={`w-5 h-5 rounded-full bg-white shadow ${settings.notifications.party_invites ? 'ml-6' : 'ml-0'}`} />
+                            </Pressable>
                         </Box>
-                        <Text className="text-neutral-400">›</Text>
-                    </Pressable>
-                </Box>
 
-                {/* Account actions */}
-                <Box className="mb-6 bg-white rounded-2xl p-4">
-                    <Pressable 
-                        className="py-3 border-b border-neutral-100"
-                        onPress={() => setShowLogoutDialog(true)}
-                    >
-                        <Text className="text-sm text-neutral-800">Log Out</Text>
-                    </Pressable>
+                        <Box className="mb-3 flex-row items-start justify-between">
+                            <Box style={{ flex: 1 }}>
+                                <Text className="text-sm font-medium text-neutral-800">Likes</Text>
+                                <Text className="text-xs text-neutral-500">Notify when someone likes your post</Text>
+                            </Box>
+                            <Pressable 
+                                onPress={() => updateNotificationSetting('likes', !settings.notifications.likes)} 
+                                className={`w-12 h-6 rounded-full ${settings.notifications.likes ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}
+                            >
+                                <Box className={`w-5 h-5 rounded-full bg-white shadow ${settings.notifications.likes ? 'ml-6' : 'ml-0'}`} />
+                            </Pressable>
+                        </Box>
 
-                    <Pressable 
-                        className="py-3" 
-                        onPress={() => setShowDeleteAccountDialog(true)}
-                    >
-                        <Text className="text-sm text-red-500">Delete Account</Text>
-                    </Pressable>
-                    {logoutMessage && (
-                        <Text className="text-center text-red-500 mb-4">
-                            {logoutMessage}
-                        </Text>
-                    )}
-                </Box>
+                        <Box className="flex-row items-start justify-between">
+                            <Box style={{ flex: 1 }}>
+                                <Text className="text-sm font-medium text-neutral-800">Comments</Text>
+                                <Text className="text-xs text-neutral-500">Notify when someone comments on your post</Text>
+                            </Box>
+                            <Pressable 
+                                onPress={() => updateNotificationSetting('comments', !settings.notifications.comments)} 
+                                className={`w-12 h-6 rounded-full ${settings.notifications.comments ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}
+                            >
+                                <Box className={`w-5 h-5 rounded-full bg-white shadow ${settings.notifications.comments ? 'ml-6' : 'ml-0'}`} />
+                            </Pressable>
+                        </Box>
+                    </Box>
 
-                {/* Credits */}
-                <Box className="mb-6 bg-white rounded-2xl p-4">
-                    <Text className="text-base text-neutral-900 mb-3">Credits</Text>
-                    <Text className="text-xs text-neutral-600 leading-5">
-                        Icons made by{' '}
-                        <Text 
-                            className="text-xs text-teal-500 underline"
-                            onPress={() => Linking.openURL('https://www.flaticon.com/authors/rudiyana')}
+                    {/* Privacy */}
+                    <Box className="mb-4 bg-white rounded-2xl p-4">
+                        <Text className="text-base text-neutral-900 mb-3">Privacy</Text>
+                        <Box className="flex-row items-start justify-between">
+                            <Box style={{ flex: 1 }}>
+                                <Text className="text-sm font-medium text-neutral-800">Private Account</Text>
+                                <Text className="text-xs text-neutral-500">Only approved followers can see your content</Text>
+                            </Box>
+                            <Pressable 
+                                onPress={() => updatePrivacySetting('is_private', !settings.privacy.is_private)} 
+                                className={`w-12 h-6 rounded-full ${settings.privacy.is_private ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}
+                            >
+                                <Box className={`w-5 h-5 rounded-full bg-white shadow ${settings.privacy.is_private ? 'ml-6' : 'ml-0'}`} />
+                            </Pressable>
+                        </Box>
+                    </Box>
+
+                    {/* Legal & Info */}
+                    <Box className="mb-4 bg-white rounded-2xl">
+                        <Pressable 
+                            className="p-4 border-b border-neutral-100 flex-row justify-between items-center"
+                            onPress={() => Linking.openURL('https://your-privacy-policy-url.com')}
                         >
-                            Rudiyana
-                        </Text>
-                        {' '}from{' '}
-                        <Text 
-                            className="text-xs text-teal-500 underline"
-                            onPress={() => Linking.openURL('https://www.flaticon.com/')}
+                            <Text className="text-sm font-medium text-neutral-800">Privacy Policy</Text>
+                            <Text className="text-neutral-400">›</Text>
+                        </Pressable>
+                        <Pressable 
+                            className="p-4 flex-row justify-between items-center"
+                            onPress={() => Linking.openURL('https://your-terms-of-service-url.com')}
                         >
-                            www.flaticon.com
-                        </Text>
-                    </Text>
-                </Box>
+                            <Text className="text-sm font-medium text-neutral-800">Terms of Service</Text>
+                            <Text className="text-neutral-400">›</Text>
+                        </Pressable>
+                    </Box>
 
-                <PrimaryButton
-                    title="Save Settings"
-                    onPress={() => navigation.goBack()}
-                />
-            </ScrollView>
+                    {/* App Info */}
+                    <Box className="mb-4 bg-white rounded-2xl p-4">
+                        <Text className="text-base text-neutral-900 mb-3">App Info</Text>
+                        <Box className="flex-row justify-between items-center mb-2">
+                            <Text className="text-sm text-neutral-600">Version</Text>
+                            <Text className="text-sm text-neutral-800">{appVersion}</Text>
+                        </Box>
+                        <Box className="flex-row justify-between items-center">
+                            <Text className="text-sm text-neutral-600">Build</Text>
+                            <Text className="text-sm text-neutral-800">1</Text>
+                        </Box>
+                    </Box>
+
+                    {/* Account actions */}
+                    <Box className="mb-6 bg-white rounded-2xl p-4">
+                        <Pressable 
+                            className="py-3 border-b border-neutral-100"
+                            onPress={() => setShowLogoutDialog(true)}
+                        >
+                            <Text className="text-sm text-neutral-800">Log Out</Text>
+                        </Pressable>
+
+                        <Pressable 
+                            className="py-3" 
+                            onPress={() => setShowDeleteAccountDialog(true)}
+                        >
+                            <Text className="text-sm text-red-500">Delete Account</Text>
+                        </Pressable>
+                        {logoutMessage && (
+                            <Text className="text-center text-red-500 mb-4">
+                                {logoutMessage}
+                            </Text>
+                        )}
+                    </Box>
+
+                    {/* Credits */}
+                    <Box className="mb-6 bg-white rounded-2xl p-4">
+                        <Text className="text-base text-neutral-900 mb-3">Credits</Text>
+                        <Text className="text-xs text-neutral-600 leading-5">
+                            Icons made by{' '}
+                            <Text 
+                                className="text-xs text-teal-500 underline"
+                                onPress={() => Linking.openURL('https://www.flaticon.com/authors/rudiyana')}
+                            >
+                                Rudiyana
+                            </Text>
+                            {' '}from{' '}
+                            <Text 
+                                className="text-xs text-teal-500 underline"
+                                onPress={() => Linking.openURL('https://www.flaticon.com/')}
+                            >
+                                www.flaticon.com
+                            </Text>
+                        </Text>
+                    </Box>
+
+                    <PrimaryButton
+                        title={saving ? "Saving..." : "Save Settings"}
+                        onPress={handleSaveSettings}
+                        disabled={saving}
+                    />
+                </ScrollView>
+            )}
 
             {/* Logout Confirmation Dialog */}
             <Modal
