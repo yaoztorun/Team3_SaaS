@@ -400,6 +400,14 @@ export const HomeScreen: React.FC = () => {
     }
   }, [pendingOpenPostId, feedPosts]);
 
+  // Keep focused post in sync with feed updates (likes/comments)
+  useEffect(() => {
+    if (activePostId) {
+      const latest = feedPosts.find((p) => p.id === activePostId) ?? null;
+      setFocusedPost(latest);
+    }
+  }, [feedPosts, activePostId]);
+
   // ---------- like toggle ----------
 
   const handleToggleLike = async (postId: string) => {
