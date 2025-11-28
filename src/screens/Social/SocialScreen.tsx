@@ -71,7 +71,7 @@ export const SocialScreen = () => {
                             className={
                                 activeView === 'friends'
                                     ? 'text-sm text-center text-white font-medium'
-                                    : 'text-sm text-center text-neutral-900'
+                                    : 'text-sm text-center text-neutral-900 font-medium'
                             }
                         >
                             Friends
@@ -89,7 +89,7 @@ export const SocialScreen = () => {
                             className={
                                 activeView === 'parties'
                                     ? 'text-sm text-center text-white font-medium'
-                                    : 'text-sm text-center text-neutral-900'
+                                    : 'text-sm text-center text-neutral-900 font-medium'
                             }
                         >
                             Parties

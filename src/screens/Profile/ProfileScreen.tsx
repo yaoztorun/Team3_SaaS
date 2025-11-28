@@ -335,7 +335,7 @@ export const ProfileScreen = () => {
             className={
               currentView === 'logged-drinks'
                 ? 'text-sm text-center text-white font-medium'
-                : 'text-sm text-center text-neutral-900'
+                : 'text-sm text-center text-neutral-900 font-medium'
             }
           >
             Logged Drinks
@@ -353,7 +353,7 @@ export const ProfileScreen = () => {
             className={
               currentView === 'stats'
                 ? 'text-sm text-center text-white font-medium'
-                : 'text-sm text-center text-neutral-900'
+                : 'text-sm text-center text-neutral-900 font-medium'
             }
           >
             Stats
@@ -478,7 +478,7 @@ export const ProfileScreen = () => {
             {userStats?.topCocktails && userStats.topCocktails.length > 0 && (
               <Box className="bg-white rounded-2xl p-4 mb-4">
                 <Text className="text-base text-neutral-900 mb-3">
-                  Most Popular
+                  Top 3 Most Popular
                 </Text>
                 {userStats.topCocktails.map((cocktail, index) => (
                   <Box

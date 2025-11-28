@@ -36,11 +36,13 @@ Track user signups and registrations.
 - `has_name`: whether user provided a name during signup
 
 **Implementation locations:**
-- `/src/screens/Auth/RegisterScreen.tsx`
-- `/src/screens/Auth/LoginScreen.tsx`
+- `/src/screens/Auth/RegisterScreen.tsx` - Email signup flow
+- `/src/screens/Auth/LoginScreen.tsx` - Email login & Google OAuth initiation
+- `/src/hooks/useAuth.tsx` - Google OAuth completion tracking (SIGNED_IN event)
 
 **Example:**
 ```typescript
+// Email signup
 posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
   method: 'email',
 });
@@ -48,6 +50,20 @@ posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
 trackWithTTFA(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
   method: 'email',
   has_name: true,
+});
+
+// Google OAuth (tracked automatically in useAuth.tsx)
+// signup_started → tracked when user clicks Google button
+// signup_completed → tracked on SIGNED_IN event if new user
+// login_completed → tracked on SIGNED_IN event if existing user
+```
+
+**Google OAuth Flow:**
+1. User clicks "Sign in with Google" → `signup_started` tracked
+2. User completes Google authentication (redirects away and back)
+3. `useAuth.tsx` detects `SIGNED_IN` event
+4. Checks if user is new (created < 10 seconds ago)
+5. Tracks `signup_completed` (new user) or `login_completed` (existing user)
 });
 ```
 
@@ -117,18 +133,74 @@ PostHog automatically calculates retention metrics from user activity.
 - User reset on logout
 
 ### 📢 Referral
-Track sharing and invite actions.
+Track sharing and invite actions, including viral loop completion.
 
 **Events:**
-- `share_clicked` - When user shares content
-- `first_share_clicked` - First time user shares (activation metric)
+- `share_clicked` - When user shares content (all shares tracked)
+- `share_link_opened` - When someone opens a shared link (via UTM params)
+- `share_converted` - When shared link leads to a signup
 - `invite_sent` - When user sends an invite
 
 **Properties tracked:**
 - `post_id`: ID of shared post
 - `cocktail_name`: name of cocktail being shared
+- `share_method`: 'whatsapp', 'copy_link', or 'system'
+- `is_first_time`: whether this is user's first share (boolean)
+- `time_to_first_action_ms`: time from signup to first share (first share only)
+- `referred_by`: user ID who shared the link (for conversions)
+- `utm_source`: 'share' (for link opens)
+- `utm_medium`: share method that was used (for link opens)
 
-**Status:** 🚧 Not yet implemented
+**Implementation locations:**
+- `/src/components/global/FeedPostCard.tsx` - Share button handlers
+- `/src/utils/share.ts` - Share URL generation with UTM params
+- `/src/utils/referral.ts` - UTM extraction and referral attribution
+- `/App.tsx` - Share link open tracking
+- `/src/screens/Auth/RegisterScreen.tsx` - Share conversion tracking
+
+**Example:**
+```typescript
+// First share (tracked with TTFA)
+trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+  post_id: id,
+  cocktail_name: cocktailName,
+  share_method: 'whatsapp',
+}); // Automatically adds: is_first_time: true, time_to_first_action_ms
+
+// Subsequent shares
+posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+  post_id: id,
+  cocktail_name: cocktailName,
+  share_method: 'copy_link',
+});
+
+// When shared link is opened
+posthogCapture(ANALYTICS_EVENTS.SHARE_LINK_OPENED, {
+  referred_by: 'user_abc_123',
+  utm_medium: 'whatsapp',
+});
+
+// When shared link leads to signup
+posthogCapture(ANALYTICS_EVENTS.SHARE_CONVERTED, {
+  referred_by: 'user_abc_123',
+  utm_medium: 'whatsapp',
+});
+```
+
+**UTM Tracking:**
+Share URLs are automatically enhanced with UTM parameters for attribution:
+- Format: `/log/{id}?utm_source=share&utm_medium={method}&ref={userId}`
+- Tracked in sessionStorage until signup completes
+- User properties include `referred_by` for viral loop analysis
+
+**First Share Tracking:**
+Uses `trackFirstTime()` helper which:
+- Checks localStorage to detect first-time events
+- Automatically includes `is_first_time: true` property
+- Tracks time to first action for activation metrics
+- Resets on user logout
+
+**Status:** ✅ Fully implemented (invite functionality pending)
 
 ## API Reference
 
@@ -170,6 +242,17 @@ trackWithTTFA(ANALYTICS_EVENTS.FIRST_COCKTAIL_LOGGED, {
 });
 ```
 
+#### `trackFirstTime(eventName, properties?)`
+Track a first-time event with TTFA. Returns `true` if this was the first occurrence, `false` otherwise. Uses localStorage to track state.
+
+```typescript
+const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+  post_id: '123',
+  share_method: 'whatsapp',
+});
+// Automatically adds: is_first_time: true, time_to_first_action_ms
+```
+
 #### `startSession()`
 Start a new analytics session. Automatically called on user login.
 
@@ -200,11 +283,12 @@ posthogCapture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, { ... });
 - `SIGNUP_COMPLETED`
 - `LOGIN_COMPLETED`
 - `FIRST_COCKTAIL_LOGGED`
-- `FIRST_SHARE_CLICKED`
 - `FEATURE_USED`
 - `PREMIUM_UPGRADED`
 - `INVITE_SENT`
 - `SHARE_CLICKED`
+- `SHARE_LINK_OPENED`
+- `SHARE_CONVERTED`
 
 ## Best Practices
 
@@ -263,71 +347,6 @@ Call `identifyUser()` as soon as the user logs in or signs up to ensure all subs
 - ✅ User identity is cleared on logout
 - ⚠️ Ensure cookie consent is implemented for GDPR compliance
 - ⚠️ Review user properties to ensure no sensitive data is tracked
-
-## PostHog Dashboard Setup
-
-### Recommended Insights
-
-1. **Acquisition Funnel**
-   - signup_started → signup_completed
-   - Conversion rate by method (email vs Google)
-
-2. **Activation Rate**
-   - % of users who complete first_cocktail_logged
-   - Average time_to_first_action_ms
-
-3. **Feature Adoption**
-   - feature_used event breakdown by feature name
-   - Share click rate
-
-4. **Retention Cohorts**
-   - Weekly/monthly cohort retention
-   - DAU/MAU ratio
-
-### User Properties to Monitor
-- `email` (hashed or anonymized)
-- `created_at`
-- `last_login`
-- Total cocktails logged (calculated)
-
-## Next Steps
-
-### Immediate
-- [x] Track signup/login events
-- [x] Track first cocktail logged
-- [x] Track share clicks
-- [x] Implement user identification
-
-### Short-term
-- [ ] Add more feature_used events for key features:
-  - AI Assistant usage
-  - Cocktail search
-  - Bar discovery
-  - Party creation
-- [ ] Implement invite/referral functionality
-- [ ] Track failed API calls for debugging
-
-### Long-term
-- [ ] Implement premium upgrade tracking
-- [ ] A/B testing framework using PostHog experiments
-- [ ] Custom funnels for specific user journeys
-- [ ] Integration with backend for server-side events
-
-## Troubleshooting
-
-### Events not appearing in PostHog
-1. Check that `EXPO_PUBLIC_POSTHOG_API_KEY` is set correctly
-2. Verify `initAnalytics()` is called before events
-3. Check browser console for PostHog errors
-4. Ensure user has not blocked PostHog domain
-
-### TTFA showing as 0 or undefined
-- Ensure `startSession()` was called after login
-- Verify session storage is working in the browser
-
-### User properties not updating
-- Confirm `identifyUser()` is called with the correct user ID
-- Check that traits object is properly formatted
 
 ## Support
 

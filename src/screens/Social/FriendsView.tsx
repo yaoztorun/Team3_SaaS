@@ -154,7 +154,7 @@ export const FriendsView = () => {
                                 <SearchBar
                                         value={searchQuery}
                                         onChangeText={setSearchQuery}
-                                        placeholder="Search users by name or email..."
+                                        placeholder="Search users by name..."
                                 />
                         </Box>
 
@@ -193,7 +193,6 @@ export const FriendsView = () => {
                                                                         )}
                                                                         <Box className="flex-1">
                                                                                 <Heading level="h6">{userResult.full_name || 'User'}</Heading>
-                                                                                <Text className="text-sm text-gray-600">{userResult.email}</Text>
                                                                         </Box>
                                                                         {(() => {
                                                                                 const status = getFriendshipStatusForUser(userResult.id);
@@ -274,9 +273,6 @@ export const FriendsView = () => {
                                                                                         <Heading level="h6">
                                                                                                 {request.sender_profile.full_name || 'User'}
                                                                                         </Heading>
-                                                                                        <Text className="text-sm text-gray-600">
-                                                                                                {request.sender_profile.email}
-                                                                                        </Text>
                                                                                 </Box>
                                                                                 <Box className="flex flex-col sm:flex-row gap-2">
                                                                                         <Button
@@ -424,9 +420,6 @@ export const FriendsView = () => {
                                                                                         <Heading level="h6">
                                                                                                 {friend.profile.full_name || 'User'}
                                                                                         </Heading>
-                                                                                        <Text className="text-sm text-gray-600">
-                                                                                                {friend.profile.email}
-                                                                                        </Text>
                                                                                 </Box>
                                                                         </HStack>
                                                                 </Pressable>

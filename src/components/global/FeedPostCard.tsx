@@ -1,4 +1,3 @@
-// src/components/global/FeedPostCard.tsx
 import React, { useState } from 'react';
 import { Image, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
@@ -6,6 +5,9 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { shareSystemSheet, shareToWhatsApp, copyLinkForLog } from '@/src/utils/share';
+import { posthogCapture, trackFirstTime, ANALYTICS_EVENTS } from '@/src/analytics';
+import { useAuth } from '@/src/hooks/useAuth';
+import { TaggedUser } from '@/src/api/tags';
 
 interface FeedPostCardProps {
   id: string;
@@ -19,6 +21,7 @@ interface FeedPostCardProps {
   comments: number;
   caption: string;
   isLiked?: boolean;
+  taggedFriends?: TaggedUser[];
 
   // highlight glow
   isHighlighted?: boolean;
@@ -26,7 +29,8 @@ interface FeedPostCardProps {
   // callbacks
   onToggleLike?: () => void;
   onPressComments?: () => void;
-  onPressUser?: () => void;   // 👈 NEW
+  onPressUser?: () => void;
+  onPressTags?: () => void;
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({
@@ -41,23 +45,73 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   comments,
   caption,
   isLiked = false,
+  taggedFriends = [],
   isHighlighted = false,
   onToggleLike,
   onPressComments,
   onPressUser,
+  onPressTags,
 }) => {
   const [shareOpen, setShareOpen] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id;
 
   const handleWhatsApp = async () => {
-    await shareToWhatsApp(id, cocktailName);
+    // Track first share with TTFA if it's user's first time
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'whatsapp',
+    });
+    
+    // Also track regular share event (for all shares)
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'whatsapp',
+      });
+    }
+    
+    await shareToWhatsApp(id, cocktailName, userId);
     setShareOpen(false);
   };
+  
   const handleCopyLink = async () => {
-    await copyLinkForLog(id);
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'copy_link',
+    });
+    
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'copy_link',
+      });
+    }
+    
+    await copyLinkForLog(id, userId);
     setShareOpen(false);
   };
+  
   const handleSystemShare = async () => {
-    await shareSystemSheet(id, cocktailName);
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'system',
+    });
+    
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'system',
+      });
+    }
+    
+    await shareSystemSheet(id, cocktailName, userId, 'system');
     setShareOpen(false);
   };
   return (
@@ -138,6 +192,80 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         {caption ? (
           <Text className="text-sm text-neutral-900 mb-3">{caption}</Text>
         ) : null}
+
+        {/* Tagged Friends */}
+        {taggedFriends.length > 0 && (
+          <Pressable
+            className="flex-row items-center mb-3"
+            onPress={onPressTags}
+          >
+            <Text className="text-sm text-neutral-600 mr-2">with</Text>
+            <Box className="flex-row items-center">
+              {taggedFriends.slice(0, 3).map((friend, index) => (
+                <Box
+                  key={friend.id}
+                  style={{
+                    marginLeft: index > 0 ? -8 : 0,
+                    zIndex: 3 - index,
+                  }}
+                >
+                  {friend.avatar_url ? (
+                    <Image
+                      source={{ uri: friend.avatar_url }}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                      }}
+                    />
+                  ) : (
+                    <Box
+                      className="items-center justify-center"
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: '#14b8a6',
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                      }}
+                    >
+                      <Text className="text-white text-xs font-medium">
+                        {friend.full_name?.charAt(0)?.toUpperCase() || '?'}
+                      </Text>
+                    </Box>
+                  )}
+                </Box>
+              ))}
+              {taggedFriends.length > 3 && (
+                <Box
+                  className="items-center justify-center bg-gray-300"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    marginLeft: -8,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                  }}
+                >
+                  <Text className="text-xs font-medium text-gray-700">
+                    +{taggedFriends.length - 3}
+                  </Text>
+                </Box>
+              )}
+            </Box>
+            <Text className="text-sm text-neutral-600 ml-2">
+              {taggedFriends.length === 1
+                ? taggedFriends[0].full_name
+                : taggedFriends.length === 2
+                ? `${taggedFriends[0].full_name} and ${taggedFriends[1].full_name}`
+                : `${taggedFriends[0].full_name} and ${taggedFriends.length - 1} others`}
+            </Text>
+          </Pressable>
+        )}
 
         {/* Action buttons */}
         <Box className="flex-row items-center">

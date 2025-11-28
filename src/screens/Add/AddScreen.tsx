@@ -6,7 +6,7 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
 import { ToggleSwitch, PrimaryButton, Heading } from '@/src/components/global';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import LogView from './LogView';
 import RecipeView from './RecipeView';
 import { createCameraHandlers } from '@/src/utils/camera';
@@ -17,11 +17,15 @@ import { fetchCocktails } from '@/src/api/cocktail';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { colors } from '@/src/theme/colors';
 import { ANALYTICS_EVENTS, posthogCapture, trackWithTTFA } from '@/src/analytics';
+import { addTags } from '@/src/api/tags';
 
 type ViewType = 'log' | 'recipe';
 
 export const AddScreen = () => {
     const navigation = useNavigation();
+    const route = useRoute<any>();
+    const { prefilledCocktailId, prefilledCocktailName } = route.params || {};
+    
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
     const [isAtHome, setIsAtHome] = useState(false);
@@ -50,10 +54,17 @@ export const AddScreen = () => {
         (async () => {
             const data = await fetchCocktails();
             if (!mounted) return;
-            setCocktails(data.map((c: DBCocktail) => ({ id: c.id, name: c.name })));
+            const mappedCocktails = data.map((c: DBCocktail) => ({ id: c.id, name: c.name }));
+            setCocktails(mappedCocktails);
+            
+            // Pre-fill cocktail if parameters provided
+            if (prefilledCocktailId && prefilledCocktailName) {
+                setCocktailQuery(prefilledCocktailName);
+                setSelectedCocktailId(prefilledCocktailId);
+            }
         })();
         return () => { mounted = false };
-    }, []);
+    }, [prefilledCocktailId, prefilledCocktailName]);
 
     const [isUploading, setIsUploading] = useState(false);
     const [cocktails, setCocktails] = useState<Array<{ id: string; name: string | null }>>([]);
@@ -63,6 +74,7 @@ export const AddScreen = () => {
     const [caption, setCaption] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMessage, setModalMessage] = useState<string | null>(null);
+    const [taggedFriendIds, setTaggedFriendIds] = useState<string[]>([]);
 
     const handleLogCocktail = async () => {
         try {
@@ -121,12 +133,23 @@ export const AddScreen = () => {
                         image_url: uploadedUrl,
                         created_at: new Date().toISOString(),
                     },
-                ]);
+                ])
+                .select()
+                .single();
 
             if (insertError) {
                 console.error('Insert error', insertError);
                 alert('Saved image but failed to create log entry. See console.');
                 return;
+            }
+
+            // Add tags if any friends were selected
+            if (taggedFriendIds.length > 0 && insertData) {
+                const tagResult = await addTags(insertData.id, taggedFriendIds);
+                if (!tagResult.success) {
+                    console.error('Failed to add tags:', tagResult.error);
+                    // Don't fail the entire operation, just log the error
+                }
             }
 
             // Check if this is the user's first cocktail log (for activation tracking)
@@ -169,6 +192,7 @@ export const AddScreen = () => {
             setShareWith('private');
             setCocktailSuggestionsVisible(false);
             setSuggestionsVisible(false);
+            setTaggedFriendIds([]);
 
             // Reset interaction state so errors won't show on fresh form
             setHasLogInteracted(false);
@@ -220,25 +244,43 @@ export const AddScreen = () => {
                 }}
             >
                 {/* View Toggle */}
-                <Box className="mb-4">
-                    <View className="flex-row rounded-xl p-1">
-                        <Pressable
-                            onPress={() => setActiveView('log')}
-                            className={activeView === 'log' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
+                <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
+                    <Pressable
+                        onPress={() => setActiveView('log')}
+                        className={
+                            activeView === 'log'
+                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
+                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
+                        }
+                    >
+                        <Text
+                            className={
+                                activeView === 'log'
+                                    ? 'text-sm text-center text-white font-medium'
+                                    : 'text-sm text-center text-neutral-900 font-medium'
+                            }
                         >
-                            <Text className={activeView === 'log' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
-                                Existing Cocktail
-                            </Text>
-                        </Pressable>
-                        <Pressable
-                            onPress={() => setActiveView('recipe')}
-                            className={activeView === 'recipe' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
+                            Existing Cocktail
+                        </Text>
+                    </Pressable>
+                    <Pressable
+                        onPress={() => setActiveView('recipe')}
+                        className={
+                            activeView === 'recipe'
+                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
+                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
+                        }
+                    >
+                        <Text
+                            className={
+                                activeView === 'recipe'
+                                    ? 'text-sm text-center text-white font-medium'
+                                    : 'text-sm text-center text-neutral-900 font-medium'
+                            }
                         >
-                            <Text className={activeView === 'recipe' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
-                                Create Recipe
-                            </Text>
-                        </Pressable>
-                    </View>
+                            Create Recipe
+                        </Text>
+                    </Pressable>
                 </Box>
 
                 {activeView === 'log' ? (
@@ -273,6 +315,8 @@ export const AddScreen = () => {
                         canSubmit={canSubmit}
                         hasInteracted={hasLogInteracted}
                         setHasInteracted={setHasLogInteracted}
+                        taggedFriendIds={taggedFriendIds}
+                        setTaggedFriendIds={setTaggedFriendIds}
                     />
                 ) : (
                     <RecipeView
