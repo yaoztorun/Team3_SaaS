@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import {
   ScrollView,
   ActivityIndicator,
@@ -59,6 +60,7 @@ export type FeedPost = {
   id: string;
   userName: string;
   userInitials: string;
+  userId?: string;
   timeAgo: string;
   cocktailName: string;
   rating: number;
@@ -155,6 +157,7 @@ const DUMMY_POSTS_FOR_YOU: FeedPost[] = [
 
 export const HomeScreen: React.FC = () => {
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
 
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('friends');
   const [feedPosts, setFeedPosts] = useState<FeedPost[]>([]);
@@ -337,6 +340,7 @@ export const HomeScreen: React.FC = () => {
             id: log.id,
             userName: fullName,
             userInitials: initials,
+            userId: log.Profile?.id ?? log.user_id,
             timeAgo: formatTimeAgo(log.created_at),
             cocktailName,
             rating: log.rating ?? 0,
@@ -529,7 +533,7 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <Box className="flex-1 bg-neutral-50">
-      <TopBar title="Home" onNotificationPress={handleNotificationSelect} showLogo />
+      <TopBar title="Feed" onNotificationPress={handleNotificationSelect} showLogo />
 
       <ScrollView
         className="flex-1"
@@ -736,6 +740,11 @@ export const HomeScreen: React.FC = () => {
               {...post}
               onToggleLike={() => handleToggleLike(post.id)}
               onPressComments={() => openComments(post.id)}
+              onPressUser={() => {
+                if (post.userId) {
+                  navigation.navigate('UserProfile', { userId: post.userId });
+                }
+              }}
             />
           </Box>
         ))}
