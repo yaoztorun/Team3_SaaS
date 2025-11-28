@@ -2,6 +2,7 @@
 export { PrimaryButton } from './PrimaryButton';
 export { TextInputField } from './TextInputField';
 export { ImageUploadBox } from './ImageUploadBox';
+export { ImagePickerModal } from './ImagePickerModal';
 export { RatingStars } from './RatingStars';
 export { RadioOption } from './RadioOption';
 export { DifficultySelector } from './DifficultySelector';
