@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, TouchableOpacity, Image, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Button } from '@/src/components/ui/button';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
+import { ChevronDown, User } from 'lucide-react-native';
 import { SocialStackParamList } from './SocialStack';
 import { fetchAllVisibleEvents, registerForEvent, cancelEventRegistration, getUserEventRegistration, type EventWithDetails } from '@/src/api/event';
 import { Heading } from '@/src/components/global';
@@ -19,6 +20,8 @@ export const PartiesView = () => {
     const [myEvents, setMyEvents] = useState<EventWithDetails[]>([]);
     const [friendsEvents, setFriendsEvents] = useState<EventWithDetails[]>([]);
     const [publicEvents, setPublicEvents] = useState<EventWithDetails[]>([]);
+    const [myEventsCollapsed, setMyEventsCollapsed] = useState(false);
+    const [friendsEventsCollapsed, setFriendsEventsCollapsed] = useState(false);
 
     // Load events on mount
     useEffect(() => {
@@ -131,122 +134,123 @@ export const PartiesView = () => {
         //     }`);
 
         return (
-            <Pressable
+            <TouchableOpacity
                 key={event.id}
                 onPress={() => navigation.navigate('PartyDetails', { party: event as any })}
-                className="bg-white rounded-xl mb-3 border border-gray-200 overflow-hidden"
+                className="bg-white rounded-xl mb-3 border-[3px] border-gray-200 overflow-hidden"
+                activeOpacity={0.7}
             >
-                {/* Header Section */}
-                <Box className="p-4">
-                    <HStack className="justify-between items-start mb-3">
-                        <Box className="flex-1 pr-2">
-                            <Heading level="h5" className="text-gray-900 mb-1">{event.name}</Heading>
-                            <Text className="text-sm text-gray-500">Organized by {organizerName}</Text>
-                        </Box>
-                        {event.price && event.price > 0 && (
-                            <Box className="bg-[#00a294] rounded-full w-12 h-12 items-center justify-center">
-                                <Text className="text-white text-xs font-semibold">€{event.price}</Text>
-                            </Box>
+                {/* Cover Image or Placeholder */}
+                {event.cover_image ? (
+                    <Image
+                        source={{ uri: event.cover_image }}
+                        className="w-full h-40"
+                        resizeMode="cover"
+                    />
+                ) : (
+                    <Box className="w-full h-40 bg-gray-200 items-center justify-center">
+                        <Text className="text-6xl">🎉</Text>
+                    </Box>
+                )}
+
+                {/* Party Type Badge */}
+                <Box className="absolute top-3 left-3">
+                    <Box className="px-3 py-1 rounded-full bg-[#00a294]">
+                        <Text className="text-white text-xs font-medium">
+                            {event.party_type?.replace('-', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Party'}
+                        </Text>
+                    </Box>
+                </Box>
+
+                {/* Party Info */}
+                <Box className="p-3">
+                    {/* Title and Price on same line */}
+                    <HStack className="justify-between items-center mb-2">
+                        <Text className="text-base font-medium text-neutral-900 flex-1 mr-2">{event.name}</Text>
+                        {event.price !== null && event.price !== undefined && (
+                            <Text className="text-base font-semibold text-neutral-900">
+                                {event.price === 0 ? 'Free' : `€${event.price}`}
+                            </Text>
                         )}
                     </HStack>
 
-                    {/* Info Section */}
-                    {/* Date & Time Row */}
-                    <HStack className="mb-2 items-center">
-                        <Box className="w-7 h-7 rounded bg-gray-100 items-center justify-center mr-2">
-                            <Text className="text-sm">📅</Text>
-                        </Box>
-                        <Box>
-                            <Text className="text-sm text-gray-900">
-                                {event.start_time ? formatDate(event.start_time) : 'Date TBA'}
-                            </Text>
-                            <Text className="text-xs text-gray-500">
-                                {event.start_time && formatTime(event.start_time)}
-                                {event.end_time && ` - ${formatTime(event.end_time)}`}
-                            </Text>
-                        </Box>
+                    {/* Organizer */}
+                    <HStack className="items-center mb-2">
+                        <User size={16} color="#6b7280" />
+                        <Text className="text-sm text-neutral-600 ml-2">Organized by {organizerName}</Text>
                     </HStack>
 
-                    {/* Location Row */}
-                    <HStack className="mb-2 items-center">
-                        <Box className="w-7 h-7 rounded bg-gray-100 items-center justify-center mr-2">
-                            <Text className="text-sm">📍</Text>
-                        </Box>
-                        <Box className="flex-1">
-                            {event.location?.name && (
-                                <Text className="text-sm text-gray-900">{event.location.name}</Text>
-                            )}
-                            <Text className={`text-${event.location?.name ? 'xs' : 'sm'} text-gray-${event.location?.name ? '500' : '900'}`}>
-                                {locationAddress}
-                            </Text>
-                        </Box>
+                    {/* Date & Time */}
+                    <HStack className="items-center mb-2">
+                        <Text className="text-sm text-neutral-600">📅</Text>
+                        <Text className="text-sm text-neutral-600 ml-2">
+                            {event.start_time ? formatDate(event.start_time) : 'Date TBA'} · {event.start_time && formatTime(event.start_time)}
+                        </Text>
                     </HStack>
 
-                    {/* Attendees Row */}
-                    <HStack className="items-center mb-3">
-                        <Box className="w-7 h-7 rounded bg-gray-100 items-center justify-center mr-2">
-                            <Text className="text-sm">👥</Text>
-                        </Box>
-                        <Box>
-                            <Text className="text-sm text-gray-900">
-                                {event.attendee_count || 0}
-                                {event.max_attendees ? `/${event.max_attendees}` : ''} attending
-                            </Text>
-                            {event.max_attendees && event.max_attendees > (event.attendee_count || 0) && (
-                                <Text className="text-xs text-gray-500">
-                                    {event.max_attendees - (event.attendee_count || 0)} spots left
+                    {/* Attendees and Button */}
+                    <HStack className="justify-between items-center pt-2 border-t border-neutral-100">
+                        <Text className="text-xs text-neutral-600">
+                            {event.attendee_count || 0}{event.max_attendees ? `/${event.max_attendees}` : ''} attending
+                        </Text>
+                        {isMyEvent ? (
+                            <TouchableOpacity
+                                className="px-3 py-1.5 rounded-lg bg-[#00a294]"
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    navigation.navigate('PartyDetails', { party: event as any });
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Text className="text-white text-sm font-medium">Manage</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity
+                                className={`px-3 py-1.5 rounded-lg border-2 ${
+                                    registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
+                                        ? 'bg-[#00a294] border-[#00a294]'
+                                        : 'bg-white border-[#00a294]'
+                                }`}
+                                onPress={(e) => {
+                                    e.stopPropagation();
+                                    handleRegistration(event.id, event.isApprovalRequired);
+                                }}
+                                disabled={processingEvents.has(event.id)}
+                                activeOpacity={0.8}
+                            >
+                                <Text className={`text-sm font-medium ${
+                                    registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
+                                        ? 'text-white'
+                                        : 'text-[#00a294]'
+                                }`}>
+                                    {processingEvents.has(event.id)
+                                        ? 'Processing...'
+                                        : registrationStatus[event.id] === 'registered'
+                                        ? 'Going'
+                                        : registrationStatus[event.id] === 'waitlisted'
+                                        ? 'Requested'
+                                        : event.isApprovalRequired
+                                        ? 'Request'
+                                        : 'Join'}
                                 </Text>
-                            )}
-                        </Box>
+                            </TouchableOpacity>
+                        )}
                     </HStack>
-
-                    {/* Action Button */}
-                    {isMyEvent ? (
-                        <Button
-                            variant="outline"
-                            className="border-gray-300 w-full"
-                            onPress={() => navigation.navigate('PartyDetails', { party: event as any })}
-                        >
-                            <Text className="text-gray-600 font-medium">Manage Event</Text>
-                        </Button>
-                    ) : (
-                        <Button
-                            variant={(registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted') ? "solid" : "outline"}
-                            className={(registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted')
-                                ? "bg-[#00a294] w-full"
-                                : "border-[#00a294] w-full"}
-                            onPress={() => handleRegistration(event.id, event.isApprovalRequired)}
-                            disabled={processingEvents.has(event.id)}
-                        >
-                            {processingEvents.has(event.id) ? (
-                                <Text className={(registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted') ? "text-white font-medium" : "text-[#00a294] font-medium"}>
-                                    Processing...
-                                </Text>
-                            ) : registrationStatus[event.id] === 'registered' ? (
-                                <Text className="text-white font-medium">✓ Going - Cancel</Text>
-                            ) : registrationStatus[event.id] === 'waitlisted' ? (
-                                <Text className="text-white font-medium">Request Sent - Cancel</Text>
-                            ) : event.isApprovalRequired ? (
-                                <Text className="text-[#00a294] font-medium">Request to Join</Text>
-                            ) : (
-                                <Text className="text-[#00a294] font-medium">I'm Going</Text>
-                            )}
-                        </Button>
-                    )}
                 </Box>
-            </Pressable>
+            </TouchableOpacity>
         );
     };
 
     return (
         <>
             {/* Create Party Button */}
-            <Button
-                className="bg-[#00a294] mb-4 flex-row items-center justify-center"
+            <TouchableOpacity
+                className="bg-[#00a294] mb-4 py-3 rounded-lg"
                 onPress={() => navigation.navigate('CreateParty')}
+                activeOpacity={0.8}
             >
-                <Text className="text-white">+ Create New Party</Text>
-            </Button>
+                <Text className="text-white text-center font-medium">+ Create New Party</Text>
+            </TouchableOpacity>
 
             {/* Parties List */}
             <Box>
@@ -260,20 +264,46 @@ export const PartiesView = () => {
                         {/* My Events Section */}
                         {myEvents.length > 0 && (
                             <Box className="mb-6">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">
-                                    My Parties ({myEvents.length})
-                                </Text>
-                                {myEvents.map(event => renderPartyCard(event, true))}
+                                <TouchableOpacity
+                                    onPress={() => setMyEventsCollapsed(!myEventsCollapsed)}
+                                    className="flex-row items-center justify-between mb-3"
+                                    activeOpacity={0.7}
+                                >
+                                    <Text className="text-sm font-semibold text-gray-700">
+                                        My Parties ({myEvents.length})
+                                    </Text>
+                                    <ChevronDown
+                                        size={20}
+                                        color="#374151"
+                                        style={{
+                                            transform: [{ rotate: myEventsCollapsed ? '-90deg' : '0deg' }],
+                                        }}
+                                    />
+                                </TouchableOpacity>
+                                {!myEventsCollapsed && myEvents.map(event => renderPartyCard(event, true))}
                             </Box>
                         )}
 
                         {/* Friends Events Section */}
                         {friendsEvents.length > 0 && (
                             <Box className="mb-6">
-                                <Text className="text-sm font-semibold text-gray-700 mb-3">
-                                    Friends' Parties ({friendsEvents.length})
-                                </Text>
-                                {friendsEvents.map(event => renderPartyCard(event, false))}
+                                <TouchableOpacity
+                                    onPress={() => setFriendsEventsCollapsed(!friendsEventsCollapsed)}
+                                    className="flex-row items-center justify-between mb-3"
+                                    activeOpacity={0.7}
+                                >
+                                    <Text className="text-sm font-semibold text-gray-700">
+                                        Friends' Parties ({friendsEvents.length})
+                                    </Text>
+                                    <ChevronDown
+                                        size={20}
+                                        color="#374151"
+                                        style={{
+                                            transform: [{ rotate: friendsEventsCollapsed ? '-90deg' : '0deg' }],
+                                        }}
+                                    />
+                                </TouchableOpacity>
+                                {!friendsEventsCollapsed && friendsEvents.map(event => renderPartyCard(event, false))}
                             </Box>
                         )}
 

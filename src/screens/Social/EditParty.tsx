@@ -242,7 +242,7 @@ export const EditParty = () => {
                             onGalleryPress={handleGalleryPress}
                         />
                         {coverImage && (
-                            <Box className="mt-3 rounded-xl overflow-hidden">
+                            <Box className="mt-3 rounded-xl overflow-hidden border-[3px] border-gray-200">
                                 <Image source={{ uri: coverImage }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
                             </Box>
                         )}
