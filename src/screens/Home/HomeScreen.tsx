@@ -377,6 +377,16 @@ export const HomeScreen: React.FC = () => {
     }
   }, [route?.params?.openDrinkLogId]);
 
+  // Web: handle URL path /log/{id}
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const match = window.location.pathname.match(/^\/log\/(.+)$/);
+      if (match && match[1]) {
+        setPendingOpenPostId(match[1]);
+      }
+    }
+  }, []);
+
   // Also react on focus to handle cases where params didn't trigger change
   useFocusEffect(
     React.useCallback(() => {
