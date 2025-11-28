@@ -11,6 +11,7 @@ import { TaggedUser } from '@/src/api/tags';
 
 interface FeedPostCardProps {
   id: string;
+  cocktailId: string;
   userName: string;
   userInitials: string;
   timeAgo: string;
@@ -31,10 +32,12 @@ interface FeedPostCardProps {
   onPressComments?: () => void;
   onPressUser?: () => void;
   onPressTags?: () => void;
+  onPressCocktail?: (cocktailId: string) => void;
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   id,
+  cocktailId,
   userName,
   userInitials,
   timeAgo,
@@ -51,6 +54,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   onPressComments,
   onPressUser,
   onPressTags,
+  onPressCocktail,
 }) => {
   const [shareOpen, setShareOpen] = useState(false);
   const { user } = useAuth();
@@ -161,17 +165,18 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         />
         {/* Cocktail name and rating badge */}
         <Box className="absolute bottom-4 left-4 right-4 flex-row items-center justify-between">
-          <Box 
+          <Pressable 
             className="rounded-xl px-3 py-2 flex-row items-center"
             style={{
               borderWidth: 2,
               borderColor: '#14b8a6',
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
             }}
+            onPress={() => onPressCocktail?.(cocktailId)}
           >
             <Text className="text-base mr-1">🍸</Text>
             <Text className="text-sm text-neutral-900">{cocktailName}</Text>
-          </Box>
+          </Pressable>
           <Box 
             className="rounded-xl px-3 py-2 flex-row items-center"
             style={{

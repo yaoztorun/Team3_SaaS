@@ -24,10 +24,6 @@ export async function fetchUserSettings(userId: string): Promise<UserSettings> {
       ...defaultSettings.notifications,
       ...(data.settings.notifications || {}),
     },
-    privacy: {
-      ...defaultSettings.privacy,
-      ...(data.settings.privacy || {}),
-    },
   };
 }
 

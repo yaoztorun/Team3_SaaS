@@ -119,11 +119,11 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
     
     const friendCount = friendships?.length || 0;
 
-    // 3. Count events hosted (organizer_id in Event table)
+    // 3. Count events hosted (organiser_id in Event table)
     const { count: eventsHostedCount } = await supabase
       .from('Event')
       .select('*', { count: 'exact', head: true })
-      .eq('organizer_id', userId);
+      .eq('organiser_id', userId);
 
     // 4. Count events attended (EventRegistration table)
     const { count: eventsAttendedCount } = await supabase

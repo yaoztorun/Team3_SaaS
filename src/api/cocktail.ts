@@ -5,11 +5,19 @@ export type DBCocktail = Tables<'Cocktail'>;
 
 /**
  * Fetch public cocktails (both system and user-created public recipes)
+ * Includes creator profile information for user-created cocktails
  */
 export async function fetchPublicCocktails(): Promise<DBCocktail[]> {
         const { data, error } = await supabase
                 .from('Cocktail')
-                .select('*')
+                .select(`
+                        *,
+                        Profile (
+                                id,
+                                full_name,
+                                avatar_url
+                        )
+                `)
                 .eq('is_public', true) // Only show public cocktails
                 .order('created_at', { ascending: false });
 
@@ -43,6 +51,35 @@ export async function fetchPersonalRecipes(): Promise<DBCocktail[]> {
         }
 
         return (data ?? []) as DBCocktail[];
+}
+
+/**
+ * Fetch a single cocktail by ID with creator profile
+ * Access control is handled by RLS policies:
+ * - Returns public cocktails (is_public = true)
+ * - Returns user's own cocktails (creator_id = auth.uid())
+ * - Returns null for private cocktails owned by others
+ */
+export async function fetchCocktailById(cocktailId: string): Promise<DBCocktail | null> {
+        const { data, error } = await supabase
+                .from('Cocktail')
+                .select(`
+                        *,
+                        Profile (
+                                id,
+                                full_name,
+                                avatar_url
+                        )
+                `)
+                .eq('id', cocktailId)
+                .single();
+
+        if (error) {
+                console.error('Error fetching cocktail:', error);
+                return null;
+        }
+
+        return data as DBCocktail;
 }
 
 /**

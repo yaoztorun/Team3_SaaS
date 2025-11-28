@@ -25,9 +25,6 @@ const Settings: React.FC = () => {
 
     // Settings state
     const [settings, setSettings] = useState<UserSettings>({
-        privacy: {
-            is_private: false,
-        },
         notifications: {
             likes: true,
             comments: true,
@@ -71,16 +68,6 @@ const Settings: React.FC = () => {
             ...prev,
             notifications: {
                 ...prev.notifications,
-                [key]: value,
-            },
-        }));
-    };
-
-    const updatePrivacySetting = (key: keyof UserSettings['privacy'], value: boolean) => {
-        setSettings(prev => ({
-            ...prev,
-            privacy: {
-                ...prev.privacy,
                 [key]: value,
             },
         }));
@@ -192,23 +179,6 @@ const Settings: React.FC = () => {
                                 className={`w-12 h-6 rounded-full ${settings.notifications.comments ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}
                             >
                                 <Box className={`w-5 h-5 rounded-full bg-white shadow ${settings.notifications.comments ? 'ml-6' : 'ml-0'}`} />
-                            </Pressable>
-                        </Box>
-                    </Box>
-
-                    {/* Privacy */}
-                    <Box className="mb-4 bg-white rounded-2xl p-4">
-                        <Text className="text-base text-neutral-900 mb-3">Privacy</Text>
-                        <Box className="flex-row items-start justify-between">
-                            <Box style={{ flex: 1 }}>
-                                <Text className="text-sm font-medium text-neutral-800">Private Account</Text>
-                                <Text className="text-xs text-neutral-500">Only approved followers can see your content</Text>
-                            </Box>
-                            <Pressable 
-                                onPress={() => updatePrivacySetting('is_private', !settings.privacy.is_private)} 
-                                className={`w-12 h-6 rounded-full ${settings.privacy.is_private ? 'bg-teal-500' : 'bg-neutral-200'} justify-center`}
-                            >
-                                <Box className={`w-5 h-5 rounded-full bg-white shadow ${settings.privacy.is_private ? 'ml-6' : 'ml-0'}`} />
                             </Pressable>
                         </Box>
                     </Box>

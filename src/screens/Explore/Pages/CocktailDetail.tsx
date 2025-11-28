@@ -138,6 +138,19 @@ export const CocktailDetail = () => {
                     <Heading level="h3" className="mb-3">
                         {cocktail.name ?? 'Unnamed Cocktail'}
                     </Heading>
+                    
+                    {/* Creator Info - Show if it's a user-created cocktail */}
+                    {cocktail.origin_type === 'user' && (cocktail as any).Profile && (
+                        <Box className="mb-3">
+                            <HStack className="items-center gap-2">
+                                <Text className="text-sm text-neutral-600">Created by</Text>
+                                <Text className="text-sm font-semibold text-primary-500">
+                                    {((cocktail as any).Profile.full_name) || 'Unknown User'}
+                                </Text>
+                            </HStack>
+                        </Box>
+                    )}
+                    
                     <HStack className="items-center gap-4">
                         {/* Rating */}
                         <HStack className="items-center gap-1">
