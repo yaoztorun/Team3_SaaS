@@ -17,6 +17,7 @@ import { fetchCocktails } from '@/src/api/cocktail';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { colors } from '@/src/theme/colors';
 import { ANALYTICS_EVENTS, posthogCapture, trackWithTTFA } from '@/src/analytics';
+import { addTags } from '@/src/api/tags';
 
 type ViewType = 'log' | 'recipe';
 
@@ -63,6 +64,7 @@ export const AddScreen = () => {
     const [caption, setCaption] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMessage, setModalMessage] = useState<string | null>(null);
+    const [taggedFriendIds, setTaggedFriendIds] = useState<string[]>([]);
 
     const handleLogCocktail = async () => {
         try {
@@ -121,12 +123,23 @@ export const AddScreen = () => {
                         image_url: uploadedUrl,
                         created_at: new Date().toISOString(),
                     },
-                ]);
+                ])
+                .select()
+                .single();
 
             if (insertError) {
                 console.error('Insert error', insertError);
                 alert('Saved image but failed to create log entry. See console.');
                 return;
+            }
+
+            // Add tags if any friends were selected
+            if (taggedFriendIds.length > 0 && insertData) {
+                const tagResult = await addTags(insertData.id, taggedFriendIds);
+                if (!tagResult.success) {
+                    console.error('Failed to add tags:', tagResult.error);
+                    // Don't fail the entire operation, just log the error
+                }
             }
 
             // Check if this is the user's first cocktail log (for activation tracking)
@@ -169,6 +182,7 @@ export const AddScreen = () => {
             setShareWith('private');
             setCocktailSuggestionsVisible(false);
             setSuggestionsVisible(false);
+            setTaggedFriendIds([]);
 
             // Reset interaction state so errors won't show on fresh form
             setHasLogInteracted(false);
@@ -273,6 +287,8 @@ export const AddScreen = () => {
                         canSubmit={canSubmit}
                         hasInteracted={hasLogInteracted}
                         setHasInteracted={setHasLogInteracted}
+                        taggedFriendIds={taggedFriendIds}
+                        setTaggedFriendIds={setTaggedFriendIds}
                     />
                 ) : (
                     <RecipeView

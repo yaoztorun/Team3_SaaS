@@ -19,10 +19,11 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard, TextInputField, Heading } from '@/src/components/global';
+import { FeedPostCard, TextInputField, Heading, TaggedFriendsModal } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
+import { getTagsForLogs, TaggedUser } from '@/src/api/tags';
 import {
   getCommentCountsForLogs,
   getCommentsForLog,
@@ -69,6 +70,7 @@ export type FeedPost = {
   comments: number;
   caption: string;
   isLiked: boolean;
+  taggedFriends?: TaggedUser[];
 };
 
 // ---------- helpers ----------
@@ -176,6 +178,10 @@ export const HomeScreen: React.FC = () => {
   const [lastDeletedComment, setLastDeletedComment] =
     useState<CommentRow | null>(null);
   const [pendingOpenPostId, setPendingOpenPostId] = useState<string | null>(null);
+
+  // tagged friends modal state
+  const [tagsModalVisible, setTagsModalVisible] = useState(false);
+  const [currentTaggedFriends, setCurrentTaggedFriends] = useState<TaggedUser[]>([]);
 
   // carousel state - animated index with slide effect
   const [currentCocktailIndex, setCurrentCocktailIndex] = useState(0);
@@ -317,7 +323,7 @@ export const HomeScreen: React.FC = () => {
           return;
         }
 
-        // 🔹 add likes + comment counts
+        // 🔹 add likes + comment counts + tags
         const logIds = rawLogs.map((r) => r.id as string);
 
         const { counts: likeCounts, likedByMe } = await getLikesForLogs(
@@ -326,6 +332,8 @@ export const HomeScreen: React.FC = () => {
         );
 
         const commentCounts = await getCommentCountsForLogs(logIds);
+
+        const tagsMap = await getTagsForLogs(logIds);
 
         const mapped: FeedPost[] = rawLogs.map((raw) => {
           const log = raw as DbDrinkLog;
@@ -337,6 +345,7 @@ export const HomeScreen: React.FC = () => {
           const likes = likeCounts.get(log.id) ?? 0;
           const comments = commentCounts.get(log.id) ?? 0;
           const isLiked = likedByMe.has(log.id);
+          const taggedFriends = tagsMap.get(log.id) ?? [];
 
           return {
             id: log.id,
@@ -351,6 +360,7 @@ export const HomeScreen: React.FC = () => {
             comments,
             caption: log.caption ?? '',
             isLiked,
+            taggedFriends,
           };
         });
 
@@ -796,6 +806,12 @@ export const HomeScreen: React.FC = () => {
                   navigation.navigate('UserProfile', { userId: post.userId });
                 }
               }}
+              onPressTags={() => {
+                if (post.taggedFriends && post.taggedFriends.length > 0) {
+                  setCurrentTaggedFriends(post.taggedFriends);
+                  setTagsModalVisible(true);
+                }
+              }}
             />
           </Box>
         ))}
@@ -838,6 +854,12 @@ export const HomeScreen: React.FC = () => {
                     onToggleLike={() => handleToggleLike(focusedPost.id)}
                     // comments button does nothing here (we're already in detail)
                     onPressComments={() => {}}
+                    onPressTags={() => {
+                      if (focusedPost.taggedFriends && focusedPost.taggedFriends.length > 0) {
+                        setCurrentTaggedFriends(focusedPost.taggedFriends);
+                        setTagsModalVisible(true);
+                      }
+                    }}
                   />
                 </Box>
               )}
@@ -942,6 +964,16 @@ export const HomeScreen: React.FC = () => {
         </KeyboardAvoidingView>
         </View>
       </Modal>
+
+      {/* Tagged Friends Modal */}
+      <TaggedFriendsModal
+        visible={tagsModalVisible}
+        onClose={() => setTagsModalVisible(false)}
+        taggedFriends={currentTaggedFriends}
+        onPressFriend={(friendId) => {
+          navigation.navigate('UserProfile', { userId: friendId });
+        }}
+      />
     </Box>
   );
 };
