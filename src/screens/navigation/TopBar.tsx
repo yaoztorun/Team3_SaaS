@@ -39,6 +39,7 @@ interface TopBarProps {
   onSettingsPress?: () => void;
   showBack?: boolean;
   onBackPress?: () => void;
+  showLogo?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -49,6 +50,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   showSettingsIcon = false,
   onSettingsPress,
   showBack = false,
+  showLogo = false,
   onBackPress,
 }) => {
   const insets = useSafeAreaInsets();
@@ -235,8 +237,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     <Box
       className="bg-white"
       style={{
-        paddingTop: insets.top + spacing.screenVertical,
-        paddingBottom: spacing.screenVertical,
+        paddingTop: insets.top + 16,
+        paddingBottom: 16,
         paddingLeft: spacing.screenHorizontal,
         paddingRight: spacing.screenHorizontal,
         borderBottomWidth: 1,
@@ -258,27 +260,29 @@ export const TopBar: React.FC<TopBarProps> = ({
             </Pressable>
           )}
 
-          {title === 'Feed' ? (
+          {/* Logo (shown only on main pages) */}
+          {showLogo && (
             <Image
               source={require('../../../assets/icon.png')}
               style={{
-                width: 50,
-                height: 50,
+                width: 40,
+                height: 40,
                 resizeMode: 'contain',
               }}
             />
-          ) : (
-            <Text
-              style={{
-                fontSize: 26,
-                fontWeight: '700',
-                color: '#111827',
-                letterSpacing: -0.5,
-              }}
-            >
-              {title}
-            </Text>
           )}
+
+          {/* Title text */}
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: '700',
+              color: '#111827',
+              letterSpacing: -0.5,
+            }}
+          >
+            {title === 'Feed' ? 'Home' : title}
+          </Text>
         </View>
 
         {/* Right side: either settings icon (for profile) or stats + bell */}

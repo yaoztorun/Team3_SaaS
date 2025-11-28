@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ScrollView, Image, TouchableOpacity } from 'react-native';
+import { ScrollView, Image, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Box } from '@/src/components/ui/box';
@@ -118,16 +118,18 @@ export const Shop = () => {
     return (
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="Shop" showBack onBackPress={() => navigation.goBack()} />
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-                {/* Search bar */}
-                <Box className="mb-3">
-                    <SearchBar
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                        placeholder="Search products..."
-                    />
-                </Box>
+            
+            {/* Search bar - stays at top */}
+            <Box className="px-4 pt-4 pb-2">
+                <SearchBar
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                    placeholder="Search products..."
+                />
+            </Box>
 
+            {/* Filters - stay at top */}
+            <Box className="px-4 pb-2">
                 {/* Category Filters */}
                 <ScrollView 
                     horizontal 
@@ -152,23 +154,21 @@ export const Shop = () => {
                 </ScrollView>
 
                 {/* Price Filter */}
-                <Box className="mb-3">
-                    <TouchableOpacity
-                        onPress={() => setShowPriceFilter(!showPriceFilter)}
-                        className="bg-white rounded-lg px-4 py-3 flex-row items-center justify-between"
-                    >
-                        <Text className="text-sm font-medium">
-                            {priceRange === 'all' ? 'All Prices' :
-                             priceRange === 'under20' ? 'Under €20' :
-                             priceRange === '20to50' ? '€20 - €50' : 'Over €50'}
-                        </Text>
-                        <ChevronDown size={16} color="#666" />
-                    </TouchableOpacity>
-                </Box>
+                <TouchableOpacity
+                    onPress={() => setShowPriceFilter(!showPriceFilter)}
+                    className="bg-white rounded-lg px-4 py-3 flex-row items-center justify-between"
+                >
+                    <Text className="text-sm font-medium">
+                        {priceRange === 'all' ? 'All Prices' :
+                         priceRange === 'under20' ? 'Under €20' :
+                         priceRange === '20to50' ? '€20 - €50' : 'Over €50'}
+                    </Text>
+                    <ChevronDown size={16} color="#666" />
+                </TouchableOpacity>
 
                 {/* Price dropdown */}
                 {showPriceFilter && (
-                    <Box className="bg-white rounded-lg mb-3 p-2">
+                    <Box className="bg-white rounded-lg mt-2 p-2">
                         {[
                             { value: 'all', label: 'All Prices' },
                             { value: 'under20', label: 'Under €20' },
@@ -190,6 +190,13 @@ export const Shop = () => {
                         ))}
                     </Box>
                 )}
+            </Box>
+
+            {/* Scrollable product content - starts below filters */}
+            <ScrollView
+                className="flex-1"
+                contentContainerStyle={{ padding: 16 }}
+            >
 
                 {/* Results count */}
                 <Text className="text-sm text-gray-600 mb-3">

@@ -22,6 +22,7 @@ import { fetchProfile } from '@/src/api/profile';
 import type { Profile } from '@/src/types/profile';
 import { supabase } from '@/src/lib/supabase';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
+import { fetchUserBadges, Badge } from '@/src/api/badges';
 
 type View = 'logged-drinks' | 'stats';
 
@@ -84,6 +85,40 @@ export const ProfileScreen = () => {
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
+  // badges state
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [loadingBadges, setLoadingBadges] = useState(false);
+
+  // topbar stats (streak + total drinks)
+  const [streakCount, setStreakCount] = useState(0);
+  const [totalDrinks, setTotalDrinks] = useState(0);
+
+  const computeStreakFromDates = (dates: string[]): number => {
+    if (dates.length === 0) return 0;
+
+    const daySet = new Set<string>(
+      dates.map((iso) => new Date(iso).toISOString().slice(0, 10)),
+    );
+
+    const today = new Date();
+    const todayStr = today.toISOString().slice(0, 10);
+
+    // Only count if user has logged today
+    if (!daySet.has(todayStr)) {
+      return 0;
+    }
+
+    let current = new Date(today);
+    let streak = 0;
+
+    while (daySet.has(current.toISOString().slice(0, 10))) {
+      streak += 1;
+      current.setDate(current.getDate() - 1);
+    }
+
+    return streak;
+  };
+
   const loadProfile = async () => {
     if (user?.id) {
       setLoadingProfile(true);
@@ -100,6 +135,42 @@ export const ProfileScreen = () => {
       setUserStats(stats);
       setLoadingStats(false);
     }
+  };
+
+  const loadBadges = async () => {
+    if (user?.id) {
+      setLoadingBadges(true);
+      const userBadges = await fetchUserBadges(user.id);
+      setBadges(userBadges);
+      setLoadingBadges(false);
+    }
+  };
+
+  const loadTopBarStats = async () => {
+    if (!user?.id) {
+      setStreakCount(0);
+      setTotalDrinks(0);
+      return;
+    }
+
+    const { data, error, count } = await supabase
+      .from('DrinkLog')
+      .select('created_at', { count: 'exact' })
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(365);
+
+    if (error) {
+      console.error('Error loading topbar stats:', error);
+      setStreakCount(0);
+      setTotalDrinks(0);
+      return;
+    }
+
+    const dates = (data ?? []).map((row: any) => row.created_at as string);
+    const streak = computeStreakFromDates(dates);
+    setStreakCount(streak);
+    setTotalDrinks(count ?? 0);
   };
 
   const loadRecentDrinks = async () => {
@@ -161,6 +232,8 @@ export const ProfileScreen = () => {
       loadProfile();
       loadRecentDrinks();
       loadStats();
+      loadBadges();
+      loadTopBarStats();
     }, [user?.id])
   );
 
@@ -170,12 +243,23 @@ export const ProfileScreen = () => {
     <Box className="flex-1 bg-neutral-50">
       <TopBar
         title="Profile"
+        streakCount={streakCount}
+        cocktailCount={totalDrinks}
         showSettingsIcon
         onSettingsPress={() => navigation.navigate('Settings')}
+        showLogo
       />
 
-      {/* User Profile Card */}
-      <Box className="mx-4 mt-4 p-6 bg-white rounded-2xl">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{
+          paddingHorizontal: spacing.screenHorizontal,
+          paddingTop: spacing.screenVertical,
+          paddingBottom: spacing.screenBottom,
+        }}
+      >
+        {/* User Profile Card */}
+        <Box className="mb-4 p-6 bg-white rounded-2xl">
         <HStack className="mb-4">
           {profile?.avatar_url ? (
             <Box className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
@@ -202,21 +286,43 @@ export const ProfileScreen = () => {
                 user?.email?.split('@')[0] ||
                 'User'}
             </Text>
-            <Text className="text-base text-neutral-600">
-              {profile?.email || user?.email || 'Cocktail Enthusiast'}
-            </Text>
+            
+            {/* Badges */}
+            <Box className="mt-2">
+              {loadingBadges ? (
+                <Text className="text-xs text-neutral-500">Loading badges...</Text>
+              ) : badges.length > 0 ? (
+                <HStack className="flex-wrap gap-2">
+                  {badges.slice(0, 6).map((badge) => (
+                    <Box 
+                      key={badge.type}
+                      className="items-center"
+                      style={{ width: 50 }}
+                    >
+                      <Image
+                        source={{ uri: badge.imageUrl }}
+                        style={{ width: 48, height: 48 }}
+                        resizeMode="contain"
+                      />
+                    </Box>
+                  ))}
+                </HStack>
+              ) : (
+                <Text className="text-xs text-neutral-500">No badges earned yet</Text>
+              )}
+            </Box>
           </Box>
         </HStack>
         <Pressable
           onPress={() => navigation.navigate('EditProfile')}
-          className="flex-row justify-center items-center py-2 rounded-lg bg-neutral-100"
+          className="flex-row justify-center items-center py-2 rounded-lg bg-teal-500"
         >
-          <Text className="text-sm text-teal-500">Edit Profile</Text>
+          <Text className="text-sm text-white font-medium">Edit Profile</Text>
         </Pressable>
       </Box>
 
       {/* View Toggle */}
-      <Box className="mx-4 mt-6 bg-white rounded-2xl p-1 flex-row">
+      <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
         <Pressable
           onPress={() => setCurrentView('logged-drinks')}
           className={
@@ -228,7 +334,7 @@ export const ProfileScreen = () => {
           <Text
             className={
               currentView === 'logged-drinks'
-                ? 'text-sm text-center text-white'
+                ? 'text-sm text-center text-white font-medium'
                 : 'text-sm text-center text-neutral-900'
             }
           >
@@ -246,7 +352,7 @@ export const ProfileScreen = () => {
           <Text
             className={
               currentView === 'stats'
-                ? 'text-sm text-center text-white'
+                ? 'text-sm text-center text-white font-medium'
                 : 'text-sm text-center text-neutral-900'
             }
           >
@@ -255,14 +361,6 @@ export const ProfileScreen = () => {
         </Pressable>
       </Box>
 
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{
-          paddingHorizontal: spacing.screenHorizontal,
-          paddingTop: spacing.screenVertical,
-          paddingBottom: spacing.screenBottom,
-        }}
-      >
         {currentView === 'logged-drinks' ? (
           <>
             {/* Logged Drinks Header */}

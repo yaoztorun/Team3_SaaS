@@ -209,17 +209,7 @@ export const AddScreen = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Log your drink!" />
-
-            {/* View Toggle */}
-            <Box className="px-4 py-2 bg-white border-b border-gray-200">
-                <ToggleSwitch
-                    value={activeView === 'log' ? 'left' : 'right'}
-                    onChange={(val) => setActiveView(val === 'left' ? 'log' : 'recipe')}
-                    leftLabel="Log Cocktail"
-                    rightLabel="Create Recipe"
-                />
-            </Box>
+            <TopBar title="Post your drink" showLogo />
 
             <ScrollView
                 className="flex-1"
@@ -229,6 +219,28 @@ export const AddScreen = () => {
                     paddingBottom: spacing.screenBottom,
                 }}
             >
+                {/* View Toggle */}
+                <Box className="mb-4">
+                    <View className="flex-row rounded-xl p-1">
+                        <Pressable
+                            onPress={() => setActiveView('log')}
+                            className={activeView === 'log' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
+                        >
+                            <Text className={activeView === 'log' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
+                                Existing Cocktail
+                            </Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => setActiveView('recipe')}
+                            className={activeView === 'recipe' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
+                        >
+                            <Text className={activeView === 'recipe' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
+                                Create Recipe
+                            </Text>
+                        </Pressable>
+                    </View>
+                </Box>
+
                 {activeView === 'log' ? (
                     <LogView
                         cocktailQuery={cocktailQuery}

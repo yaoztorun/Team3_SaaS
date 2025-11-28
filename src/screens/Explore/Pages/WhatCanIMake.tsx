@@ -97,16 +97,20 @@ export const WhatCanIMake = () => {
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="What Can I Make?" showBack onBackPress={() => navigation.goBack()} />
 
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-                {/* Search input */}
-                <Box className="mb-4">
-                    <SearchBar
-                        value={query}
-                        onChangeText={setQuery}
-                        placeholder="Search ingredients..."
-                    />
-                </Box>
+            {/* Search bar - stays at top */}
+            <Box className="px-4 pt-4 pb-2">
+                <SearchBar
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder="Search ingredients..."
+                />
+            </Box>
 
+            {/* Scrollable content - starts below search bar */}
+            <ScrollView
+                className="flex-1"
+                contentContainerStyle={{ padding: 16 }}
+            >
                 {/* Instructions */}
                 <Box className="mb-3">
                     <Text className="text-sm text-gray-600">Please select ingredients you have available:</Text>
