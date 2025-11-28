@@ -13,7 +13,7 @@ import { createCameraHandlers } from '@/src/utils/camera';
 import uploadImageUri from '@/src/utils/storage';
 import { supabase } from '@/src/lib/supabase';
 import fetchLocations from '@/src/api/location';
-import { fetchCocktails } from '@/src/api/cocktail';
+import { fetchPublicCocktails, fetchPersonalRecipes } from '@/src/api/cocktail';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { colors } from '@/src/theme/colors';
 import { ANALYTICS_EVENTS, posthogCapture, trackWithTTFA } from '@/src/analytics';
@@ -52,9 +52,14 @@ export const AddScreen = () => {
             setLocations(data.map(l => ({ id: l.id, name: l.name })));
         })();
         (async () => {
-            const data = await fetchCocktails();
+            // Fetch both public cocktails and user's personal recipes
+            const [publicCocktails, personalRecipes] = await Promise.all([
+                fetchPublicCocktails(),
+                fetchPersonalRecipes()
+            ]);
             if (!mounted) return;
-            const mappedCocktails = data.map((c: DBCocktail) => ({ id: c.id, name: c.name }));
+            const allCocktails = [...publicCocktails, ...personalRecipes];
+            const mappedCocktails = allCocktails.map((c: DBCocktail) => ({ id: c.id, name: c.name }));
             setCocktails(mappedCocktails);
             
             // Pre-fill cocktail if parameters provided

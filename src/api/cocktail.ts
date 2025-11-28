@@ -3,15 +3,42 @@ import type { Tables } from '../types/supabase'
 
 export type DBCocktail = Tables<'Cocktail'>;
 
-export async function fetchCocktails(): Promise<DBCocktail[]> {
+/**
+ * Fetch public cocktails (both system and user-created public recipes)
+ */
+export async function fetchPublicCocktails(): Promise<DBCocktail[]> {
         const { data, error } = await supabase
                 .from('Cocktail')
                 .select('*')
-                .is('creator_id', null) // Only show system cocktails (not user-created)
-                .order('created_at', { ascending: false }); // or 'name' if preferred
+                .eq('is_public', true) // Only show public cocktails
+                .order('created_at', { ascending: false });
 
         if (error) {
-                console.error('Error fetching cocktails:', error);
+                console.error('Error fetching public cocktails:', error);
+                return [];
+        }
+
+        return (data ?? []) as DBCocktail[];
+}
+
+/**
+ * Fetch the current user's personal recipes only
+ */
+export async function fetchPersonalRecipes(): Promise<DBCocktail[]> {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+                return [];
+        }
+
+        const { data, error } = await supabase
+                .from('Cocktail')
+                .select('*')
+                .eq('creator_id', user.id) // Only user's own recipes
+                .order('created_at', { ascending: false });
+
+        if (error) {
+                console.error('Error fetching personal recipes:', error);
                 return [];
         }
 
