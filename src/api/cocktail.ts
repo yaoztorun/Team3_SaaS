@@ -7,6 +7,7 @@ export async function fetchCocktails(): Promise<DBCocktail[]> {
         const { data, error } = await supabase
                 .from('Cocktail')
                 .select('*')
+                .is('creator_id', null) // Only show system cocktails (not user-created)
                 .order('created_at', { ascending: false }); // or 'name' if preferred
 
         if (error) {
@@ -15,6 +16,31 @@ export async function fetchCocktails(): Promise<DBCocktail[]> {
         }
 
         return (data ?? []) as DBCocktail[];
+}
+
+/**
+ * Fetch distinct cocktail types from the database
+ */
+export async function fetchCocktailTypes(): Promise<string[]> {
+        try {
+                const { data, error } = await supabase
+                        .from('Cocktail')
+                        .select('cocktail_type')
+                        .is('creator_id', null) // Only system cocktails
+                        .not('cocktail_type', 'is', null);
+
+                if (error) {
+                        console.error('Error fetching cocktail types:', error);
+                        return [];
+                }
+
+                // Get distinct values
+                const types = [...new Set(data.map(item => item.cocktail_type).filter(Boolean))];
+                return types as string[];
+        } catch (e) {
+                console.error('Unexpected error fetching cocktail types:', e);
+                return [];
+        }
 }
 
 /**
