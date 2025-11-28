@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { TouchableOpacity, Image as RNImage } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -11,6 +11,7 @@ import {
     RatingStars,
     RadioOption,
 } from '@/src/components/global';
+import { FriendSelectorModal } from '@/src/components/global/FriendSelectorModal';
 import { spacing } from '@/src/theme/spacing';
 import { colors } from '@/src/theme/colors';
 
@@ -47,6 +48,8 @@ interface LogViewProps {
     canSubmit: boolean;
     hasInteracted: boolean;
     setHasInteracted: (v: boolean) => void;
+    taggedFriendIds: string[];
+    setTaggedFriendIds: (ids: string[]) => void;
 }
 
 const LogView: React.FC<LogViewProps> = ({
@@ -80,7 +83,10 @@ const LogView: React.FC<LogViewProps> = ({
     canSubmit,
     hasInteracted,
     setHasInteracted,
+    taggedFriendIds,
+    setTaggedFriendIds,
 }) => {
+    const [tagModalVisible, setTagModalVisible] = useState(false);
 
     // Mark form as interacted when user starts filling fields
     const handleFieldInteraction = () => {
@@ -234,8 +240,14 @@ const LogView: React.FC<LogViewProps> = ({
             </Box>
 
             {/* Tag Friends Button */}
-            <TouchableOpacity className="flex-row items-center justify-center space-x-2 bg-gray-100 py-3 rounded-xl border border-gray-200">
-                <Text className="text-base text-gray-600">👥 Tag friends you were drinking with</Text>
+            <TouchableOpacity 
+                className="flex-row items-center justify-center space-x-2 bg-gray-100 py-3 rounded-xl border border-gray-200"
+                onPress={() => setTagModalVisible(true)}
+            >
+                <Text className="text-base text-gray-600">
+                    👥 Tag friends you were drinking with
+                    {taggedFriendIds.length > 0 && ` (${taggedFriendIds.length} tagged)`}
+                </Text>
             </TouchableOpacity>
 
             {/* Share With */}
@@ -271,6 +283,14 @@ const LogView: React.FC<LogViewProps> = ({
             {!canSubmit && hasInteracted && (
                 <Text className="text-sm text-red-500 mt-2">Please complete all required fields: cocktail, rating, review, and location or At Home.</Text>
             )}
+
+            {/* Friend Selector Modal */}
+            <FriendSelectorModal
+                visible={tagModalVisible}
+                onClose={() => setTagModalVisible(false)}
+                selectedFriendIds={taggedFriendIds}
+                onConfirm={setTaggedFriendIds}
+            />
         </Box>
     );
 };

@@ -16,3 +16,5 @@ export { EventCard } from './EventCard';
 export { DateTimePicker } from './DateTimePicker';
 export { LocationSelector } from './LocationSelector';
 export { Heading } from './Heading';
+export { FriendSelectorModal } from './FriendSelectorModal';
+export { TaggedFriendsModal } from './TaggedFriendsModal';
