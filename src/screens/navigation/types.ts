@@ -8,7 +8,7 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-    Home: undefined;
+    Home: { openDrinkLogId?: string } | undefined;
     Explore: undefined;
     Add: undefined;
     Social: undefined;
@@ -18,6 +18,7 @@ export type MainTabParamList = {
 export type RootStackParamList = {
     Auth: NavigatorScreenParams<AuthStackParamList>;
     Main: NavigatorScreenParams<MainTabParamList>;
+    UserProfile: { userId: string };
     Settings: undefined;
 };
 

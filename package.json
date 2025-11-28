@@ -26,6 +26,7 @@
     "@supabase/supabase-js": "^2.76.1",
     "expo": "~54.0.13",
     "expo-blur": "^15.0.7",
+    "expo-clipboard": "~6.0.1",
     "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
     "expo-media-library": "~18.2.0",
