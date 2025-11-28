@@ -148,6 +148,21 @@ export const AddScreen = () => {
                 return;
             }
 
+            // Make the cocktail public only if the post is public or friends-only
+            // Private posts keep the recipe private
+            if (shareWith === 'public' || shareWith === 'friends') {
+                const { error: updateError } = await supabase
+                    .from('Cocktail')
+                    .update({ is_public: true })
+                    .eq('id', selectedCocktailId)
+                    .eq('is_public', false); // Only update if it was private
+
+                if (updateError) {
+                    console.error('Failed to update cocktail visibility:', updateError);
+                    // Don't fail the entire operation, just log the error
+                }
+            }
+
             // Add tags if any friends were selected
             if (taggedFriendIds.length > 0 && insertData) {
                 const tagResult = await addTags(insertData.id, taggedFriendIds);
