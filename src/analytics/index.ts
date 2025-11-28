@@ -9,7 +9,6 @@ export const ANALYTICS_EVENTS = {
   
   // Activation
   FIRST_COCKTAIL_LOGGED: 'first_cocktail_logged',
-  FIRST_SHARE_CLICKED: 'first_share_clicked',
   FEATURE_USED: 'feature_used',
   
   // Revenue

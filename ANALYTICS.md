@@ -120,15 +120,29 @@ PostHog automatically calculates retention metrics from user activity.
 Track sharing and invite actions.
 
 **Events:**
-- `share_clicked` - When user shares content
-- `first_share_clicked` - First time user shares (activation metric)
+- `share_clicked` - When user shares content (all shares tracked)
 - `invite_sent` - When user sends an invite
 
 **Properties tracked:**
 - `post_id`: ID of shared post
 - `cocktail_name`: name of cocktail being shared
+- `share_method`: 'whatsapp', 'copy_link', or 'system'
 
-**Status:** 🚧 Not yet implemented
+**Implementation locations:**
+- `/src/components/global/FeedPostCard.tsx` - Share button handlers
+
+**Example:**
+```typescript
+posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+  post_id: id,
+  cocktail_name: cocktailName,
+  share_method: 'whatsapp',
+});
+```
+
+**Note:** PostHog can automatically identify first-time sharers using the "First Time Event" filter in insights, so we track all `share_clicked` events uniformly rather than having a separate `first_share_clicked` event.
+
+**Status:** ✅ Implemented (invite functionality pending)
 
 ## API Reference
 
@@ -200,7 +214,6 @@ posthogCapture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, { ... });
 - `SIGNUP_COMPLETED`
 - `LOGIN_COMPLETED`
 - `FIRST_COCKTAIL_LOGGED`
-- `FIRST_SHARE_CLICKED`
 - `FEATURE_USED`
 - `PREMIUM_UPGRADED`
 - `INVITE_SENT`
@@ -295,7 +308,7 @@ Call `identifyUser()` as soon as the user logs in or signs up to ensure all subs
 ### Immediate
 - [x] Track signup/login events
 - [x] Track first cocktail logged
-- [x] Track share clicks
+- [x] Track share clicks (WhatsApp, copy link, system share)
 - [x] Implement user identification
 
 ### Short-term

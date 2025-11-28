@@ -6,6 +6,7 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
 import { shareSystemSheet, shareToWhatsApp, copyLinkForLog } from '@/src/utils/share';
+import { posthogCapture, ANALYTICS_EVENTS } from '@/src/analytics';
 
 interface FeedPostCardProps {
   id: string;
@@ -26,7 +27,7 @@ interface FeedPostCardProps {
   // callbacks
   onToggleLike?: () => void;
   onPressComments?: () => void;
-  onPressUser?: () => void;   // 👈 NEW
+  onPressUser?: () => void;
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({
@@ -49,14 +50,29 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   const [shareOpen, setShareOpen] = useState(false);
 
   const handleWhatsApp = async () => {
+    posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'whatsapp',
+    });
     await shareToWhatsApp(id, cocktailName);
     setShareOpen(false);
   };
   const handleCopyLink = async () => {
+    posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'copy_link',
+    });
     await copyLinkForLog(id);
     setShareOpen(false);
   };
   const handleSystemShare = async () => {
+    posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'system',
+    });
     await shareSystemSheet(id, cocktailName);
     setShareOpen(false);
   };
