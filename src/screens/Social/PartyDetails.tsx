@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, TextInput, Image } from 'react-native';
+import { ScrollView, View, TextInput, Image, Platform, KeyboardAvoidingView } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
@@ -145,22 +145,22 @@ export const PartyDetails: React.FC = () => {
     }
 
     return (
-        <Box className="flex-1 bg-gray-100">
-            <TopBar
-                title="Party Details"
-                showBack
-                onBackPress={() => navigation.goBack()}
-            />
-
-            <ScrollView
-                contentContainerStyle={{
-                    paddingHorizontal: spacing.screenHorizontal,
-                    paddingTop: spacing.screenVertical,
-                    paddingBottom: spacing.screenBottom,
-                }}
+        <Box className="flex-1 bg-gray-50">
+            <TopBar title="Party Details" showBack onBackPress={() => navigation.goBack()} />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
             >
+                <ScrollView
+                    contentContainerStyle={{
+                        paddingHorizontal: spacing.screenHorizontal,
+                        paddingTop: spacing.screenVertical,
+                        paddingBottom: spacing.screenBottom,
+                    }}
+                >
                 {/* Header banner with cover image or emoji */}
-                <Box className="w-full rounded-2xl overflow-hidden mb-4 relative" style={{ height: 256 }}>
+                <Box className="w-full rounded-2xl overflow-hidden mb-4 relative border-[3px] border-gray-200" style={{ height: 256 }}>
                     {party.cover_image ? (
                         <Image
                             source={{ uri: party.cover_image }}
@@ -172,28 +172,29 @@ export const PartyDetails: React.FC = () => {
                             <Text className="text-8xl">🎉</Text>
                         </Box>
                     )}
-                    {party.price && party.price > 0 && (
-                        <View style={{ position: 'absolute', right: 16, top: 16 }}>
-                            <Box className="bg-[#00a294] rounded-lg px-2 py-1">
-                                <Text className="text-white text-xs font-semibold">€{party.price}</Text>
-                            </Box>
-                        </View>
-                    )}
                     {/* Edit Button for Host - Positioned on Cover Image */}
                     {isHost && (
                         <Pressable
                             onPress={() => navigation.navigate('EditParty', { party })}
-                            className="absolute left-4 bottom-4 bg-white rounded-lg px-4 py-2 flex-row items-center shadow-lg"
+                            className="absolute left-4 bottom-4 bg-[#00a294] rounded-lg px-4 py-2 flex-row items-center shadow-lg"
                         >
-                            <Edit size={18} color="#000" />
-                            <Text className="text-black text-sm font-semibold ml-2">Edit Party</Text>
+                            <Edit size={18} color="#fff" />
+                            <Text className="text-white text-sm font-semibold ml-2">Edit Party</Text>
                         </Pressable>
                     )}
                 </Box>
 
                 {/* Party Info Card */}
                 <Box className="bg-white rounded-2xl p-4 mb-4">
-                    <Heading level="h5" className="mb-2">{party.name}</Heading>
+                    {/* Title and Price on same line */}
+                    <HStack className="justify-between items-center mb-2">
+                        <Heading level="h5" className="flex-1 mr-2">{party.name}</Heading>
+                        {party.price !== null && party.price !== undefined && (
+                            <Text className="text-lg font-semibold text-neutral-900">
+                                {party.price === 0 ? 'Free' : `€${party.price}`}
+                            </Text>
+                        )}
+                    </HStack>
 
                     {/* Host Info */}
                     <HStack className="items-center mb-4">
@@ -260,19 +261,6 @@ export const PartyDetails: React.FC = () => {
                                 <Text className="text-base text-neutral-950 capitalize">{party.party_type}</Text>
                             </Box>
                         </HStack>
-
-                        {/* Entry Fee */}
-                        {party.price !== null && party.price !== undefined && (
-                            <HStack className="items-start">
-                                <DollarSign size={20} color="#6a7282" style={{ marginTop: 2 }} />
-                                <Box className="ml-3 flex-1">
-                                    <Text className="text-sm text-neutral-600">Entry Fee</Text>
-                                    <Text className="text-base text-neutral-950">
-                                        {party.price === 0 ? 'Free' : `€${party.price}`}
-                                    </Text>
-                                </Box>
-                            </HStack>
-                        )}
                     </Box>
                 </Box>
 
@@ -414,6 +402,7 @@ export const PartyDetails: React.FC = () => {
                     )}
                 </Box>
             </ScrollView>
+            </KeyboardAvoidingView>
         </Box>
     );
 };

@@ -335,7 +335,7 @@ export const ProfileScreen = () => {
             className={
               currentView === 'logged-drinks'
                 ? 'text-sm text-center text-white font-medium'
-                : 'text-sm text-center text-neutral-900'
+                : 'text-sm text-center text-neutral-900 font-medium'
             }
           >
             Logged Drinks
@@ -353,7 +353,7 @@ export const ProfileScreen = () => {
             className={
               currentView === 'stats'
                 ? 'text-sm text-center text-white font-medium'
-                : 'text-sm text-center text-neutral-900'
+                : 'text-sm text-center text-neutral-900 font-medium'
             }
           >
             Stats

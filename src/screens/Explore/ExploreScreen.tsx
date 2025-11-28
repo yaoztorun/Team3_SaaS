@@ -99,10 +99,7 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('AllCocktails')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">🍸</Text>
-                            <Heading level="h4">All Cocktails</Heading>
-                        </Box>
+                        <Heading level="h4">All Cocktails</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
                     <ScrollView
@@ -144,10 +141,7 @@ export const ExploreScreen = () => {
                 {/* AI Assistant Section */}
                 <Box className="px-4 mb-6">
                     <Box className="flex-row items-center justify-between mb-3">
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">🤖</Text>
-                            <Heading level="h4">AI Assistant</Heading>
-                        </Box>
+                        <Heading level="h4">AI Assistant</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Box>
                     <Pressable
@@ -171,13 +165,10 @@ export const ExploreScreen = () => {
 
                 {/* What Can I Make Section */}
                 <Box className="px-4 mb-6">
-                    <Box className="flex-row items-center mb-3">
-                        <Text className="text-2xl mr-2">🔮</Text>
-                        <Heading level="h4">What Can I Make?</Heading>
-                    </Box>
+                    <Heading level="h4" className="mb-3">What Can I Make?</Heading>
                     <Pressable
                         onPress={() => navigateToSection('WhatCanIMake')}
-                        className="border-2 border-[#00d5be] rounded-2xl p-8 items-center justify-center"
+                        className="border-2 border-[#00bba7] rounded-2xl p-8 items-center justify-center"
                     >
                         <Text className="text-3xl mb-1">+</Text>
                         <Text className="text-sm text-[#4a5565]">Add Ingredients</Text>
@@ -193,10 +184,7 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('BestBars')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">⭐</Text>
-                            <Heading level="h4">Best Bars</Heading>
-                        </Box>
+                        <Heading level="h4">Best Bars</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
                     {loadingBars ? (
@@ -237,12 +225,7 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('UpcomingEvents')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">📍</Text>
-                            <Heading level="h4">
-                                Upcoming Events Nearby
-                            </Heading>
-                        </Box>
+                        <Heading level="h4">Upcoming Events Nearby</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
                     <ScrollView
@@ -278,10 +261,7 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('Shop')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">🛍️</Text>
-                            <Heading level="h4">Our Shop</Heading>
-                        </Box>
+                        <Heading level="h4">Our Shop</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
                     {loadingShop ? (
