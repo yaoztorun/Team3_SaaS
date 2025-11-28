@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { ScrollView, Image, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { ScrollView, Image, TouchableOpacity, View, Animated, TextInput, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Box } from '@/src/components/ui/box';
@@ -66,6 +66,45 @@ export const Shop = () => {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     const [priceRange, setPriceRange] = useState<'all' | 'under20' | '20to50' | 'over50'>('all');
     const [showPriceFilter, setShowPriceFilter] = useState(false);
+    const [searchBarHeight, setSearchBarHeight] = useState(0);
+    const [filtersHeight, setFiltersHeight] = useState(0);
+
+    // Scroll-aware filter animation
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const lastScrollY = useRef(0);
+    const filtersTranslateY = useRef(new Animated.Value(0)).current;
+
+    const handleScroll = Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        {
+            useNativeDriver: true,
+            listener: (event: any) => {
+                const currentScrollY = event.nativeEvent.contentOffset.y;
+                const diff = currentScrollY - lastScrollY.current;
+
+                // Only hide/show filters after scrolling past initial padding
+                if (currentScrollY > 50) {
+                    if (diff > 0) {
+                        // Scrolling down - hide filters
+                        Animated.timing(filtersTranslateY, {
+                            toValue: -(filtersHeight || 0),
+                            duration: 200,
+                            useNativeDriver: true,
+                        }).start();
+                    } else if (diff < 0) {
+                        // Scrolling up - show filters
+                        Animated.timing(filtersTranslateY, {
+                            toValue: 0,
+                            duration: 200,
+                            useNativeDriver: true,
+                        }).start();
+                    }
+                }
+
+                lastScrollY.current = currentScrollY;
+            },
+        }
+    );
 
     useEffect(() => {
         let mounted = true;
@@ -119,84 +158,115 @@ export const Shop = () => {
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="Shop" showBack onBackPress={() => navigation.goBack()} />
             
-            {/* Search bar - stays at top */}
-            <Box className="px-4 pt-4 pb-2">
-                <SearchBar
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    placeholder="Search products..."
-                />
-            </Box>
-
-            {/* Filters - stay at top */}
-            <Box className="px-4 pb-2">
-                {/* Category Filters */}
-                <ScrollView 
-                    horizontal 
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={{ paddingHorizontal: 0, gap: 8 }}
-                    className="mb-3"
+            <View style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                {/* Fixed Search Bar - always visible */}
+                <View
+                    onLayout={e => setSearchBarHeight(e.nativeEvent.layout.height)}
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        zIndex: 2,
+                        elevation: 2,
+                        paddingHorizontal: 16,
+                        paddingTop: 20,
+                        paddingBottom: 12,
+                        backgroundColor: 'rgba(255,255,255, 1)',
+                        borderBottomWidth: 1,
+                        borderBottomColor: 'rgba(0,0,0,0.06)',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.08,
+                        shadowRadius: 8,
+                        shadowOffset: { width: 0, height: 4 },
+                    }}
                 >
-                    {categories.map((cat) => (
-                        <FilterChip
-                            key={cat}
-                            label={cat}
-                            selected={selectedCategories.includes(cat)}
-                            onPress={() => {
-                                setSelectedCategories(prev => 
-                                    prev.includes(cat) 
-                                        ? prev.filter(c => c !== cat)
-                                        : [...prev, cat]
-                                );
-                            }}
-                        />
-                    ))}
-                </ScrollView>
+                    <SearchBar
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholder="Search products..."
+                    />
+                </View>
 
-                {/* Price Filter */}
-                <TouchableOpacity
-                    onPress={() => setShowPriceFilter(!showPriceFilter)}
-                    className="bg-white rounded-lg px-4 py-3 flex-row items-center justify-between"
+                {/* Animated Filters - hide on scroll down */}
+                <Animated.View
+                    onLayout={e => setFiltersHeight(e.nativeEvent.layout.height)}
+                    style={{
+                        position: 'absolute',
+                        top: searchBarHeight,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1,
+                        elevation: 1,
+                        backgroundColor: 'rgba(255,255,255, 1)',
+                        paddingHorizontal: 16,
+                        paddingTop: 12,
+                        paddingBottom: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: 'rgba(0,0,0,0.06)',
+                        transform: [{ translateY: filtersTranslateY }],
+                    }}
                 >
-                    <Text className="text-sm font-medium">
-                        {priceRange === 'all' ? 'All Prices' :
-                         priceRange === 'under20' ? 'Under €20' :
-                         priceRange === '20to50' ? '€20 - €50' : 'Over €50'}
-                    </Text>
-                    <ChevronDown size={16} color="#666" />
-                </TouchableOpacity>
-
-                {/* Price dropdown */}
-                {showPriceFilter && (
-                    <Box className="bg-white rounded-lg mt-2 p-2">
-                        {[
-                            { value: 'all', label: 'All Prices' },
-                            { value: 'under20', label: 'Under €20' },
-                            { value: '20to50', label: '€20 - €50' },
-                            { value: 'over50', label: 'Over €50' },
-                        ].map(option => (
-                            <TouchableOpacity
-                                key={option.value}
-                                onPress={() => {
-                                    setPriceRange(option.value as any);
-                                    setShowPriceFilter(false);
-                                }}
-                                className="py-2 px-3"
-                            >
-                                <Text className={priceRange === option.value ? 'font-semibold' : ''}>
-                                    {option.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                    {/* Category Filter */}
+                    <Box className="mb-3">
+                        <Text className="text-xs font-medium text-neutral-600 mb-2">Category</Text>
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: 0, gap: 8 }}
+                        >
+                            {categories.map((cat) => (
+                                <FilterChip
+                                    key={cat}
+                                    label={cat}
+                                    selected={selectedCategories.includes(cat)}
+                                    onPress={() => {
+                                        setSelectedCategories(prev => 
+                                            prev.includes(cat) 
+                                                ? prev.filter(c => c !== cat)
+                                                : [...prev, cat]
+                                        );
+                                    }}
+                                />
+                            ))}
+                        </ScrollView>
                     </Box>
-                )}
-            </Box>
 
-            {/* Scrollable product content - starts below filters */}
-            <ScrollView
-                className="flex-1"
-                contentContainerStyle={{ padding: 16 }}
-            >
+                    {/* Price Filter */}
+                    <Box>
+                        <Text className="text-xs font-medium text-neutral-600 mb-2">Price Range</Text>
+                        <ScrollView 
+                            horizontal 
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: 0, gap: 8 }}
+                        >
+                            {[
+                                { value: 'all', label: 'All Prices' },
+                                { value: 'under20', label: 'Under €20' },
+                                { value: '20to50', label: '€20 - €50' },
+                                { value: 'over50', label: 'Over €50' },
+                            ].map(option => (
+                                <FilterChip
+                                    key={option.value}
+                                    label={option.label}
+                                    selected={priceRange === option.value}
+                                    onPress={() => setPriceRange(option.value as any)}
+                                />
+                            ))}
+                        </ScrollView>
+                    </Box>
+            </Animated.View>
+
+                {/* Scrollable product content - starts below filters */}
+                <ScrollView
+                    className="flex-1"
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
+                    contentContainerStyle={{ 
+                        padding: 16,
+                        paddingTop: (searchBarHeight + filtersHeight || 0) + 16,
+                    }}
+                >
 
                 {/* Results count */}
                 <Text className="text-sm text-gray-600 mb-3">
@@ -220,6 +290,7 @@ export const Shop = () => {
                     </Box>
                 )}
             </ScrollView>
+            </View>
         </Box>
     );
 };

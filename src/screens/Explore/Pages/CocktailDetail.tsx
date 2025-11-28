@@ -332,8 +332,15 @@ export const CocktailDetail = () => {
                             paddingVertical: 12,
                             alignItems: 'center',
                         }}
+                        onPress={() => {
+                            // Navigate to Add screen with pre-filled cocktail info
+                            (navigation as any).navigate('Add', {
+                                prefilledCocktailId: cocktail.id,
+                                prefilledCocktailName: cocktail.name || ''
+                            });
+                        }}
                     >
-                        <Text className="text-white text-sm font-semibold">Log This Drink</Text>
+                        <Text className="text-white text-sm font-semibold">Post This Drink</Text>
                     </Pressable>
                     <Pressable
                         className="flex-1 rounded-lg"

@@ -478,7 +478,7 @@ export const ProfileScreen = () => {
             {userStats?.topCocktails && userStats.topCocktails.length > 0 && (
               <Box className="bg-white rounded-2xl p-4 mb-4">
                 <Text className="text-base text-neutral-900 mb-3">
-                  Most Popular
+                  Top 3 Most Popular
                 </Text>
                 {userStats.topCocktails.map((cocktail, index) => (
                   <Box
