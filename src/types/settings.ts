@@ -1,7 +1,4 @@
 export type UserSettings = {
-  privacy: {
-    is_private: boolean;
-  };
   notifications: {
     likes: boolean;
     comments: boolean;
@@ -11,9 +8,6 @@ export type UserSettings = {
 };
 
 export const defaultSettings: UserSettings = {
-  privacy: {
-    is_private: false,
-  },
   notifications: {
     likes: true,
     comments: true,

@@ -1,11 +1,11 @@
 import { supabase } from '@/src/lib/supabase';
 
-export type BadgeType = 
-  | 'cocktails' 
-  | 'friends' 
-  | 'partiesHosted' 
-  | 'partiesAttended' 
-  | 'recipes' 
+export type BadgeType =
+  | 'cocktails'
+  | 'friends'
+  | 'partiesHosted'
+  | 'partiesAttended'
+  | 'recipes'
   | 'streak';
 
 export type BadgeTier = 'bronze' | 'silver' | 'gold' | null;
@@ -58,15 +58,15 @@ function getBadgeTier(count: number): BadgeTier {
  */
 function getBadgeImageUrl(type: BadgeType, tier: BadgeTier): string {
   if (!tier) return '';
-  
+
   const fileName = BADGE_FILE_MAP[type];
   const tierLetter = tier === 'bronze' ? 'B' : tier === 'silver' ? 'S' : 'G';
   const fullFileName = `${fileName}${tierLetter}.png`;
-  
+
   const { data } = supabase.storage
     .from('badges')
     .getPublicUrl(fullFileName);
-  
+
   return data.publicUrl;
 }
 
@@ -82,7 +82,7 @@ function calculateStreak(drinkDates: string[]): number {
 
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10);
-  
+
   // Only count if user has logged today
   if (!daySet.has(todayStr)) {
     return 0;
@@ -116,14 +116,14 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
       .select('user_id, friend_id')
       .eq('status', 'accepted')
       .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
-    
+
     const friendCount = friendships?.length || 0;
 
-    // 3. Count events hosted (organizer_id in Event table)
+    // 3. Count events hosted (organiser_id in Event table)
     const { count: eventsHostedCount } = await supabase
       .from('Event')
       .select('*', { count: 'exact', head: true })
-      .eq('organizer_id', userId);
+      .eq('organiser_id', userId);
 
     // 4. Count events attended (EventRegistration table)
     const { count: eventsAttendedCount } = await supabase
@@ -144,7 +144,7 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(365);
-    
+
     const drinkDates = (drinkLogs || []).map(log => log.created_at);
     const streakCount = calculateStreak(drinkDates);
 
@@ -214,7 +214,7 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
  */
 export function getHighestBadges(badges: Badge[], limit: number = 3): Badge[] {
   const tierPriority = { gold: 3, silver: 2, bronze: 1 };
-  
+
   return badges
     .sort((a, b) => {
       const aTier = tierPriority[a.tier!] || 0;

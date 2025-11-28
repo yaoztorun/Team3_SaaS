@@ -277,14 +277,16 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Logo (shown only on main pages) */}
           {showLogo ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Image
-                source={require('../../../assets/icon.png')}
-                style={{
-                  width: 40,
-                  height: 40,
-                  resizeMode: 'contain',
-                }}
-              />
+              <Pressable onPress={() => navigation.navigate('Home')}>
+                <Image
+                  source={require('../../../assets/icon.png')}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    resizeMode: 'contain',
+                  }}
+                />
+              </Pressable>
               <Heading
                 level="h2"
                 style={{
