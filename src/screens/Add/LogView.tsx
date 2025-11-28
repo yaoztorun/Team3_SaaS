@@ -276,6 +276,15 @@ const LogView: React.FC<LogViewProps> = ({
                         description="Visible to everyone"
                     />
                 </Box>
+                
+                {/* Recipe visibility info */}
+                {(shareWith === 'public' || shareWith === 'friends') && (
+                    <Box className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <Text className="text-xs text-blue-800">
+                            ℹ️ Sharing publicly or with friends will make your recipe visible to others so they can view and recreate it.
+                        </Text>
+                    </Box>
+                )}
             </Box>
 
             {/* Submit Button */}

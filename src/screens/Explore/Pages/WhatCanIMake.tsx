@@ -4,7 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { Text } from '@/src/components/ui/text';
-import { fetchCocktails, fetchIngredientUsage } from '@/src/api/cocktail';
+import { fetchPublicCocktails, fetchIngredientUsage } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PrimaryButton, SearchBar, FilterChip } from '@/src/components/global';
@@ -48,7 +48,7 @@ export const WhatCanIMake = () => {
                     // Fallback to fetching full cocktails and processing client-side
                     console.warn('RPC fetchIngredientUsage failed, falling back to client-side processing.', rpcErr);
 
-                    const data = await fetchCocktails();
+                    const data = await fetchPublicCocktails();
                     const countMap = new Map<string, number>();
                     const nameMap = new Map<string, string>();
 

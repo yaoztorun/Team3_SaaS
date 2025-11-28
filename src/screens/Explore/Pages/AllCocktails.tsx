@@ -4,7 +4,7 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView, Animated } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
-import { fetchCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
+import { fetchPublicCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip, SearchBar } from '@/src/components/global';
@@ -87,7 +87,7 @@ export const AllCocktails = () => {
             setError(null);
             try {
                 const [cocktailsData, typesData] = await Promise.all([
-                    fetchCocktails(),
+                    fetchPublicCocktails(),
                     fetchCocktailTypes()
                 ]);
                 if (isMounted) {
