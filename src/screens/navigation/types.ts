@@ -10,7 +10,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
     Home: { openDrinkLogId?: string } | undefined;
     Explore: undefined;
-    Add: undefined;
+    Add: { prefilledCocktailId?: string; prefilledCocktailName?: string } | undefined;
     Social: undefined;
     Profile: undefined;
 };
