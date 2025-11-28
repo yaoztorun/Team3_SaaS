@@ -11,12 +11,12 @@ interface HeadingProps extends Omit<TextProps, 'className'> {
 }
 
 const headingStyles: Record<HeadingLevel, string> = {
-  h1: 'text-4xl font-semibold',
-  h2: 'text-3xl font-medium',
-  h3: 'text-2xl font-medium',
-  h4: 'text-xl font-medium',
-  h5: 'text-lg font-normal',
-  h6: 'text-base font-normal',
+  h1: 'text-4xl font-semibold text-neutral-950',
+  h2: 'text-3xl font-medium text-neutral-950',
+  h3: 'text-2xl font-medium text-neutral-900',
+  h4: 'text-xl font-medium text-neutral-900',
+  h5: 'text-lg font-normal text-neutral-900',
+  h6: 'text-base font-normal text-neutral-900',
 };
 
 export const Heading: React.FC<HeadingProps> = ({ 

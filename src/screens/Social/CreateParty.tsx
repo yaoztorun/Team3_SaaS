@@ -392,7 +392,7 @@ export const CreateParty = () => {
             >
                 <View className="flex-1 bg-black/50 items-center justify-center p-4">
                     <Box className="w-full max-w-sm bg-white rounded-2xl p-6">
-                        <Heading level="h5" className="text-neutral-900 mb-3 text-center">
+                        <Heading level="h5" className="mb-3 text-center">
                             Party Created Successfully!
                         </Heading>
                         <Text className="text-neutral-600 mb-6 text-center">

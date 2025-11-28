@@ -185,7 +185,7 @@ export const UserProfile = () => {
                     </Center>
 
                     <Center className="mb-4">
-                        <Heading level="h3" className="text-neutral-900 mb-1">
+                        <Heading level="h3" className="mb-1">
                             {profile.full_name || 'User'}
                         </Heading>
                         <Text className="text-base text-neutral-600">

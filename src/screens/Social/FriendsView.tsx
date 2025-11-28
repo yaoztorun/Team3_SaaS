@@ -8,7 +8,7 @@ import { Button } from '@/src/components/ui/button';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
-import { SearchBar } from '@/src/components/global';
+import { SearchBar, Heading } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
         searchUsers,
@@ -179,7 +179,7 @@ export const FriendsView = () => {
                                                                                 </Center>
                                                                         )}
                                                                         <Box className="flex-1">
-                                                                                <Text className="text-base font-medium">{userResult.full_name || 'User'}</Text>
+                                                                                <Heading level="h6">{userResult.full_name || 'User'}</Heading>
                                                                                 <Text className="text-sm text-gray-600">{userResult.email}</Text>
                                                                         </Box>
                                                                         {(() => {
@@ -258,9 +258,9 @@ export const FriendsView = () => {
                                                                                         </Center>
                                                                                 )}
                                                                                 <Box className="flex-1">
-                                                                                        <Text className="text-base font-medium">
+                                                                                        <Heading level="h6">
                                                                                                 {request.sender_profile.full_name || 'User'}
-                                                                                        </Text>
+                                                                                        </Heading>
                                                                                         <Text className="text-sm text-gray-600">
                                                                                                 {request.sender_profile.email}
                                                                                         </Text>
@@ -349,9 +349,9 @@ export const FriendsView = () => {
                                                                                         )}
 
                                                                                         <Box className="flex-1">
-                                                                                                <Text className="text-base font-medium">
+                                                                                                <Heading level="h6">
                                                                                                         {targetProfile?.full_name || 'User'}
-                                                                                                </Text>
+                                                                                                </Heading>
                                                                                                 <Text className="text-sm text-gray-500">
                                                                                                         Friend request sent · Pending
                                                                                                 </Text>
@@ -396,9 +396,9 @@ export const FriendsView = () => {
                                                                                         </Center>
                                                                                 )}
                                                                                 <Box className="flex-1">
-                                                                                        <Text className="text-base font-medium">
+                                                                                        <Heading level="h6">
                                                                                                 {friend.profile.full_name || 'User'}
-                                                                                        </Text>
+                                                                                        </Heading>
                                                                                         <Text className="text-sm text-gray-600">
                                                                                                 {friend.profile.email}
                                                                                         </Text>

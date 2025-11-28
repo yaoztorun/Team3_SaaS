@@ -101,7 +101,7 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">🍸</Text>
-                            <Heading level="h4" className="text-neutral-900">All Cocktails</Heading>
+                            <Heading level="h4">All Cocktails</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
@@ -146,7 +146,7 @@ export const ExploreScreen = () => {
                     <Box className="flex-row items-center justify-between mb-3">
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">🤖</Text>
-                            <Heading level="h4" className="text-neutral-900">AI Assistant</Heading>
+                            <Heading level="h4">AI Assistant</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Box>
@@ -173,7 +173,7 @@ export const ExploreScreen = () => {
                 <Box className="px-4 mb-6">
                     <Box className="flex-row items-center mb-3">
                         <Text className="text-2xl mr-2">🔮</Text>
-                        <Heading level="h4" className="text-neutral-900">What Can I Make?</Heading>
+                        <Heading level="h4">What Can I Make?</Heading>
                     </Box>
                     <Pressable
                         onPress={() => navigateToSection('WhatCanIMake')}
@@ -195,7 +195,7 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">⭐</Text>
-                            <Heading level="h4" className="text-neutral-900">Best Bars</Heading>
+                            <Heading level="h4">Best Bars</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
@@ -239,7 +239,7 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">📍</Text>
-                            <Heading level="h4" className="text-neutral-900">
+                            <Heading level="h4">
                                 Upcoming Events Nearby
                             </Heading>
                         </Box>
@@ -280,7 +280,7 @@ export const ExploreScreen = () => {
                     >
                         <Box className="flex-row items-center">
                             <Text className="text-2xl mr-2">🛍️</Text>
-                            <Heading level="h4" className="text-neutral-900">Our Shop</Heading>
+                            <Heading level="h4">Our Shop</Heading>
                         </Box>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>

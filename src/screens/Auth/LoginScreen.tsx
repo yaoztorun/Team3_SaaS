@@ -104,7 +104,7 @@ const LoginScreen: React.FC = () => {
                             resizeMode: 'contain',
                         }}
                     />
-                    <Heading level="h3" className="text-neutral-900 mt-6 mb-2">
+                    <Heading level="h2" className="mt-6 mb-2">
                         Welcome Back
                     </Heading>
                     <Text className="text-neutral-500 text-center">

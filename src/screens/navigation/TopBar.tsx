@@ -272,7 +272,6 @@ export const TopBar: React.FC<TopBarProps> = ({
             <Heading
               level="h2"
               style={{
-                color: '#111827',
                 letterSpacing: -0.5,
               }}
             >

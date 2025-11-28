@@ -196,7 +196,7 @@ export const ProfileScreen = () => {
             </Center>
           )}
           <Box className="ml-4 flex-1">
-            <Heading level="h4" className="text-neutral-900">
+            <Heading level="h4">
               {loadingProfile
                 ? 'Loading...'
                 : profile?.full_name ||

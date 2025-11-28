@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Pressable } from 'react-native';
 import { Box } from '@/src/components/ui/box';
-import { Text } from '@/src/components/ui/text';
+import { Heading } from '@/src/components/global';
 import type { ImageSourcePropType } from 'react-native';
 
 type Props = {
@@ -40,12 +40,13 @@ export const CocktailCarouselCard: React.FC<Props> = ({
         
         {/* Title */}
         <Box style={styles.titleContainer}>
-          <Text
-            className="text-lg font-bold text-neutral-900"
+          <Heading
+            level="h5"
+            className="text-lg"
             numberOfLines={1}
           >
             {name}
-          </Text>
+          </Heading>
         </Box>
       </Box>
     </Pressable>

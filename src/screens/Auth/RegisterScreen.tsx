@@ -101,7 +101,7 @@ const RegisterScreen: React.FC = () => {
                 </Box>
 
                 <Box className="items-center mt-2">
-                    <Heading level="h3" className="text-neutral-900 mb-2">
+                    <Heading level="h2" className="mb-2">
                         Create Account
                     </Heading>
                     <Text className="text-neutral-500 text-center">

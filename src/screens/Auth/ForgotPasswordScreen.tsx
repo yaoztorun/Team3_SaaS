@@ -71,7 +71,7 @@ const ForgotPasswordScreen: React.FC = () => {
                             resizeMode: 'contain',
                         }}
                     />
-                    <Heading level="h3" className="text-neutral-900 mt-6 mb-2">
+                    <Heading level="h2" className="mt-6 mb-2">
                         Forgot Password?
                     </Heading>
                     <Text className="text-neutral-500 text-center px-4">

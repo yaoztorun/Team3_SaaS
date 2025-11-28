@@ -193,7 +193,7 @@ export const PartyDetails: React.FC = () => {
 
                 {/* Party Info Card */}
                 <Box className="bg-white rounded-2xl p-4 mb-4">
-                    <Heading level="h5" className="text-neutral-950 mb-2">{party.name}</Heading>
+                    <Heading level="h5" className="mb-2">{party.name}</Heading>
 
                     {/* Host Info */}
                     <HStack className="items-center mb-4">
@@ -278,7 +278,7 @@ export const PartyDetails: React.FC = () => {
 
                 {/* About Section */}
                 <Box className="bg-white rounded-2xl p-4 mb-4">
-                    <Heading level="h5" className="text-neutral-950 mb-2">About</Heading>
+                    <Heading level="h5" className="mb-2">About</Heading>
                     <Text className="text-sm text-neutral-700">{party.description || 'No additional details provided.'}</Text>
                 </Box>
 

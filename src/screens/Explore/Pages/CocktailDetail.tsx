@@ -135,7 +135,7 @@ export const CocktailDetail = () => {
                 <View style={{ height: 24 }} />
                 {/* Title and Metadata */}
                 <Box className="mb-6">
-                    <Heading level="h3" className="text-neutral-950 mb-3">
+                    <Heading level="h3" className="mb-3">
                         {cocktail.name ?? 'Unnamed Cocktail'}
                     </Heading>
                     <HStack className="items-center gap-4">
@@ -223,7 +223,7 @@ export const CocktailDetail = () => {
 
                 {/* Ingredients Section */}
                 <Box className="mb-6">
-                    <Heading level="h5" className="text-neutral-950 mb-4">Ingredients</Heading>
+                    <Heading level="h5" className="mb-4">Ingredients</Heading>
                     <Box className="gap-3">
                         {ingredients.map((ingredient, index) => (
                             <Pressable
@@ -273,7 +273,7 @@ export const CocktailDetail = () => {
 
                 {/* Instructions Section */}
                 <Box className="mb-6">
-                    <Heading level="h5" className="text-neutral-950 mb-4">Instructions</Heading>
+                    <Heading level="h5" className="mb-4">Instructions</Heading>
                     <Box className="gap-3">
                         {instructions.map((instruction, index) => (
                             <HStack key={index} className="gap-3 items-start">

@@ -82,7 +82,7 @@ const ResetPasswordScreen: React.FC = () => {
                     >
                         <Text className="text-3xl font-bold text-primary-500">P</Text>
                     </Box>
-                    <Heading level="h3" className="text-neutral-900 mt-6 mb-2">
+                    <Heading level="h2" className="mt-6 mb-2">
                         Reset Password
                     </Heading>
                     <Text className="text-neutral-500 text-center px-4">
