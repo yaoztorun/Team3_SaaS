@@ -23,6 +23,7 @@ import {
 import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Heading } from '@/src/components/global';
+import { fetchUserBadges, Badge } from '@/src/api/badges';
 
 type RouteParams = {
     UserProfile: { userId: string };
@@ -44,6 +45,8 @@ export const UserProfile = () => {
     const [friendshipId, setFriendshipId] = useState<string | null>(null);
     const [userStats, setUserStats] = useState<UserStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(true);
+    const [badges, setBadges] = useState<Badge[]>([]);
+    const [loadingBadges, setLoadingBadges] = useState(false);
 
     useEffect(() => {
         loadUserProfile();
@@ -94,6 +97,9 @@ export const UserProfile = () => {
         
         // Load stats
         loadStats();
+        
+        // Load badges
+        loadBadges();
     };
 
     const loadStats = async () => {
@@ -105,6 +111,18 @@ export const UserProfile = () => {
             console.error('Failed to load user stats:', error);
         } finally {
             setLoadingStats(false);
+        }
+    };
+
+    const loadBadges = async () => {
+        setLoadingBadges(true);
+        try {
+            const userBadges = await fetchUserBadges(userId);
+            setBadges(userBadges);
+        } catch (error) {
+            console.error('Failed to load badges:', error);
+        } finally {
+            setLoadingBadges(false);
         }
     };
 
@@ -240,9 +258,31 @@ export const UserProfile = () => {
                         <Heading level="h3" className="mb-1">
                             {profile.full_name || 'User'}
                         </Heading>
-                        <Text className="text-base text-neutral-600">
-                            {profile.email}
-                        </Text>
+                        
+                        {/* Badges */}
+                        <Box className="mt-2">
+                            {loadingBadges ? (
+                                <Text className="text-xs text-neutral-500">Loading badges...</Text>
+                            ) : badges.length > 0 ? (
+                                <HStack className="flex-wrap gap-2 justify-center">
+                                    {badges.slice(0, 6).map((badge) => (
+                                        <Box 
+                                            key={badge.type}
+                                            className="items-center"
+                                            style={{ width: 50 }}
+                                        >
+                                            <Image
+                                                source={{ uri: badge.imageUrl }}
+                                                style={{ width: 48, height: 48 }}
+                                                resizeMode="contain"
+                                            />
+                                        </Box>
+                                    ))}
+                                </HStack>
+                            ) : (
+                                <Text className="text-xs text-neutral-500">No badges earned yet</Text>
+                            )}
+                        </Box>
                     </Center>
 
                     {/* Friend Action Button */}
@@ -420,9 +460,9 @@ export const UserProfile = () => {
                 {/* Cocktail Breakdown */}
                 {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 && (
                     <Box className="bg-white rounded-2xl p-4">
-                        <Text className="text-lg text-neutral-900 mb-4">
+                        <Heading level="h3" className="mb-4">
                             Cocktail Breakdown
-                        </Text>
+                        </Heading>
                         <Box className="items-center justify-center mb-4">
                             <PieChart
                                 data={userStats.cocktailBreakdown.map(item => ({

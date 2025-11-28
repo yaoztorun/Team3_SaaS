@@ -291,7 +291,7 @@ export const PartiesView = () => {
                         {myEvents.length === 0 && friendsEvents.length === 0 && publicEvents.length === 0 && (
                             <Box className="py-12 items-center">
                                 <Text className="text-6xl mb-4">🎉</Text>
-                                <Text className="text-lg font-medium text-gray-900 mb-2">No parties yet</Text>
+                                <Heading level="h3" className="mb-2">No parties yet</Heading>
                                 <Text className="text-sm text-gray-500 text-center px-8">
                                     Create your first party or wait for your friends to organize one!
                                 </Text>

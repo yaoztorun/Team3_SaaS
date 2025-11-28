@@ -304,9 +304,9 @@ const Settings: React.FC = () => {
             >
                 <View className="flex-1 bg-black/50 items-center justify-center p-4">
                     <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
-                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                        <Heading level="h2" className="mb-3 text-center">
                             Log Out
-                        </Text>
+                        </Heading>
                         <Text className="text-neutral-600 mb-6 text-center">
                             Are you sure you want to log out?
                         </Text>
@@ -342,9 +342,9 @@ const Settings: React.FC = () => {
             >
                 <View className="flex-1 bg-black/50 items-center justify-center p-4">
                     <Box className="w-full max-w-sm bg-white rounded-2xl p-4">
-                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                        <Heading level="h2" className="mb-3 text-center">
                             Delete Account
-                        </Text>
+                        </Heading>
                         <Text 
                             className="text-neutral-600 mb-6 text-center font-bold"
                             style={{ color: colors.red}}

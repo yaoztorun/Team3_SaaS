@@ -85,7 +85,7 @@ export const ExploreScreen = () => {
 
     return (
         <Box className="flex-1 bg-gray-50">
-            <TopBar title="Explore" />
+            <TopBar title="Explore" showLogo />
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{

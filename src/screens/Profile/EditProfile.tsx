@@ -181,7 +181,7 @@ const EditProfile: React.FC = () => {
                     >
                         <Box className="bg-white rounded-t-3xl p-6">
                             <Box className="flex-row justify-between items-center mb-4">
-                                <Text className="text-xl font-semibold">Change Profile Picture</Text>
+                                <Heading level="h2">Change Profile Picture</Heading>
                                 <Pressable onPress={() => setShowImagePicker(false)}>
                                     <X size={24} color="#666" />
                                 </Pressable>

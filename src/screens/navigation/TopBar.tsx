@@ -40,6 +40,7 @@ interface TopBarProps {
   onSettingsPress?: () => void;
   showBack?: boolean;
   onBackPress?: () => void;
+  showLogo?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -50,6 +51,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   showSettingsIcon = false,
   onSettingsPress,
   showBack = false,
+  showLogo = false,
   onBackPress,
 }) => {
   const insets = useSafeAreaInsets();
@@ -236,8 +238,8 @@ export const TopBar: React.FC<TopBarProps> = ({
     <Box
       className="bg-white"
       style={{
-        paddingTop: insets.top + spacing.screenVertical,
-        paddingBottom: spacing.screenVertical,
+        paddingTop: insets.top + 16,
+        paddingBottom: 16,
         paddingLeft: spacing.screenHorizontal,
         paddingRight: spacing.screenHorizontal,
         borderBottomWidth: 1,
@@ -259,15 +261,26 @@ export const TopBar: React.FC<TopBarProps> = ({
             </Pressable>
           )}
 
-          {title === 'Feed' ? (
-            <Image
-              source={require('../../../assets/icon.png')}
-              style={{
-                width: 50,
-                height: 50,
-                resizeMode: 'contain',
-              }}
-            />
+          {/* Logo (shown only on main pages) */}
+          {showLogo ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Image
+                source={require('../../../assets/icon.png')}
+                style={{
+                  width: 40,
+                  height: 40,
+                  resizeMode: 'contain',
+                }}
+              />
+              <Heading
+                level="h2"
+                style={{
+                  letterSpacing: -0.5,
+                }}
+              >
+                {title}
+              </Heading>
+            </View>
           ) : (
             <Heading
               level="h2"

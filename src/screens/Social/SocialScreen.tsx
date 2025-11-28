@@ -1,12 +1,34 @@
-import React, { useState } from 'react';
-import { ScrollView, View, Text } from 'react-native';
-import { useRoute, useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
 import { FriendsView } from './FriendsView';
 import { PartiesView } from './PartiesView';
+import React, { useState, useEffect, useMemo } from 'react';
+import { ScrollView, TouchableOpacity, View, Text, Image, ActivityIndicator } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { SocialStackParamList } from './SocialStack';
+import { colors } from '@/src/theme/colors';
+import { Button } from '@/src/components/ui/button';
+import { Center } from '@/src/components/ui/center';
+import { HStack } from '@/src/components/ui/hstack';
+import { SearchBar } from '@/src/components/global';
+import { useAuth } from '@/src/hooks/useAuth';
+import { 
+    searchUsers, 
+    sendFriendRequest, 
+    getPendingFriendRequests, 
+    getSentFriendRequests,
+    acceptFriendRequest, 
+    rejectFriendRequest, 
+    getFriends,
+    getFriendshipStatus 
+} from '@/src/api/friendship';
+import type { Profile } from '@/src/types/profile';
+import type { FriendRequest, Friend } from '@/src/types/friendship';
+
 
 type ViewType = 'friends' | 'parties';
 
@@ -25,29 +47,7 @@ export const SocialScreen = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Social" />
-
-            {/* View Toggle */}
-            <Box className="bg-[#F3F4F6] p-4">
-                <View className="bg-[#E5E7EB] flex-row rounded-xl p-1">
-                    <Pressable
-                        onPress={() => setActiveView('friends')}
-                        className={activeView === 'friends' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
-                    >
-                        <Text className={activeView === 'friends' ? 'text-center text-white' : 'text-center text-neutral-950'}>
-                            Friends
-                        </Text>
-                    </Pressable>
-                    <Pressable
-                        onPress={() => setActiveView('parties')}
-                        className={activeView === 'parties' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
-                    >
-                        <Text className={activeView === 'parties' ? 'text-center text-white' : 'text-center text-neutral-950'}>
-                            Parties
-                        </Text>
-                    </Pressable>
-                </View>
-            </Box>
+            <TopBar title="Social" showLogo />
 
             <ScrollView
                 className="flex-1"
@@ -57,6 +57,46 @@ export const SocialScreen = () => {
                     paddingBottom: spacing.screenBottom,
                 }}
             >
+                {/* View Toggle */}
+                <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
+                    <Pressable
+                        onPress={() => setActiveView('friends')}
+                        className={
+                            activeView === 'friends'
+                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
+                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
+                        }
+                    >
+                        <Text
+                            className={
+                                activeView === 'friends'
+                                    ? 'text-sm text-center text-white font-medium'
+                                    : 'text-sm text-center text-neutral-900'
+                            }
+                        >
+                            Friends
+                        </Text>
+                    </Pressable>
+                    <Pressable
+                        onPress={() => setActiveView('parties')}
+                        className={
+                            activeView === 'parties'
+                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
+                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
+                        }
+                    >
+                        <Text
+                            className={
+                                activeView === 'parties'
+                                    ? 'text-sm text-center text-white font-medium'
+                                    : 'text-sm text-center text-neutral-900'
+                            }
+                        >
+                            Parties
+                        </Text>
+                    </Pressable>
+                </Box>
+
                 {activeView === 'friends' ? <FriendsView key={refreshKey} /> : <PartiesView />}
             </ScrollView>
         </Box>

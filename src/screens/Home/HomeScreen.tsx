@@ -18,7 +18,7 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard, TextInputField } from '@/src/components/global';
+import { FeedPostCard, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
@@ -107,17 +107,6 @@ type CarouselItem = {
   image: ImageSourcePropType;
 };
 
-// Card sizing tuned to avoid overflow while keeping visuals compact
-const CAROUSEL_ITEM_WIDTH = 200;
-const CAROUSEL_SPACING = 16;
-const SNAP_INTERVAL = CAROUSEL_ITEM_WIDTH + CAROUSEL_SPACING;
-
-// Side padding so first/last card can center without huge empty space
-const SIDE_PADDING = Math.max(
-  0,
-  (SCREEN_WIDTH - CAROUSEL_ITEM_WIDTH) / 2,
-);
-
 // paths: src/screens/Home/HomeScreen.tsx -> ../../../assets/cocktails
 const COCKTAILS: CarouselItem[] = [
   { id: 'margarita', name: 'Margarita', image: require('../../../assets/cocktails/margarita.png') },
@@ -127,9 +116,6 @@ const COCKTAILS: CarouselItem[] = [
   { id: 'hemingway', name: 'Hemingway', image: require('../../../assets/cocktails/hemingway.png') },
   { id: 'jungle-bird', name: 'Jungle Bird', image: require('../../../assets/cocktails/jungle_bird.png') },
 ];
-
-// Start on the second real cocktail (index 1) so user sees cards on both sides.
-const INITIAL_INDEX = 1;
 
 // ---------- dummy data (when DB is empty / no user) ----------
 
@@ -186,36 +172,32 @@ export const HomeScreen: React.FC = () => {
   const [lastDeletedComment, setLastDeletedComment] =
     useState<CommentRow | null>(null);
 
-  // carousel state
-  const [activeIndex, setActiveIndex] = useState(INITIAL_INDEX);
-  const carouselRef = useRef<ScrollView | null>(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  // carousel state - animated index with slide effect
+  const [currentCocktailIndex, setCurrentCocktailIndex] = useState(0);
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const autoScrollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const commentsScrollViewRef = useRef<ScrollView | null>(null);
 
-  const handleCarouselScroll = (
-    event: NativeSyntheticEvent<NativeScrollEvent>,
-  ) => {
-    const offsetX = event.nativeEvent.contentOffset.x;
-    // Offset relative to the first card's theoretical centered position
-    const relative = offsetX - (SIDE_PADDING + (INITIAL_INDEX - 1) * SNAP_INTERVAL);
-    let index = Math.round(relative / SNAP_INTERVAL);
-    index = index + INITIAL_INDEX - 1; // re-base to real index
-    const clamped = Math.max(0, Math.min(COCKTAILS.length - 1, index));
-    setActiveIndex(clamped);
-  };
-
-  // ensure we don't start on a blank area due to side padding
+  // Auto-rotate cocktail every 5 seconds with animation
   useEffect(() => {
-    // Scroll immediately so second item (index 1) is centered.
-    const id = setTimeout(() => {
-      try {
-        carouselRef.current?.scrollTo({
-          x: SIDE_PADDING + INITIAL_INDEX * SNAP_INTERVAL,
-          animated: false,
-        });
-      } catch {}
-    }, 0);
-    return () => clearTimeout(id);
+    autoScrollTimer.current = setInterval(() => {
+      // Slide out current card (faster)
+      Animated.timing(slideAnim, {
+        toValue: -1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        // Update index and instantly show new card (no slide-in animation)
+        setCurrentCocktailIndex((prev) => (prev + 1) % COCKTAILS.length);
+        slideAnim.setValue(0);
+      });
+    }, 5000);
+
+    return () => {
+      if (autoScrollTimer.current) {
+        clearInterval(autoScrollTimer.current);
+      }
+    };
   }, []);
 
   // ---------- load feed + likes + comment counts ----------
@@ -547,7 +529,7 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <Box className="flex-1 bg-neutral-50">
-      <TopBar title="Feed" onNotificationPress={handleNotificationSelect} />
+      <TopBar title="Home" onNotificationPress={handleNotificationSelect} showLogo />
 
       <ScrollView
         className="flex-1"
@@ -557,148 +539,163 @@ export const HomeScreen: React.FC = () => {
           paddingBottom: spacing.screenBottom,
         }}
       >
-        {/* Popular Right Now – Image Carousel */}
+        {/* Popular Right Now – Animated Cocktail Carousel */}
         <Box className="mb-6">
-          <Text className="text-lg font-medium text-neutral-900 mb-3">
-            Drinks for your mood
-          </Text>
+          <Heading level="h3" className="mb-3">
+            Popular right now
+          </Heading>
 
-          {/* a bit taller so dots don't sit under the card */}
-          <Box className="h-72">
-            <Animated.ScrollView
-              ref={carouselRef}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={SNAP_INTERVAL}
-              snapToAlignment="center"
-              decelerationRate="fast"
-              scrollEventThrottle={16}
-              contentContainerStyle={{
+          <Box className="h-72 items-center justify-center">
+            <Box
+              style={{
+                width: SCREEN_WIDTH,
                 alignItems: 'center',
-                // Left padding so first card can slide in; right slightly reduced to minimize blank space after last.
-                paddingLeft: SIDE_PADDING,
-                paddingRight: Math.max(12, SIDE_PADDING * 0.4),
+                position: 'relative',
+                flexDirection: 'row',
+                justifyContent: 'center',
               }}
-              onScroll={Animated.event(
-                [{ nativeEvent: { contentOffset: { x: scrollX } } }],
-                { useNativeDriver: true, listener: handleCarouselScroll },
-              )}
             >
-              {COCKTAILS.map((item, index) => {
-                const isCenter = index === activeIndex;
-                const isFirst = index === 0;
-                const isLast = index === COCKTAILS.length - 1;
-                const inputRange = [
-                  SIDE_PADDING + (index - 1) * SNAP_INTERVAL,
-                  SIDE_PADDING + index * SNAP_INTERVAL,
-                  SIDE_PADDING + (index + 1) * SNAP_INTERVAL,
-                ];
-                const scale = scrollX.interpolate({
-                  inputRange,
-                  outputRange: [0.95, 1, 0.95],
-                  extrapolate: 'clamp',
-                });
-                const opacity = scrollX.interpolate({
-                  inputRange,
-                  outputRange: [0.6, 1, 0.6],
-                  extrapolate: 'clamp',
-                });
-                const glowOpacity = scrollX.interpolate({
-                  inputRange,
-                  outputRange: [0, 0.18, 0],
-                  extrapolate: 'clamp',
-                });
-                return (
-                  <Box
-                    key={item.id}
-                    style={{
-                      width: CAROUSEL_ITEM_WIDTH,
-                      // reduce side padding at extremes slightly to avoid large blank feel
-                      marginLeft: isFirst ? CAROUSEL_SPACING / 2 : CAROUSEL_SPACING / 2,
-                      marginRight: isLast ? CAROUSEL_SPACING / 2 : CAROUSEL_SPACING / 2,
-                      alignItems: 'center',
-                      position: 'relative',
-                    }}
-                  >
-                    {/* subtle glow behind the card */}
-                    <Animated.View
-                      style={{
-                        position: 'absolute',
-                        top: 10,
-                        bottom: 10,
-                        left: 10,
-                        right: 10,
-                        borderRadius: 28,
-                        backgroundColor: colors.primary[500],
-                        opacity: glowOpacity,
-                      }}
-                    />
+              {/* Previous card (left side) - moves with animation */}
+              <Animated.View
+                style={{
+                  width: 140,
+                  height: 240,
+                  marginRight: 10,
+                  borderRadius: 28,
+                  backgroundColor: '#f9fafb',
+                  borderWidth: 2,
+                  borderColor: '#d1d5db',
+                  opacity: 0.6,
+                  overflow: 'hidden',
+                  transform: [
+                    {
+                      translateX: slideAnim.interpolate({
+                        inputRange: [-1, 0, 1],
+                        outputRange: [-250, 0, 250],
+                      }),
+                    },
+                  ],
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Image
+                  source={COCKTAILS[(currentCocktailIndex - 1 + COCKTAILS.length) % COCKTAILS.length].image}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    resizeMode: 'contain',
+                    opacity: 0.4,
+                  }}
+                />
+              </Animated.View>
 
-                    <Animated.View
-                      className="items-center justify-center rounded-3xl"
-                      style={{
-                        width: '100%',
-                        height: 240,
-                        paddingVertical: 10,
-                        paddingHorizontal: 10,
-                        borderRadius: 28,
-                        backgroundColor: colors.white,
-                        overflow: 'hidden',
-                        borderWidth: isCenter ? 2 : 0,
-                        borderColor: isCenter ? colors.primary[500] : 'transparent',
-                        shadowColor: isCenter ? colors.primary[500] : '#000000',
-                        shadowOpacity: isCenter ? 0.22 : 0.08,
-                        shadowOffset: { width: 0, height: isCenter ? 10 : 4 },
-                        shadowRadius: isCenter ? 16 : 6,
-                        elevation: isCenter ? 7 : 2,
-                        opacity: opacity as any,
-                        transform: [{ scale }],
-                      }}
-                    >
-                      <Image
-                        source={item.image}
-                        style={{
-                          width: '100%',
-                          height: '82%',
-                          maxHeight: 200,
-                          resizeMode: 'contain',
-                        }}
-                      />
-                      <Text className="mt-2 text-base font-semibold text-neutral-900 text-center">
-                        {item.name}
-                      </Text>
-                    </Animated.View>
-                  </Box>
-                );
-              })}
-            </Animated.ScrollView>
+              {/* Active card with animation */}
+              <Animated.View
+                style={{
+                  width: 200,
+                  alignItems: 'center',
+                  position: 'relative',
+                  transform: [
+                    {
+                      translateX: slideAnim.interpolate({
+                        inputRange: [-1, 0, 1],
+                        outputRange: [-250, 0, 250],
+                      }),
+                    },
+                  ],
+                }}
+              >
+                {/* Glow effect */}
+                <Box
+                  style={{
+                    position: 'absolute',
+                    top: 10,
+                    bottom: 10,
+                    left: 10,
+                    right: 10,
+                    borderRadius: 28,
+                    backgroundColor: colors.primary[500],
+                    opacity: 0.18,
+                  }}
+                />
 
-            {/* Dots */}
-            <Box className="flex-row justify-center mt-6">
-              {COCKTAILS.map((_, index) => {
-                const active = activeIndex === index;
-                return (
-                  <Box
-                    key={index}
+                {/* Card */}
+                <Box
+                  className="items-center justify-center rounded-3xl"
+                  style={{
+                    width: '100%',
+                    height: 240,
+                    paddingVertical: 10,
+                    paddingHorizontal: 10,
+                    borderRadius: 28,
+                    backgroundColor: colors.white,
+                    overflow: 'hidden',
+                    borderWidth: 2,
+                    borderColor: colors.primary[500],
+                    shadowColor: colors.primary[500],
+                    shadowOpacity: 0.22,
+                    shadowOffset: { width: 0, height: 10 },
+                    shadowRadius: 16,
+                    elevation: 7,
+                  }}
+                >
+                  <Image
+                    source={COCKTAILS[currentCocktailIndex].image}
                     style={{
-                      width: active ? 14 : 6,
-                      height: 6,
-                      borderRadius: 999,
-                      marginHorizontal: 8,
-                      backgroundColor: active
-                        ? colors.primary[500]
-                        : '#e5e7eb',
+                      width: '100%',
+                      height: '82%',
+                      maxHeight: 200,
+                      resizeMode: 'contain',
                     }}
                   />
-                );
-              })}
+                  <Text className="mt-2 text-base font-semibold text-neutral-900 text-center">
+                    {COCKTAILS[currentCocktailIndex].name}
+                  </Text>
+                </Box>
+              </Animated.View>
+
+              {/* Next card (right side) - moves with animation */}
+              <Animated.View
+                style={{
+                  width: 140,
+                  height: 240,
+                  marginLeft: 10,
+                  borderRadius: 28,
+                  backgroundColor: '#f9fafb',
+                  borderWidth: 2,
+                  borderColor: '#d1d5db',
+                  opacity: 0.6,
+                  overflow: 'hidden',
+                  transform: [
+                    {
+                      translateX: slideAnim.interpolate({
+                        inputRange: [-1, 0, 1],
+                        outputRange: [-250, 0, 250],
+                      }),
+                    },
+                  ],
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Image
+                  source={COCKTAILS[(currentCocktailIndex + 1) % COCKTAILS.length].image}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    resizeMode: 'contain',
+                    opacity: 0.4,
+                  }}
+                />
+              </Animated.View>
             </Box>
           </Box>
         </Box>
 
-        {/* Feed toggle - centered with same style as Social page */}
-        <Box className="bg-[#F3F4F6] px-4 py-3 mb-2">
-          <View className="bg-[#E5E7EB] flex-row rounded-xl p-1">
+        {/* Feed toggle */}
+        <Box className="px-4 py-3 mb-2">
+          <View className="flex-row rounded-xl p-1">
             <Pressable
               onPress={() => setFeedFilter('friends')}
               className={feedFilter === 'friends' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}

@@ -209,17 +209,7 @@ export const AddScreen = () => {
 
     return (
         <Box className="flex-1 bg-neutral-50">
-            <TopBar title="Log your drink!" />
-
-            {/* View Toggle */}
-            <Box className="px-4 py-2 bg-white border-b border-gray-200">
-                <ToggleSwitch
-                    value={activeView === 'log' ? 'left' : 'right'}
-                    onChange={(val) => setActiveView(val === 'left' ? 'log' : 'recipe')}
-                    leftLabel="Log Cocktail"
-                    rightLabel="Create Recipe"
-                />
-            </Box>
+            <TopBar title="Post your drink" showLogo />
 
             <ScrollView
                 className="flex-1"
@@ -229,6 +219,28 @@ export const AddScreen = () => {
                     paddingBottom: spacing.screenBottom,
                 }}
             >
+                {/* View Toggle */}
+                <Box className="mb-4">
+                    <View className="flex-row rounded-xl p-1">
+                        <Pressable
+                            onPress={() => setActiveView('log')}
+                            className={activeView === 'log' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
+                        >
+                            <Text className={activeView === 'log' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
+                                Existing Cocktail
+                            </Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => setActiveView('recipe')}
+                            className={activeView === 'recipe' ? 'flex-1 rounded-xl py-2 bg-[#00BBA7]' : 'flex-1 rounded-xl py-2'}
+                        >
+                            <Text className={activeView === 'recipe' ? 'text-center text-white font-medium' : 'text-center text-neutral-950'}>
+                                Create Recipe
+                            </Text>
+                        </Pressable>
+                    </View>
+                </Box>
+
                 {activeView === 'log' ? (
                     <LogView
                         cocktailQuery={cocktailQuery}
@@ -285,9 +297,9 @@ export const AddScreen = () => {
             >
                 <View className="flex-1 bg-black/50 items-center justify-center p-4">
                     <Box className="w-full max-w-sm bg-white rounded-2xl p-6">
-                        <Text className="text-lg font-semibold text-neutral-900 mb-3 text-center">
+                        <Heading level="h2" className="mb-3 text-center">
                             {modalMessage ?? 'Success!'}
-                        </Text>
+                        </Heading>
                         <Text className="text-neutral-600 mb-6 text-center">
                             {activeView === 'log' ? 'Your drink has been logged.' : 'Your recipe has been created.'}
                         </Text>

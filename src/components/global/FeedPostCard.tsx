@@ -73,7 +73,16 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
       </Pressable>
 
       {/* Cocktail Image */}
-      <Box className="w-full h-[414px] relative">
+      <Box 
+        className="w-full h-[414px] relative"
+        style={{
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: '#e5e7eb',
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}
+      >
         <Image
           source={{ uri: imageUrl }}
           style={{ width: '100%', height: '100%' }}
@@ -81,10 +90,25 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         />
         {/* Cocktail name and rating badge */}
         <Box className="absolute bottom-4 left-4 right-4 flex-row items-center justify-between">
-          <Box className="bg-white/90 rounded-xl px-3 py-2">
+          <Box 
+            className="rounded-xl px-3 py-2 flex-row items-center"
+            style={{
+              borderWidth: 2,
+              borderColor: '#14b8a6',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            }}
+          >
+            <Text className="text-base mr-1">🍸</Text>
             <Text className="text-sm text-neutral-900">{cocktailName}</Text>
           </Box>
-          <Box className="bg-white/90 rounded-xl px-3 py-2 flex-row items-center">
+          <Box 
+            className="rounded-xl px-3 py-2 flex-row items-center"
+            style={{
+              borderWidth: 2,
+              borderColor: '#14b8a6',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            }}
+          >
             <Text className="text-yellow-500 mr-1">⭐</Text>
             <Text className="text-sm text-neutral-900">{rating}</Text>
           </Box>

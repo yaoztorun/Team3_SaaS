@@ -100,7 +100,7 @@ export const BestBars = () => {
                 <SearchBar 
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    placeholder="Search bars by name or location..."
+                    placeholder="Search bars by name..."
                 />
             </Box>
             <ScrollView

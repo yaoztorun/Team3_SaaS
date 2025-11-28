@@ -309,7 +309,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                         >
                             {/* Header */}
                             <Box className="px-4 py-4 border-b border-gray-200 flex-row items-center justify-between">
-                                <Text className="text-xl font-semibold text-neutral-900">Select Date & Time</Text>
+                                <Heading level="h2">Select Date & Time</Heading>
                                 <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                                     <X size={24} color="#666" />
                                 </TouchableOpacity>
