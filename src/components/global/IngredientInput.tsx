@@ -114,13 +114,6 @@ export const IngredientInput: React.FC<IngredientInputProps> = ({
                         <TouchableOpacity
                             className="bg-white rounded-lg border border-gray-300 p-3"
                             onPress={onUnitPress}
-                            style={{
-                                shadowColor: '#000',
-                                shadowOffset: { width: 0, height: 1 },
-                                shadowOpacity: 0.05,
-                                shadowRadius: 2,
-                                elevation: 1,
-                            }}
                         >
                             <Text className="text-base text-neutral-900">{ingredient.unit}</Text>
                         </TouchableOpacity>

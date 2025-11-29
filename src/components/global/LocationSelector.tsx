@@ -127,7 +127,7 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                 <Text className="text-sm text-neutral-950 mb-2">Location *</Text>
                 <Pressable
                     onPress={() => setIsModalVisible(true)}
-                    className="bg-white border border-neutral-300 rounded-lg px-3 py-3 flex-row items-center justify-between"
+                    className="bg-white border border-gray-300 rounded-lg px-3 py-3 flex-row items-center justify-between"
                 >
                     <Box className="flex-row items-center">
                         <MapPin size={20} color="#6a7282" />

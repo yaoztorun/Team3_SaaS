@@ -136,7 +136,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
     // Check if recipe name already exists in DB (debounced)
     useEffect(() => {
-        if (!recipeName || recipeName.trim().length < 2) {
+        if (!recipeName || recipeName.trim().length < 1) {
             setNameExists(false);
             return;
         }
@@ -175,10 +175,11 @@ const RecipeView: React.FC<RecipeViewProps> = ({
         step.text.trim()
     );
     const canSubmit =
-        recipeName.trim() &&
+        recipeName.trim().length >= 2 &&
         !nameExists &&
         !isCheckingName &&
         photoUri &&
+        selectedDifficulty &&
         hasValidIngredients &&
         hasValidInstructions;
 
@@ -195,6 +196,28 @@ const RecipeView: React.FC<RecipeViewProps> = ({
             if (userErr || !user) {
                 console.error('Error fetching user', userErr);
                 alert('Authentication error. Please sign in and try again.');
+                setIsUploading(false);
+                return;
+            }
+
+            // Final server-side check for duplicate name
+            const { data: existingRecipe, error: checkError } = await supabase
+                .from('Cocktail')
+                .select('id')
+                .ilike('name', recipeName.trim())
+                .limit(1);
+
+            if (checkError) {
+                console.error('Error checking recipe name:', checkError);
+                alert('Error validating recipe name. Please try again.');
+                setIsUploading(false);
+                return;
+            }
+
+            if (existingRecipe && existingRecipe.length > 0) {
+                alert('A recipe with this name already exists. Please choose a different name.');
+                setNameExists(true);
+                setIsUploading(false);
                 return;
             }
 
@@ -401,7 +424,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
             {/* Difficulty */}
             <Box className="space-y-2">
-                <Text className="text-sm text-neutral-950">Difficulty</Text>
+                <Text className="text-sm text-neutral-950">Difficulty *</Text>
                 <Box className="bg-white p-4 rounded-xl border border-gray-200">
                     <DifficultySelector
                         selected={selectedDifficulty}
@@ -418,7 +441,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
             />
             {!canSubmit && !isUploading && hasInteracted && (
                 <Text className="text-sm text-red-500 mt-2">
-                    Please complete all required fields: unique name, photo, at least one ingredient with amount, and at least one instruction step.
+                    Please complete all required fields: unique name (min 2 characters), photo, difficulty, at least one ingredient with amount, and at least one instruction step.
                 </Text>
             )}
         </Box>
