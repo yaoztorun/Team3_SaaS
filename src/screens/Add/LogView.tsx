@@ -144,12 +144,8 @@ const LogView: React.FC<LogViewProps> = ({
                 <ImageUploadBox
                     onCameraPress={handleCameraPress}
                     onGalleryPress={handleGalleryPress}
+                    imageUri={photoUri}
                 />
-                {photoUri && (
-                    <Box className="mt-3 rounded-xl overflow-hidden">
-                        <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
-                    </Box>
-                )}
             </Box>
 
             {/* Rating */}
@@ -240,7 +236,7 @@ const LogView: React.FC<LogViewProps> = ({
             </Box>
 
             {/* Tag Friends Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
                 className="flex-row items-center justify-center space-x-2 bg-gray-100 py-3 rounded-xl border border-gray-200"
                 onPress={() => setTagModalVisible(true)}
             >
@@ -276,7 +272,7 @@ const LogView: React.FC<LogViewProps> = ({
                         description="Visible to everyone"
                     />
                 </Box>
-                
+
                 {/* Recipe visibility info */}
                 {(shareWith === 'public' || shareWith === 'friends') && (
                     <Box className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">

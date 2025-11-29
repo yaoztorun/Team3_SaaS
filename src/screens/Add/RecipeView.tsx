@@ -282,12 +282,8 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                 <ImageUploadBox
                     onCameraPress={handleCameraPress}
                     onGalleryPress={handleGalleryPress}
+                    imageUri={photoUri}
                 />
-                {photoUri && (
-                    <Box className="mt-3 rounded-xl overflow-hidden">
-                        <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
-                    </Box>
-                )}
             </Box>
 
             {/* Ingredients */}
