@@ -127,6 +127,25 @@ export async function fetchPublicEvents(): Promise<DBEvent[]> {
 }
 
 /**
+ * Fetch public events with full details (organizer, location, attendee count)
+ */
+export async function fetchPublicEventsWithDetails(): Promise<EventWithDetails[]> {
+        const { data, error } = await supabase
+                .from('Event')
+                .select('*')
+                .eq('isPublic', true)
+                .order('start_time', { ascending: true });
+
+        if (error) {
+                console.error('Error fetching public events:', error);
+                return [];
+        }
+
+        const events = (data ?? []) as DBEvent[];
+        return fetchEventsWithDetails(events);
+}
+
+/**
  * Fetch events with full details including organizer profile and location
  */
 async function fetchEventsWithDetails(events: DBEvent[]): Promise<EventWithDetails[]> {

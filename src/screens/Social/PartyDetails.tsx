@@ -247,7 +247,7 @@ export const PartyDetails: React.FC = () => {
                             <Box className="ml-3 flex-1">
                                 <Text className="text-sm text-neutral-600">Attendees</Text>
                                 <Text className="text-base text-neutral-950">
-                                    {party.attendee_count || 0}
+                                    {registeredAttendees.length}
                                     {party.max_attendees ? `/${party.max_attendees}` : ''} people going
                                 </Text>
                             </Box>
