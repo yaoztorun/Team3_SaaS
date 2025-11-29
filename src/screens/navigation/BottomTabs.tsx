@@ -38,7 +38,6 @@ export default function BottomTabs() {
                     borderTopColor: '#e5e7eb',
                     elevation: 10,
                     height: 75,
-                    paddingBottom: 16,
                 },
             }}
         >
