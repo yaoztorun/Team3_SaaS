@@ -25,7 +25,7 @@ export const AddScreen = () => {
     const navigation = useNavigation();
     const route = useRoute<any>();
     const { prefilledCocktailId, prefilledCocktailName } = route.params || {};
-    
+
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
     const [isAtHome, setIsAtHome] = useState(false);
@@ -41,6 +41,7 @@ export const AddScreen = () => {
     const [locationQuery, setLocationQuery] = useState('');
     const [suggestionsVisible, setSuggestionsVisible] = useState(false);
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+    const [selectedLocationType, setSelectedLocationType] = useState<'public' | 'personal' | null>(null);
 
     const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
 
@@ -61,7 +62,7 @@ export const AddScreen = () => {
             const allCocktails = [...publicCocktails, ...personalRecipes];
             const mappedCocktails = allCocktails.map((c: DBCocktail) => ({ id: c.id, name: c.name }));
             setCocktails(mappedCocktails);
-            
+
             // Pre-fill cocktail if parameters provided
             if (prefilledCocktailId && prefilledCocktailName) {
                 setCocktailQuery(prefilledCocktailName);
@@ -125,6 +126,7 @@ export const AddScreen = () => {
             const storedRating = Math.round(rating * 2);
 
             // save a DrinkLog for this user including the uploaded image URL
+            // Note: DrinkLog only has location_id for public locations, no user_location_id field
             const { data: insertData, error: insertError } = await supabase
                 .from('DrinkLog')
                 .insert([
@@ -133,7 +135,7 @@ export const AddScreen = () => {
                         cocktail_id: selectedCocktailId,
                         rating: storedRating,
                         caption: caption.trim(),
-                        location_id: isAtHome ? null : selectedLocationId,
+                        location_id: (isAtHome || selectedLocationType === 'personal') ? null : selectedLocationId,
                         visibility: shareWith,
                         image_url: uploadedUrl,
                         created_at: new Date().toISOString(),
@@ -326,6 +328,8 @@ export const AddScreen = () => {
                         locations={locations}
                         selectedLocationId={selectedLocationId}
                         setSelectedLocationId={setSelectedLocationId}
+                        selectedLocationType={selectedLocationType}
+                        setSelectedLocationType={setSelectedLocationType}
                         isAtHome={isAtHome}
                         setIsAtHome={setIsAtHome}
                         shareWith={shareWith}

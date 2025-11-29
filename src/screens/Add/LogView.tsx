@@ -3,13 +3,13 @@ import { TouchableOpacity, Image as RNImage } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Center } from '@/src/components/ui/center';
-import { MapPin } from 'lucide-react-native';
 import {
     PrimaryButton,
     TextInputField,
     ImageUploadBox,
     RatingStars,
     RadioOption,
+    LocationSelector,
 } from '@/src/components/global';
 import { FriendSelectorModal } from '@/src/components/global/FriendSelectorModal';
 import { spacing } from '@/src/theme/spacing';
@@ -39,6 +39,8 @@ interface LogViewProps {
     locations: Array<{ id: string; name: string | null }>;
     selectedLocationId: string | null;
     setSelectedLocationId: (id: string | null) => void;
+    selectedLocationType: 'public' | 'personal' | null;
+    setSelectedLocationType: (type: 'public' | 'personal' | null) => void;
     isAtHome: boolean;
     setIsAtHome: (v: boolean) => void;
     shareWith: 'private' | 'friends' | 'public';
@@ -74,6 +76,8 @@ const LogView: React.FC<LogViewProps> = ({
     locations,
     selectedLocationId,
     setSelectedLocationId,
+    selectedLocationType,
+    setSelectedLocationType,
     isAtHome,
     setIsAtHome,
     shareWith,
@@ -174,66 +178,15 @@ const LogView: React.FC<LogViewProps> = ({
             />
 
             {/* Location */}
-            <Box className="space-y-2">
-                <TextInputField
-                    label="Where did you drink it?"
-                    required
-                    placeholder="Bar name, restaurant..."
-                    icon={<MapPin size={20} color="#6B7280" />}
-                    value={locationQuery}
-                    onChangeText={(text) => {
-                        setLocationQuery(text);
-                        setSelectedLocationId(null);
-                        setSuggestionsVisible(!!text);
-                    }}
-                    onFocus={() => setSuggestionsVisible(!!locationQuery)}
-                />
-
-                {suggestionsVisible && locationQuery.length > 0 && (
-                    <Box className="bg-white rounded-lg border border-gray-200 mt-2">
-                        {locations
-                            .filter(l => l.name && l.name.toLowerCase().includes(locationQuery.toLowerCase()))
-                            .slice(0, 6)
-                            .map(l => (
-                                <TouchableOpacity
-                                    key={l.id}
-                                    className="px-4 py-3 border-b border-gray-100"
-                                    onPress={() => {
-                                        setLocationQuery(l.name || '');
-                                        setSelectedLocationId(l.id);
-                                        setSuggestionsVisible(false);
-                                    }}
-                                >
-                                    <Text>{l.name}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        {locations.filter(l => l.name && l.name.toLowerCase().includes(locationQuery.toLowerCase())).length === 0 && (
-                            <Box className="px-4 py-3">
-                                <Text className="text-neutral-400">No locations found</Text>
-                            </Box>
-                        )}
-                    </Box>
-                )}
-                <TouchableOpacity
-                    className="flex-row items-center space-x-3 bg-white p-4 rounded-xl border border-gray-200"
-                    onPress={() => {
-                        const newVal = !isAtHome;
-                        setIsAtHome(newVal);
-                        if (newVal) {
-                            // clear location selection when setting At Home
-                            setLocationQuery('');
-                            setSelectedLocationId(null);
-                        }
-                    }}
-                >
-                    <Box className={`w-4 h-4 rounded border items-center justify-center ${isAtHome ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
-                        {isAtHome && (
-                            <Text className="text-white text-xs">✓</Text>
-                        )}
-                    </Box>
-                    <Text className="text-base">At Home</Text>
-                </TouchableOpacity>
-            </Box>
+            <LocationSelector
+                selectedLocation={locationQuery}
+                selectedLocationId={selectedLocationId}
+                onLocationChange={(location, locationId, locationType) => {
+                    setLocationQuery(location);
+                    setSelectedLocationId(locationId);
+                    setSelectedLocationType(locationType || null);
+                }}
+            />
 
             {/* Tag Friends Button */}
             <TouchableOpacity

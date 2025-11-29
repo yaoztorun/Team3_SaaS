@@ -12,7 +12,7 @@ import { Heading } from './Heading';
 interface LocationSelectorProps {
     selectedLocation: string;
     selectedLocationId: string | null;
-    onLocationChange: (location: string, locationId: string | null) => void;
+    onLocationChange: (location: string, locationId: string | null, locationType?: 'public' | 'personal') => void;
 }
 
 export const LocationSelector: React.FC<LocationSelectorProps> = ({
@@ -22,7 +22,13 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
 }) => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [locationQuery, setLocationQuery] = useState(selectedLocation);
-    const [locations, setLocations] = useState<Array<{ id: string; name: string | null; type: 'public' | 'personal' }>>([]);
+    const [locations, setLocations] = useState<Array<{
+        id: string;
+        name: string | null;
+        type: 'public' | 'personal';
+        label?: string;
+        address?: string;
+    }>>([]);
     const [showAddPersonalLocation, setShowAddPersonalLocation] = useState(false);
     const [personalLocationLabel, setPersonalLocationLabel] = useState('');
     const [personalLocationStreet, setPersonalLocationStreet] = useState('');
@@ -40,12 +46,21 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
             if (!mounted) return;
 
             const allLocations = [
-                ...publicLocations.map(l => ({ id: l.id, name: l.name, type: 'public' as const })),
-                ...userLocations.map(l => ({
+                ...publicLocations.map(l => ({
                     id: l.id,
-                    name: `${l.label} (${l.street} ${l.house_nr}, ${l.city})`,
-                    type: 'personal' as const
-                }))
+                    name: l.name,
+                    type: 'public' as const
+                })),
+                ...userLocations.map(l => {
+                    const address = `${l.street} ${l.house_nr}, ${l.city}`;
+                    return {
+                        id: l.id,
+                        name: `${l.label} (${address})`,
+                        type: 'personal' as const,
+                        label: l.label || undefined,
+                        address: address
+                    };
+                })
             ];
 
             setLocations(allLocations);
@@ -58,9 +73,9 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
         setLocationQuery(selectedLocation);
     }, [selectedLocation]);
 
-    const handleSelectLocation = (name: string, id: string) => {
+    const handleSelectLocation = (name: string, id: string, type: 'public' | 'personal') => {
         setLocationQuery(name);
-        onLocationChange(name, id);
+        onLocationChange(name, id, type);
         setIsModalVisible(false);
     };
 
@@ -80,14 +95,21 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
 
         if (newLocation) {
             // Add to locations list
-            const locationDisplay = `${newLocation.label} (${newLocation.street} ${newLocation.house_nr}, ${newLocation.city})`;
+            const address = `${newLocation.street} ${newLocation.house_nr}, ${newLocation.city}`;
+            const locationDisplay = `${newLocation.label} (${address})`;
             setLocations(prev => [
                 ...prev,
-                { id: newLocation.id, name: locationDisplay, type: 'personal' }
+                {
+                    id: newLocation.id,
+                    name: locationDisplay,
+                    type: 'personal',
+                    label: newLocation.label || undefined,
+                    address: address
+                }
             ]);
 
             // Select the new location
-            onLocationChange(locationDisplay, newLocation.id);
+            onLocationChange(locationDisplay, newLocation.id, 'personal');
         }
 
         // Close and reset
@@ -188,39 +210,69 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                                                 <Text className="text-teal-600 font-semibold text-base">+ Add Personal Location</Text>
                                             </TouchableOpacity>
 
-                                            {/* Location List */}
-                                            <Box className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                                                <Text className="px-4 py-3 text-sm font-semibold text-neutral-500 uppercase bg-gray-50">Available Locations</Text>
-                                                {locations
-                                                    .filter(l => l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase())))
-                                                    .map((l, idx, arr) => (
-                                                        <TouchableOpacity
-                                                            key={l.id}
-                                                            className={`px-4 py-3 flex-row items-center justify-between ${idx < arr.length - 1 ? 'border-b border-gray-100' : ''}`}
-                                                            onPress={() => handleSelectLocation(l.name || '', l.id)}
-                                                        >
-                                                            <Box className="flex-row items-center flex-1">
-                                                                <MapPin size={18} color="#6B7280" />
-                                                                <Box className="ml-3 flex-1">
-                                                                    <Text className="text-base text-neutral-900">{l.name}</Text>
-                                                                    {l.type === 'personal' && (
-                                                                        <Text className="text-xs text-teal-600 mt-0.5">Personal Location</Text>
-                                                                    )}
+                                            {/* Personal Locations Section */}
+                                            {locations.filter(l => l.type === 'personal' && l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase()))).length > 0 && (
+                                                <Box className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-4">
+                                                    <Text className="px-4 py-3 text-sm font-semibold text-neutral-500 uppercase bg-gray-50">Personal Locations</Text>
+                                                    {locations
+                                                        .filter(l => l.type === 'personal' && l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase())))
+                                                        .map((l, idx, arr) => (
+                                                            <TouchableOpacity
+                                                                key={l.id}
+                                                                className={`px-4 py-3 flex-row items-center justify-between ${idx < arr.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                                                onPress={() => handleSelectLocation(l.name || '', l.id, 'personal')}
+                                                            >
+                                                                <Box className="flex-row items-center flex-1">
+                                                                    <MapPin size={18} color="#6B7280" />
+                                                                    <Box className="ml-3 flex-1">
+                                                                        <Text className="text-base font-semibold text-neutral-900">{l.label}</Text>
+                                                                        <Text className="text-sm text-neutral-500 mt-0.5">{l.address}</Text>
+                                                                    </Box>
                                                                 </Box>
-                                                            </Box>
-                                                            {selectedLocationId === l.id && (
-                                                                <Box className="w-5 h-5 rounded-full bg-teal-500 items-center justify-center">
-                                                                    <Text className="text-white text-xs">✓</Text>
+                                                                {selectedLocationId === l.id && (
+                                                                    <Box className="w-5 h-5 rounded-full bg-teal-500 items-center justify-center">
+                                                                        <Text className="text-white text-xs">✓</Text>
+                                                                    </Box>
+                                                                )}
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                </Box>
+                                            )}
+
+                                            {/* Public Locations Section */}
+                                            {locations.filter(l => l.type === 'public' && l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase()))).length > 0 && (
+                                                <Box className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                                                    <Text className="px-4 py-3 text-sm font-semibold text-neutral-500 uppercase bg-gray-50">Bars & Restaurants</Text>
+                                                    {locations
+                                                        .filter(l => l.type === 'public' && l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase())))
+                                                        .map((l, idx, arr) => (
+                                                            <TouchableOpacity
+                                                                key={l.id}
+                                                                className={`px-4 py-3 flex-row items-center justify-between ${idx < arr.length - 1 ? 'border-b border-gray-100' : ''}`}
+                                                                onPress={() => handleSelectLocation(l.name || '', l.id, 'public')}
+                                                            >
+                                                                <Box className="flex-row items-center flex-1">
+                                                                    <MapPin size={18} color="#6B7280" />
+                                                                    <Box className="ml-3 flex-1">
+                                                                        <Text className="text-base text-neutral-900">{l.name}</Text>
+                                                                    </Box>
                                                                 </Box>
-                                                            )}
-                                                        </TouchableOpacity>
-                                                    ))}
-                                                {locations.filter(l => l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase()))).length === 0 && (
-                                                    <Box className="px-4 py-8 items-center">
-                                                        <Text className="text-neutral-400">No locations found</Text>
-                                                    </Box>
-                                                )}
-                                            </Box>
+                                                                {selectedLocationId === l.id && (
+                                                                    <Box className="w-5 h-5 rounded-full bg-teal-500 items-center justify-center">
+                                                                        <Text className="text-white text-xs">✓</Text>
+                                                                    </Box>
+                                                                )}
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                </Box>
+                                            )}
+
+                                            {/* No Locations Found */}
+                                            {locations.filter(l => l.name && (!locationQuery || l.name.toLowerCase().includes(locationQuery.toLowerCase()))).length === 0 && (
+                                                <Box className="px-4 py-8 items-center">
+                                                    <Text className="text-neutral-400">No locations found</Text>
+                                                </Box>
+                                            )}
                                         </>
                                     ) : (
                                         <>
