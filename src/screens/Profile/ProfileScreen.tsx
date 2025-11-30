@@ -47,6 +47,7 @@ type RecentDrink = {
   subtitle: string; // caption / location
   rating: number;
   time: string;
+  creatorId: string | null;
 };
 
 // ---- helper ----
@@ -181,7 +182,7 @@ export const ProfileScreen = () => {
       setLoadingDrinks(true);
       setDrinksError(null);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('DrinkLog')
         .select(
           `
@@ -193,7 +194,8 @@ export const ProfileScreen = () => {
           user_id,
           Cocktail (
             id,
-            name
+            name,
+            creator_id
           )
         `
         )
@@ -201,9 +203,11 @@ export const ProfileScreen = () => {
         .order('created_at', { ascending: false })
         .limit(20);
 
+      const { data, error } = await query;
+
       if (error) throw error;
 
-      const mapped: RecentDrink[] = (data ?? []).map((raw: any) => {
+      let mapped: RecentDrink[] = (data ?? []).map((raw: any) => {
         // Supabase returns Cocktail as a single object when using foreign key relation
         const cocktailName = raw.Cocktail?.name ?? 'Unknown cocktail';
 
@@ -213,8 +217,14 @@ export const ProfileScreen = () => {
           subtitle: raw.caption ?? '',
           rating: raw.rating ?? 0,
           time: formatTimeAgo(raw.created_at),
+          creatorId: raw.Cocktail?.creator_id ?? null,
         };
       });
+
+      // Filter by own recipes if toggle is enabled
+      if (isOwnRecipes) {
+        mapped = mapped.filter(drink => drink.creatorId === user.id);
+      }
 
       setRecentDrinks(mapped);
     } catch (err: any) {
@@ -235,7 +245,7 @@ export const ProfileScreen = () => {
       loadStats();
       loadBadges();
       loadTopBarStats();
-    }, [user?.id])
+    }, [user?.id, isOwnRecipes])
   );
 
 

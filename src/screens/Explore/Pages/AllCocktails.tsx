@@ -4,10 +4,11 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView, Animated } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
-import { fetchPublicCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
+import { fetchAllCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip, SearchBar } from '@/src/components/global';
+import { useAuth } from '@/src/hooks/useAuth';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -24,6 +25,7 @@ const LIST_TOP_SPACER = 24;
 
 export const AllCocktails = () => {
     const navigation = useNavigation<NavigationProp>();
+    const { user } = useAuth();
     const [query, setQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
     const [activeType, setActiveType] = useState('All');
@@ -87,7 +89,7 @@ export const AllCocktails = () => {
             setError(null);
             try {
                 const [cocktailsData, typesData] = await Promise.all([
-                    fetchPublicCocktails(),
+                    fetchAllCocktails(),
                     fetchCocktailTypes()
                 ]);
                 if (isMounted) {
@@ -112,7 +114,15 @@ export const AllCocktails = () => {
             const matchesQuery = !q || name.includes(q);
             
             // Type filtering
-            const matchesType = activeType === 'All' || c.cocktail_type === activeType;
+            let matchesType = true;
+            if (activeType === 'Own Recipes') {
+                // Show only user's own recipes
+                matchesType = user ? c.creator_id === user.id : false;
+            } else if (activeType !== 'All') {
+                // Convert display name back to database value (lowercase with underscores)
+                const dbTypeValue = activeType.toLowerCase().replace(/ /g, '_'); // Convert "Mixed Drinks" back to "mixed_drinks"
+                matchesType = c.cocktail_type === dbTypeValue;
+            }
             
             // Difficulty filtering
             const matchesDifficulty = activeDifficulty === 'All' || 
@@ -120,7 +130,7 @@ export const AllCocktails = () => {
             
             return matchesQuery && matchesType && matchesDifficulty;
         });
-    }, [debouncedQuery, activeType, activeDifficulty, cocktails]);
+    }, [debouncedQuery, activeType, activeDifficulty, cocktails, user]);
 
     const renderCard = ({ item }: { item: DBCocktail }) => {
         const parseJsonArray = (v: any) => {
@@ -220,7 +230,7 @@ export const AllCocktails = () => {
                     <Box className="mb-3">
                         <Text className="text-xs font-medium text-neutral-600 mb-2">Type</Text>
                         <ScrollViewHorizontal 
-                            categories={['All', ...cocktailTypes]} 
+                            categories={['All', ...(user ? ['Own Recipes'] : []), ...cocktailTypes]} 
                             active={activeType} 
                             onChange={setActiveType} 
                         />
