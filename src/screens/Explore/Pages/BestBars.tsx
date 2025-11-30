@@ -71,7 +71,8 @@ export const BestBars = () => {
         return bars.filter(bar => 
             bar.name?.toLowerCase().includes(query) ||
             bar.city?.toLowerCase().includes(query) ||
-            bar.country?.toLowerCase().includes(query)
+            bar.country?.toLowerCase().includes(query) ||
+            bar.street_name?.toLowerCase().includes(query)
         );
     }, [bars, searchQuery]);
 
@@ -100,7 +101,7 @@ export const BestBars = () => {
                 <SearchBar 
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    placeholder="Search bars by name..."
+                    placeholder="Search bars by name or location..."
                 />
             </Box>
             <ScrollView
