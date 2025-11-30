@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ScrollView, Image, View, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, Image, View, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
@@ -9,6 +9,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { Heading } from '@/src/components/global';
+import { supabase } from '@/src/lib/supabase';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -24,7 +25,6 @@ const getDummyData = (cocktailName: string) => ({
     rating: 4.8,
     reviewCount: 2847,
     prepTime: '5 min',
-    funFact: `The ${cocktailName || 'cocktail'} is a classic drink that has been enjoyed for generations. Its unique blend of flavors makes it a favorite among cocktail enthusiasts worldwide.`,
 });
 
 export const CocktailDetail = () => {
@@ -35,6 +35,11 @@ export const CocktailDetail = () => {
     const [servings, setServings] = useState(1);
     const [isFavorited, setIsFavorited] = useState(false);
     const [checkedIngredients, setCheckedIngredients] = useState<{ [key: number]: boolean }>({});
+    const [funFact, setFunFact] = useState<string | null>(cocktail.fun_fact || null);
+    const [loadingFunFact, setLoadingFunFact] = useState(false);
+    const [hasAttemptedGeneration, setHasAttemptedGeneration] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [hasFetchedFromDB, setHasFetchedFromDB] = useState(false);
 
     const dummyData = getDummyData(cocktail.name || '');
     const imageUri = cocktail.image_url ?? PLACEHOLDER_IMAGE;
@@ -54,6 +59,141 @@ export const CocktailDetail = () => {
 
     const ingredients = parseJsonArray<{ name?: string; amount?: number; unit?: string }>(cocktail.ingredients);
     const instructions = parseJsonArray<{ step?: number; description?: string }>(cocktail.instructions);
+
+    // Fetch the latest cocktail data from database to get updated fun_fact
+    useEffect(() => {
+        const fetchLatestCocktail = async () => {
+            console.log('------------ DB FETCH START ------------');
+            console.log(`Fetching cocktail: ${cocktail.name} (${cocktail.id})`);
+
+            try {
+                const { data, error } = await supabase
+                    .from('Cocktail')
+                    .select('*')
+                    .eq('id', cocktail.id)
+                    .single();
+
+                if (error) {
+                    console.error('DB fetch error:', error);
+                    setHasFetchedFromDB(true);
+                    return;
+                }
+
+                if (data?.fun_fact) {
+                    console.log('✓ Found fun_fact in DB:', data.fun_fact.substring(0, 80) + '...');
+                    setFunFact(data.fun_fact);
+                } else {
+                    console.log('✗ No fun_fact in DB');
+                }
+
+                setHasFetchedFromDB(true);
+            } catch (error) {
+                console.error('DB fetch exception:', error);
+                setHasFetchedFromDB(true);
+            }
+
+            console.log('------------ DB FETCH END ------------');
+        };
+
+        fetchLatestCocktail();
+    }, [cocktail.id]);
+
+    // Generate fun fact if not already in database
+    useEffect(() => {
+        // Wait for DB fetch to complete before deciding to generate
+        if (!hasFetchedFromDB) {
+            console.log('Waiting for DB fetch...');
+            return;
+        }
+
+        if (isGenerating) {
+            return;
+        }
+
+        if (!hasAttemptedGeneration && !funFact) {
+            console.log('------------ GENERATION START ------------');
+            console.log('No fun fact found, starting generation...');
+            setHasAttemptedGeneration(true);
+            generateFunFact();
+        } else if (funFact) {
+            console.log('Fun fact already available, skipping generation');
+        }
+    }, [funFact, isGenerating, hasFetchedFromDB]);
+
+    const generateFunFact = async () => {
+        if (isGenerating) {
+            console.log('Generation already in progress, skipping');
+            return;
+        }
+
+        console.log(`Generating fun fact for: ${cocktail.name}`);
+        setIsGenerating(true);
+        setLoadingFunFact(true);
+
+        try {
+            // Format ingredients for the prompt
+            const ingredientsList = ingredients
+                .map(ing => `${ing.name} (${ing.amount} ${ing.unit || ''})`.trim())
+                .join(', ');
+
+            const prompt = `Generate ONE surprising or interesting fact about the "${cocktail.name}" cocktail. Make it fun and casual, like you're telling a friend at a bar.
+
+Ingredients: ${ingredientsList}
+
+Pick ONE and make it conversational:
+- When/where/who invented it (e.g., "Created in 1987 by bartender Dale DeGroff at the Rainbow Room")
+- Pop culture moment (e.g., "James Bond ordered this in Casino Royale" or "Became famous after appearing in Sex and the City")
+- Surprising name origin (e.g., "Named after the bartender's pet cat" or "Originally called something completely different")
+- A fun historical tidbit (e.g., "Was Hemingway's favorite drink in Cuba" or "Banned in the US until 1995")
+- Unexpected connection (e.g., "Despite the name, has no actual whiskey in it")
+
+Rules:
+- Write like you're chatting with a friend, not writing an encyclopedia
+- 1-2 short sentences max
+- Make it surprising or interesting, not technical
+- NO words like: "structurally", "differentiates", "application", "components", "ratio"
+- NO boring flavor descriptions
+- Be specific with names/dates/places when you can`;
+
+            const { data, error } = await supabase.functions.invoke('gemini-chat', {
+                body: { message: prompt }
+            });
+
+            if (error || !data?.response) {
+                console.error('Gemini error:', error);
+                setFunFact(`${cocktail.name} is crafted from ${ingredients.length} carefully selected ingredients.`);
+                return;
+            }
+
+            const generatedFact = data.response.trim();
+            console.log('✓ Generated:', generatedFact.substring(0, 80) + '...');
+            setFunFact(generatedFact);
+
+            // Save to database
+            try {
+                console.log('Saving to DB...');
+                const { error: updateError } = await supabase
+                    .from('Cocktail')
+                    .update({ fun_fact: generatedFact })
+                    .eq('id', cocktail.id);
+
+                if (updateError) {
+                    console.error('DB update error:', updateError);
+                } else {
+                    console.log('✓ Saved to DB');
+                }
+            } catch (dbError) {
+                console.error('DB save exception:', dbError);
+            }
+        } catch (error) {
+            console.error('Generation exception:', error);
+            setFunFact(`${cocktail.name} is crafted from ${ingredients.length} carefully selected ingredients.`);
+        } finally {
+            setLoadingFunFact(false);
+            setIsGenerating(false);
+            console.log('------------ GENERATION END ------------');
+        }
+    };
 
     const toggleIngredient = (index: number) => {
         setCheckedIngredients(prev => ({
@@ -138,7 +278,7 @@ export const CocktailDetail = () => {
                     <Heading level="h3" className="mb-3">
                         {cocktail.name ?? 'Unnamed Cocktail'}
                     </Heading>
-                    
+
                     {/* Creator Info - Show if it's a user-created cocktail */}
                     {cocktail.origin_type === 'user' && (cocktail as any).Profile && (
                         <Box className="mb-3">
@@ -150,7 +290,7 @@ export const CocktailDetail = () => {
                             </HStack>
                         </Box>
                     )}
-                    
+
                     <HStack className="items-center gap-4">
                         {/* Rating */}
                         <HStack className="items-center gap-1">
@@ -329,9 +469,16 @@ export const CocktailDetail = () => {
                             <Text className="text-base font-semibold text-[#0b4f4a] mb-2">
                                 Fun Fact
                             </Text>
-                            <Text className="text-sm text-[#005f5a] leading-5">
-                                {dummyData.funFact}
-                            </Text>
+                            {loadingFunFact ? (
+                                <HStack className="items-center gap-2">
+                                    <ActivityIndicator size="small" color="#0b4f4a" />
+                                    <Text className="text-sm text-[#005f5a]">Generating fun fact...</Text>
+                                </HStack>
+                            ) : (
+                                <Text className="text-sm text-[#005f5a] leading-5">
+                                    {funFact || `${cocktail.name} is a carefully crafted cocktail.`}
+                                </Text>
+                            )}
                         </Box>
                     </HStack>
                 </Box>

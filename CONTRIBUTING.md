@@ -1,6 +1,6 @@
 # Contributing Guidelines 🤝
 
-Thank you for contributing to **Cocktail Companion**!  
+Thank you for contributing to **Sippin**!  
 This guide describes how we collaborate, name branches, and ensure clean commits.
 
 <br>
