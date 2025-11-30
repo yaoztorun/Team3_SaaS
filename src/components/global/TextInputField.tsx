@@ -11,13 +11,13 @@ interface TextInputFieldProps extends TextInputProps {
     error?: string;
 }
 
-export const TextInputField: React.FC<TextInputFieldProps> = ({ 
-    label, 
+export const TextInputField: React.FC<TextInputFieldProps> = ({
+    label,
     required = false,
     icon,
     iconPosition = 'right',
     error,
-    ...props 
+    ...props
 }) => {
     const [isFocused, setIsFocused] = useState(false);
 
@@ -28,15 +28,10 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
                     {label} {required && '*'}
                 </Text>
             )}
-            <View 
-                className="bg-white rounded-lg border flex-row items-center" 
+            <View
+                className="bg-white rounded-lg border flex-row items-center"
                 style={{
-                    shadowColor: '#000', 
-                    shadowOffset: { width: 0, height: 1 }, 
-                    shadowOpacity: 0.05, 
-                    shadowRadius: 2, 
-                    elevation: 1,
-                    borderColor: error ? '#EF4444' : (isFocused ? '#9CA3AF' : '#E5E7EB'),
+                    borderColor: error ? '#EF4444' : (isFocused ? '#9CA3AF' : '#D1D5DB'),
                 }}
             >
                 {icon && iconPosition === 'left' && (
@@ -44,7 +39,7 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
                         {icon}
                     </Box>
                 )}
-                <RNTextInput 
+                <RNTextInput
                     className={`flex-1 p-3 ${icon && iconPosition === 'left' ? 'pl-2' : ''} ${icon && iconPosition === 'right' ? 'pr-2' : ''}`}
                     placeholderTextColor="#717182"
                     style={{ outlineStyle: 'none' } as any}
