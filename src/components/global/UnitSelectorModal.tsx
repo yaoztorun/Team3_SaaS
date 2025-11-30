@@ -47,7 +47,7 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                                                         <X size={24} color="#666" />
                                                 </TouchableOpacity>
                                         </Box>
-                                        <ScrollView 
+                                        <ScrollView
                                                 style={{ flex: 1 }}
                                                 contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 }}
                                                 showsVerticalScrollIndicator={true}
