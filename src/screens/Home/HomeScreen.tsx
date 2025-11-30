@@ -12,6 +12,7 @@ import {
   View,
   Image,
   Animated,
+  PanResponder,
 } from 'react-native';
 import type { ImageSourcePropType } from 'react-native';
 import { Box } from '@/src/components/ui/box';
@@ -187,43 +188,71 @@ export const HomeScreen: React.FC = () => {
   const [tagsModalVisible, setTagsModalVisible] = useState(false);
   const [currentTaggedFriends, setCurrentTaggedFriends] = useState<TaggedUser[]>([]);
 
-  // carousel state - animated index with slide effect
+  // carousel state - swipe + fade
   const [currentCocktailIndex, setCurrentCocktailIndex] = useState(0);
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const autoScrollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const dragX = useRef(new Animated.Value(0)).current;
+  const cardOpacity = useRef(new Animated.Value(1)).current;
   const commentsScrollViewRef = useRef<ScrollView | null>(null);
 
-  // Auto-rotate cocktail every 5 seconds with animation
-  useEffect(() => {
-    autoScrollTimer.current = setInterval(() => {
-      // Slide out current card (faster)
-      Animated.timing(slideAnim, {
-        toValue: -1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => {
-        // Update index and instantly show new card (no slide-in animation)
-        setCurrentCocktailIndex((prev) => (prev + 1) % COCKTAILS.length);
-        slideAnim.setValue(0);
-      });
-    }, 5000);
-
-    return () => {
-      if (autoScrollTimer.current) {
-        clearInterval(autoScrollTimer.current);
-      }
-    };
-  }, []);
-
-  // ---------- load feed + likes + comment counts ----------
-
+  // PanResponder for swipe gestures
+  const swipeThreshold = 80; // px drag required to trigger swipe
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10,
+      onPanResponderMove: (_, gesture) => {
+        dragX.setValue(gesture.dx);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const { dx } = gesture;
+        if (Math.abs(dx) < swipeThreshold) {
+          // snap back
+          Animated.spring(dragX, { toValue: 0, useNativeDriver: true })?.start();
+          return;
+        }
+        const direction = dx < 0 ? -1 : 1; // -1 = next (left swipe), 1 = previous (right swipe)
+        Animated.parallel([
+          Animated.timing(dragX, {
+            toValue: direction * Dimensions.get('window').width,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+          Animated.timing(cardOpacity, {
+            toValue: 0,
+            duration: 250,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          // update index
+          setCurrentCocktailIndex((prev) => {
+            if (direction === -1) return (prev + 1) % COCKTAILS.length; // left swipe -> next
+            return (prev - 1 + COCKTAILS.length) % COCKTAILS.length; // right swipe -> previous
+          });
+          // prepare new card off-screen opposite side
+          dragX.setValue(-direction * Dimensions.get('window').width);
+          cardOpacity.setValue(0);
+          Animated.parallel([
+            Animated.timing(dragX, {
+              toValue: 0,
+              duration: 260,
+              useNativeDriver: true,
+            }),
+            Animated.timing(cardOpacity, {
+              toValue: 1,
+              duration: 300,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        });
+      },
+    })
+  ).current;
   useEffect(() => {
     const loadFeed = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // no user logged in -> just show dummy data
         if (!user) {
           setFeedPosts(
             feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
@@ -232,35 +261,27 @@ export const HomeScreen: React.FC = () => {
         }
 
         let rawLogs: any[] = [];
-
         if (feedFilter === 'friends') {
-          // FRIENDS TAB: friends + your own logs
           const { data: friendships, error: friendsError } = await supabase
             .from('Friendship')
             .select('user_id, friend_id')
             .eq('status', 'accepted')
             .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-
           if (friendsError) throw friendsError;
-
           const friendIds = new Set<string>();
           friendships?.forEach((row) => {
             if (row.user_id === user.id) friendIds.add(row.friend_id);
             else if (row.friend_id === user.id) friendIds.add(row.user_id);
           });
-
-          friendIds.add(user.id); // include own logs
-
+          friendIds.add(user.id);
           const idsArray = Array.from(friendIds);
           if (idsArray.length === 0) {
             setFeedPosts(DUMMY_POSTS_FRIENDS);
             return;
           }
-
           const { data, error } = await supabase
             .from('DrinkLog')
-            .select(
-              `
+            .select(`
               id,
               created_at,
               caption,
@@ -268,31 +289,19 @@ export const HomeScreen: React.FC = () => {
               image_url,
               visibility,
               user_id,
-              Cocktail (
-                id,
-                name,
-                image_url
-              ),
-              Profile (
-                id,
-                full_name,
-                avatar_url
-              )
-            `,
-            )
+              Cocktail ( id, name, image_url ),
+              Profile ( id, full_name, avatar_url )
+            `)
             .in('user_id', idsArray)
             .in('visibility', ['public', 'friends'])
             .order('created_at', { ascending: false })
             .limit(50);
-
           if (error) throw error;
           rawLogs = (data ?? []) as any[];
         } else {
-          // FOR YOU TAB: all public logs
           const { data, error } = await supabase
             .from('DrinkLog')
-            .select(
-              `
+            .select(`
               id,
               created_at,
               caption,
@@ -300,22 +309,12 @@ export const HomeScreen: React.FC = () => {
               image_url,
               visibility,
               user_id,
-              Cocktail (
-                id,
-                name,
-                image_url
-              ),
-              Profile (
-                id,
-                full_name,
-                avatar_url
-              )
-            `,
-            )
+              Cocktail ( id, name, image_url ),
+              Profile ( id, full_name, avatar_url )
+            `)
             .eq('visibility', 'public')
             .order('created_at', { ascending: false })
             .limit(50);
-
           if (error) throw error;
           rawLogs = (data ?? []) as any[];
         }
@@ -327,16 +326,9 @@ export const HomeScreen: React.FC = () => {
           return;
         }
 
-        // 🔹 add likes + comment counts + tags
         const logIds = rawLogs.map((r) => r.id as string);
-
-        const { counts: likeCounts, likedByMe } = await getLikesForLogs(
-          logIds,
-          user.id,
-        );
-
+        const { counts: likeCounts, likedByMe } = await getLikesForLogs(logIds, user.id);
         const commentCounts = await getCommentCountsForLogs(logIds);
-
         const tagsMap = await getTagsForLogs(logIds);
 
         const mapped: FeedPost[] = rawLogs.map((raw) => {
@@ -346,12 +338,10 @@ export const HomeScreen: React.FC = () => {
           const cocktailName = log.Cocktail?.name ?? 'Unknown cocktail';
           const cocktailId = log.Cocktail?.id ?? '';
           const imageUrl = log.image_url ?? log.Cocktail?.image_url ?? '';
-
           const likes = likeCounts.get(log.id) ?? 0;
           const comments = commentCounts.get(log.id) ?? 0;
           const isLiked = likedByMe.has(log.id);
           const taggedFriends = tagsMap.get(log.id) ?? [];
-
           return {
             id: log.id,
             cocktailId,
@@ -369,7 +359,6 @@ export const HomeScreen: React.FC = () => {
             taggedFriends,
           };
         });
-
         setFeedPosts(mapped);
       } catch (err: any) {
         console.error('Error loading feed:', err);
@@ -381,7 +370,6 @@ export const HomeScreen: React.FC = () => {
         setLoading(false);
       }
     };
-
     loadFeed();
   }, [feedFilter, user]);
 
@@ -633,157 +621,88 @@ export const HomeScreen: React.FC = () => {
           paddingBottom: spacing.screenBottom,
         }}
       >
-        {/* Popular Right Now – Animated Cocktail Carousel */}
+        {/* Popular Right Now – Swipeable Cocktail Carousel */}
         <Box className="mb-6">
-          <Heading level="h3" className="mb-3">
-            Popular right now
-          </Heading>
-
-          <Box className="h-72 items-center justify-center">
-            <Box
-              style={{
-                width: SCREEN_WIDTH,
-                alignItems: 'center',
-                position: 'relative',
-                flexDirection: 'row',
-                justifyContent: 'center',
-              }}
-            >
-              {/* Previous card (left side) - moves with animation */}
-              <Animated.View
-                style={{
-                  width: 140,
-                  height: 240,
-                  marginRight: 10,
-                  borderRadius: 28,
-                  backgroundColor: '#f9fafb',
-                  borderWidth: 2,
-                  borderColor: '#d1d5db',
-                  opacity: 0.6,
+          <Heading level="h3" className="mb-3">Popular right now</Heading>
+          <Box className="h-80 items-center justify-center">
+            <View style={{ width: SCREEN_WIDTH, alignItems: 'center', justifyContent: 'center' }}>
+              {/* Side previews */}
+              <View style={{ position: 'absolute', left: 30 }}>
+                <View style={{
+                  width: 120,
+                  height: 200,
+                  borderRadius: 26,
+                  backgroundColor: '#f1f5f9',
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0',
                   overflow: 'hidden',
-                  transform: [
-                    {
-                      translateX: slideAnim.interpolate({
-                        inputRange: [-1, 0, 1],
-                        outputRange: [-250, 0, 250],
-                      }),
-                    },
-                  ],
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <Image
-                  source={COCKTAILS[(currentCocktailIndex - 1 + COCKTAILS.length) % COCKTAILS.length].image}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    resizeMode: 'contain',
-                    opacity: 0.4,
-                  }}
-                />
-              </Animated.View>
-
-              {/* Active card with animation */}
-              <Animated.View
-                style={{
-                  width: 200,
-                  alignItems: 'center',
-                  position: 'relative',
-                  transform: [
-                    {
-                      translateX: slideAnim.interpolate({
-                        inputRange: [-1, 0, 1],
-                        outputRange: [-250, 0, 250],
-                      }),
-                    },
-                  ],
-                }}
-              >
-                {/* Glow effect */}
-                <Box
-                  style={{
-                    position: 'absolute',
-                    top: 10,
-                    bottom: 10,
-                    left: 10,
-                    right: 10,
-                    borderRadius: 28,
-                    backgroundColor: colors.primary[500],
-                    opacity: 0.18,
-                  }}
-                />
-
-                {/* Card */}
-                <Box
-                  className="items-center justify-center rounded-3xl"
-                  style={{
-                    width: '100%',
-                    height: 240,
-                    paddingVertical: 10,
-                    paddingHorizontal: 10,
-                    borderRadius: 28,
-                    backgroundColor: colors.white,
-                    overflow: 'hidden',
-                    borderWidth: 2,
-                    borderColor: colors.primary[500],
-                    shadowColor: colors.primary[500],
-                    shadowOpacity: 0.22,
-                    shadowOffset: { width: 0, height: 10 },
-                    shadowRadius: 16,
-                    elevation: 7,
-                  }}
-                >
+                  opacity: 0.45,
+                }}>
                   <Image
-                    source={COCKTAILS[currentCocktailIndex].image}
-                    style={{
-                      width: '100%',
-                      height: '82%',
-                      maxHeight: 200,
-                      resizeMode: 'contain',
-                    }}
+                    source={COCKTAILS[(currentCocktailIndex - 1 + COCKTAILS.length) % COCKTAILS.length].image}
+                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
                   />
-                  <Text className="mt-2 text-base font-semibold text-neutral-900 text-center">
-                    {COCKTAILS[currentCocktailIndex].name}
-                  </Text>
-                </Box>
-              </Animated.View>
-
-              {/* Next card (right side) - moves with animation */}
-              <Animated.View
-                style={{
-                  width: 140,
-                  height: 240,
-                  marginLeft: 10,
-                  borderRadius: 28,
-                  backgroundColor: '#f9fafb',
-                  borderWidth: 2,
-                  borderColor: '#d1d5db',
-                  opacity: 0.6,
+                </View>
+              </View>
+              <View style={{ position: 'absolute', right: 30 }}>
+                <View style={{
+                  width: 120,
+                  height: 200,
+                  borderRadius: 26,
+                  backgroundColor: '#f1f5f9',
+                  borderWidth: 1,
+                  borderColor: '#e2e8f0',
                   overflow: 'hidden',
-                  transform: [
-                    {
-                      translateX: slideAnim.interpolate({
-                        inputRange: [-1, 0, 1],
-                        outputRange: [-250, 0, 250],
-                      }),
-                    },
-                  ],
+                  opacity: 0.45,
+                }}>
+                  <Image
+                    source={COCKTAILS[(currentCocktailIndex + 1) % COCKTAILS.length].image}
+                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                  />
+                </View>
+              </View>
+              {/* Active card */}
+              <Animated.View
+                {...panResponder.panHandlers}
+                style={{
+                  width: 240,
+                  height: 320,
+                  borderRadius: 32,
+                  backgroundColor: '#ffffff',
+                  shadowColor: '#009689',
+                  shadowOpacity: 0.25,
+                  shadowOffset: { width: 0, height: 12 },
+                  shadowRadius: 18,
+                  elevation: 10,
+                  borderWidth: 2,
+                  borderColor: 'rgba(0,150,137,0.35)',
+                  padding: 16,
                   justifyContent: 'center',
                   alignItems: 'center',
+                  overflow: 'hidden',
+                  transform: [{ translateX: dragX }],
+                  opacity: cardOpacity,
                 }}
               >
+                <View style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: colors.primary[500],
+                  opacity: 0.08,
+                }} />
                 <Image
-                  source={COCKTAILS[(currentCocktailIndex + 1) % COCKTAILS.length].image}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    resizeMode: 'contain',
-                    opacity: 0.4,
-                  }}
+                  source={COCKTAILS[currentCocktailIndex].image}
+                  style={{ width: '100%', height: '85%', resizeMode: 'contain' }}
                 />
+                <Text className="mt-3 text-lg font-semibold text-neutral-900 text-center">
+                  {COCKTAILS[currentCocktailIndex].name}
+                </Text>
+                <Text className="text-[11px] mt-1 text-neutral-500">Swipe left / right</Text>
               </Animated.View>
-            </Box>
+            </View>
           </Box>
         </Box>
 
