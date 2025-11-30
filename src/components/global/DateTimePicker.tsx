@@ -348,10 +348,10 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                 <Box className="px-4 py-4">
                                     <Text className="text-sm font-semibold text-neutral-500 mb-3 uppercase">Time</Text>
 
-                                    <Box className="flex-row gap-3">
-                                        {/* Start Time */}
+                                    {/* Start Time Section */}
+                                    <Box className="mb-4">
                                         <Pressable
-                                            className={`flex-1 border rounded-xl p-3 ${showStartTimePicker ? 'border-teal-500 bg-teal-50' : 'border-neutral-200 bg-white'}`}
+                                            className={`border rounded-xl p-3 ${showStartTimePicker ? 'border-teal-500 bg-teal-50' : 'border-neutral-200 bg-white'}`}
                                             onPress={() => {
                                                 setShowStartTimePicker(true);
                                                 setShowEndTimePicker(false);
@@ -366,9 +366,22 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             </Box>
                                         </Pressable>
 
-                                        {/* End Time or Add Button */}
+                                        {/* Start Time Picker */}
+                                        {showStartTimePicker && (
+                                            <Box className="mt-4">
+                                                <CustomTimePicker
+                                                    key="start"
+                                                    value={startTime}
+                                                    onChange={onStartTimeChange}
+                                                />
+                                            </Box>
+                                        )}
+                                    </Box>
+
+                                    {/* End Time Section */}
+                                    <Box className="mb-4">
                                         {endTime ? (
-                                            <Box style={{ flex: 1, position: 'relative' }}>
+                                            <Box style={{ position: 'relative' }}>
                                                 <Pressable
                                                     className={`border rounded-xl p-3 ${showEndTimePicker ? 'border-teal-500 bg-teal-50' : 'border-neutral-200 bg-white'}`}
                                                     onPress={() => {
@@ -413,27 +426,32 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             </Box>
                                         ) : (
                                             <Pressable
-                                                className="flex-1 border-2 border-dashed border-neutral-300 rounded-xl p-3 bg-white justify-center items-center"
+                                                className="border-2 border-dashed border-neutral-300 rounded-xl p-3 bg-white justify-center items-center"
                                                 onPress={addEndTime}
                                             >
                                                 <Text className="text-sm font-medium text-teal-600">+ Add End Time</Text>
                                             </Pressable>
                                         )}
+
+                                        {/* End Time Picker */}
+                                        {showEndTimePicker && endTime && (
+                                            <Box className="mt-4">
+                                                <CustomTimePicker
+                                                    key="end"
+                                                    value={endTime}
+                                                    onChange={onEndTimeChange}
+                                                />
+                                            </Box>
+                                        )}
                                     </Box>
 
-                                    {/* Time Picker Display (Custom) */}
-                                    {(showStartTimePicker || showEndTimePicker) && (
-                                        <Box className="mt-4">
-                                            <CustomTimePicker
-                                                key={showStartTimePicker ? 'start' : 'end'}
-                                                value={showStartTimePicker ? startTime : (endTime || startTime)}
-                                                onChange={(newDate) => {
-                                                    if (showStartTimePicker) onStartTimeChange(newDate);
-                                                    else onEndTimeChange(newDate);
-                                                }}
-                                            />
-                                        </Box>
-                                    )}
+                                    {/* Confirm Button - Always visible */}
+                                    <TouchableOpacity
+                                        onPress={() => setIsModalVisible(false)}
+                                        className="mt-4 bg-teal-500 rounded-xl py-4 items-center"
+                                    >
+                                        <Text className="text-white font-semibold text-base">Confirm Time</Text>
+                                    </TouchableOpacity>
                                 </Box>
                             </ScrollView>
                         </Box>
