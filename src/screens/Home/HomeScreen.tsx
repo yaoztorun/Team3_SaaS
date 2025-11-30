@@ -4,8 +4,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Dimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
   Modal,
   KeyboardAvoidingView,
   Platform,
@@ -627,7 +625,7 @@ export const HomeScreen: React.FC = () => {
           <Box className="h-80 items-center justify-center">
             <View style={{ width: SCREEN_WIDTH, alignItems: 'center', justifyContent: 'center' }}>
               {/* Side previews */}
-              <View style={{ position: 'absolute', left: 30 }}>
+              <Animated.View style={{ position: 'absolute', left: 30, zIndex: 1, transform: [{ scale: 0.8 }], opacity: 0.55 }} pointerEvents="none">
                 <View style={{
                   width: 120,
                   height: 200,
@@ -636,15 +634,14 @@ export const HomeScreen: React.FC = () => {
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                   overflow: 'hidden',
-                  opacity: 0.45,
                 }}>
                   <Image
                     source={COCKTAILS[(currentCocktailIndex - 1 + COCKTAILS.length) % COCKTAILS.length].image}
                     style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
                   />
                 </View>
-              </View>
-              <View style={{ position: 'absolute', right: 30 }}>
+              </Animated.View>
+              <Animated.View style={{ position: 'absolute', right: 30, zIndex: 1, transform: [{ scale: 0.8 }], opacity: 0.55 }} pointerEvents="none">
                 <View style={{
                   width: 120,
                   height: 200,
@@ -653,14 +650,13 @@ export const HomeScreen: React.FC = () => {
                   borderWidth: 1,
                   borderColor: '#e2e8f0',
                   overflow: 'hidden',
-                  opacity: 0.45,
                 }}>
                   <Image
                     source={COCKTAILS[(currentCocktailIndex + 1) % COCKTAILS.length].image}
                     style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
                   />
                 </View>
-              </View>
+              </Animated.View>
               {/* Active card */}
               <Animated.View
                 {...panResponder.panHandlers}
@@ -682,6 +678,7 @@ export const HomeScreen: React.FC = () => {
                   overflow: 'hidden',
                   transform: [{ translateX: dragX }],
                   opacity: cardOpacity,
+                  zIndex: 2,
                 }}
               >
                 <View style={{
@@ -695,13 +692,28 @@ export const HomeScreen: React.FC = () => {
                 }} />
                 <Image
                   source={COCKTAILS[currentCocktailIndex].image}
-                  style={{ width: '100%', height: '85%', resizeMode: 'contain' }}
+                  style={{ width: '100%', height: '92%', resizeMode: 'contain' }}
                 />
                 <Text className="mt-3 text-lg font-semibold text-neutral-900 text-center">
                   {COCKTAILS[currentCocktailIndex].name}
                 </Text>
-                <Text className="text-[11px] mt-1 text-neutral-500">Swipe left / right</Text>
               </Animated.View>
+            </View>
+            {/* Pagination dots below card */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
+              {COCKTAILS.map((c, idx) => (
+                <View
+                  key={c.id}
+                  style={{
+                    width: idx === currentCocktailIndex ? 10 : 7,
+                    height: idx === currentCocktailIndex ? 10 : 7,
+                    borderRadius: 10,
+                    marginHorizontal: 5,
+                    backgroundColor: idx === currentCocktailIndex ? colors.primary[500] : '#d1d5db',
+                    opacity: idx === currentCocktailIndex ? 1 : 0.55,
+                  }}
+                />
+              ))}
             </View>
           </Box>
         </Box>
