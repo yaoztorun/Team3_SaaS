@@ -17,7 +17,7 @@ interface DateTimePickerProps {
     onEndTimeChange: (time: Date | null) => void;
 }
 
-const CustomTimePicker = ({ value, onChange }: { value: Date; onChange: (date: Date) => void }) => {
+const CustomTimePicker = ({ value, onChange, label = 'Select Time' }: { value: Date; onChange: (date: Date) => void; label?: string }) => {
     const minutes = [0, 15, 30, 45];
     const [selectedHour, setSelectedHour] = useState(value.getHours());
     const [selectedMinute, setSelectedMinute] = useState(value.getMinutes());
@@ -57,7 +57,7 @@ const CustomTimePicker = ({ value, onChange }: { value: Date; onChange: (date: D
 
     return (
         <Box className="bg-white rounded-xl p-4 border border-neutral-200">
-            <Text className="text-sm font-semibold text-neutral-700 mb-3">Select Time</Text>
+            <Text className="text-sm font-semibold text-neutral-700 mb-3">{label}</Text>
 
             <Box className="flex-row items-center justify-center gap-3">
                 {/* Hour Selector */}
@@ -320,9 +320,17 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                 contentContainerStyle={{ paddingBottom: 100 }}
                                 keyboardShouldPersistTaps="handled"
                                 showsVerticalScrollIndicator={true}
-                            >                                                        {/* Calendar */}
+                            >
+                                {/* Date Section */}
+                                <Box className="px-4 pt-4 pb-2">
+                                    <Text className="text-sm font-semibold text-neutral-500 mb-1 uppercase">Pick the Date</Text>
+                                    <Text className="text-xs text-neutral-400">Past dates are disabled</Text>
+                                </Box>
+
+                                {/* Calendar */}
                                 <Calendar
                                     current={selectedDateString}
+                                    minDate={new Date().toISOString().split('T')[0]}
                                     onDayPress={(day: DateData) => {
                                         setSelectedDateString(day.dateString);
                                         const newDate = new Date(day.dateString);
@@ -332,17 +340,36 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                         selectedDayBackgroundColor: colors.primary[500],
                                         selectedDayTextColor: '#ffffff',
                                         todayTextColor: colors.primary[500],
+                                        todayBackgroundColor: '#d1fae5',
                                         arrowColor: colors.primary[500],
                                         monthTextColor: '#111827',
                                         textMonthFontWeight: '600',
                                         textDayHeaderFontWeight: '500',
+                                        textDisabledColor: '#d1d5db',
+                                        textDayFontWeight: '500',
+                                        dayTextColor: '#0d9488',
                                     }}
                                     markedDates={{
+                                        [new Date().toISOString().split('T')[0]]: {
+                                            marked: true,
+                                            dotColor: colors.primary[500],
+                                            customStyles: {
+                                                container: {
+                                                    backgroundColor: '#d1fae5',
+                                                    borderRadius: 8,
+                                                },
+                                                text: {
+                                                    color: colors.primary[600],
+                                                    fontWeight: 'bold',
+                                                }
+                                            }
+                                        },
                                         [selectedDateString]: {
                                             selected: true,
                                             selectedColor: colors.primary[500]
                                         }
                                     }}
+                                    markingType={'custom'}
                                 />
 
                                 <Box className="px-4 py-4">
@@ -373,6 +400,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                                     key="start"
                                                     value={startTime}
                                                     onChange={onStartTimeChange}
+                                                    label="Select Start Time"
                                                 />
                                             </Box>
                                         )}
@@ -440,6 +468,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                                     key="end"
                                                     value={endTime}
                                                     onChange={onEndTimeChange}
+                                                    label="Select End Time"
                                                 />
                                             </Box>
                                         )}
