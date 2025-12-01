@@ -107,6 +107,9 @@ const getInitials = (name: string) => {
 // ---------- carousel (images) ----------
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const ACTIVE_CARD_WIDTH = 220;
+const PREVIEW_WIDTH = 116;
+const PREVIEW_GAP = 24; // distance from active card edge to preview center
 
 type CarouselItem = {
   id: string;
@@ -718,35 +721,22 @@ export const HomeScreen: React.FC = () => {
               {/* Side previews */}
               <Animated.View style={{
                 position: 'absolute',
-                left: 16,
                 zIndex: 1,
                 transform: [
-                  {
-                    translateX: gestureX.interpolate({
-                      inputRange: [-200, 0, 200],
-                      outputRange: [-6, 0, 6],
-                      extrapolate: 'clamp',
-                    }),
+                  { translateX: Animated.add(
+                      gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [-6,0,6], extrapolate: 'clamp' }),
+                      new Animated.Value(-(ACTIVE_CARD_WIDTH/2 + PREVIEW_GAP))
+                    )
                   },
-                  {
-                    scale: gestureX.interpolate({
-                      inputRange: [-200, 0, 200],
-                      outputRange: [0.82, 0.85, 0.88],
-                      extrapolate: 'clamp',
-                    }),
-                  },
+                  { scale: gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.9,0.92,0.94], extrapolate: 'clamp' }) },
                 ],
                 opacity: Animated.multiply(
                   sideLeftOpacity,
-                  gestureX.interpolate({
-                    inputRange: [-200, 0, 200],
-                    outputRange: [0.5, 0.6, 0.7],
-                    extrapolate: 'clamp',
-                  })
+                  gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.55,0.6,0.7], extrapolate: 'clamp' })
                 ),
               }} pointerEvents="none">
                 <View style={{
-                  width: 116,
+                  width: PREVIEW_WIDTH,
                   height: 200,
                   borderRadius: 26,
                   backgroundColor: '#f8fafc',
@@ -783,35 +773,22 @@ export const HomeScreen: React.FC = () => {
               </Animated.View>
               <Animated.View style={{
                 position: 'absolute',
-                right: 16,
                 zIndex: 1,
                 transform: [
-                  {
-                    translateX: gestureX.interpolate({
-                      inputRange: [-200, 0, 200],
-                      outputRange: [-6, 0, 6],
-                      extrapolate: 'clamp',
-                    }),
+                  { translateX: Animated.add(
+                      gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [-6,0,6], extrapolate: 'clamp' }),
+                      new Animated.Value(ACTIVE_CARD_WIDTH/2 + PREVIEW_GAP)
+                    )
                   },
-                  {
-                    scale: gestureX.interpolate({
-                      inputRange: [-200, 0, 200],
-                      outputRange: [0.88, 0.85, 0.82],
-                      extrapolate: 'clamp',
-                    }),
-                  },
+                  { scale: gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.94,0.92,0.9], extrapolate: 'clamp' }) },
                 ],
                 opacity: Animated.multiply(
                   sideRightOpacity,
-                  gestureX.interpolate({
-                    inputRange: [-200, 0, 200],
-                    outputRange: [0.7, 0.6, 0.5],
-                    extrapolate: 'clamp',
-                  })
+                  gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.7,0.6,0.55], extrapolate: 'clamp' })
                 ),
               }} pointerEvents="none">
                 <View style={{
-                  width: 116,
+                  width: PREVIEW_WIDTH,
                   height: 200,
                   borderRadius: 26,
                   backgroundColor: '#f8fafc',
@@ -862,6 +839,7 @@ export const HomeScreen: React.FC = () => {
                   borderWidth: 2,
                   borderColor: 'rgba(0,150,137,0.35)',
                   padding: 16,
+                  paddingBottom: 26,
                   justifyContent: 'center',
                   alignItems: 'center',
                   overflow: 'hidden',
@@ -910,7 +888,7 @@ export const HomeScreen: React.FC = () => {
                     />
                   );
                 })()}
-                <Text className="mt-3 text-lg font-semibold text-neutral-900 text-center">
+                <Text className="mt-4 mb-1 text-lg font-medium text-neutral-900 text-center">
                   {COCKTAILS[currentCocktailIndex].name}
                 </Text>
               </Animated.View>
