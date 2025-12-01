@@ -435,8 +435,9 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
             {/* Submit Button */}
             <PrimaryButton
-                title={isUploading ? 'Creating Recipe...' : 'Create Recipe'}
+                title="Create Recipe"
                 onPress={handleCreateRecipe}
+                loading={isUploading}
                 disabled={!canSubmit || isUploading}
             />
             {!canSubmit && !isUploading && hasInteracted && (

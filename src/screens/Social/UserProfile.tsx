@@ -10,6 +10,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Profile } from '@/src/types/profile';
 import { Button } from '@/src/components/ui/button';
+import { Pressable } from '@/src/components/ui/pressable';
 import { useAuth } from '@/src/hooks/useAuth';
 import { 
     sendFriendRequest, 
@@ -24,6 +25,7 @@ import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Heading } from '@/src/components/global';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
+import { BadgeModal } from '@/src/components/global/BadgeModal';
 
 type RouteParams = {
     UserProfile: { userId: string };
@@ -47,6 +49,7 @@ export const UserProfile = () => {
     const [loadingStats, setLoadingStats] = useState(true);
     const [badges, setBadges] = useState<Badge[]>([]);
     const [loadingBadges, setLoadingBadges] = useState(false);
+    const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
 
     useEffect(() => {
         loadUserProfile();
@@ -205,7 +208,7 @@ export const UserProfile = () => {
             <Box className="flex-1 bg-neutral-50">
                 <TopBar title="Profile" showBack onBackPress={() => navigation.goBack()} />
                 <Center className="flex-1">
-                    <ActivityIndicator size="large" color="#14b8a6" />
+                    <ActivityIndicator size="large" color="#00BBA7" />
                 </Center>
             </Box>
         );
@@ -266,8 +269,9 @@ export const UserProfile = () => {
                             ) : badges.length > 0 ? (
                                 <HStack className="flex-wrap gap-2 justify-center">
                                     {badges.slice(0, 6).map((badge) => (
-                                        <Box 
+                                        <Pressable
                                             key={badge.type}
+                                            onPress={() => setSelectedBadge(badge)}
                                             className="items-center"
                                             style={{ width: 50 }}
                                         >
@@ -276,7 +280,7 @@ export const UserProfile = () => {
                                                 style={{ width: 48, height: 48 }}
                                                 resizeMode="contain"
                                             />
-                                        </Box>
+                                        </Pressable>
                                     ))}
                                 </HStack>
                             ) : (
@@ -352,7 +356,7 @@ export const UserProfile = () => {
                     <Text className="text-base text-neutral-900 mb-4">Stats</Text>
                     {loadingStats ? (
                         <Center className="py-4">
-                            <ActivityIndicator color="#14b8a6" />
+                            <ActivityIndicator size="small" color="#00BBA7" />
                         </Center>
                     ) : (
                         <HStack className="justify-around">
@@ -502,6 +506,13 @@ export const UserProfile = () => {
                     </Box>
                 )}
             </ScrollView>
+
+            {/* Badge Modal */}
+            <BadgeModal
+                visible={selectedBadge !== null}
+                badge={selectedBadge}
+                onClose={() => setSelectedBadge(null)}
+            />
         </Box>
     );
 };

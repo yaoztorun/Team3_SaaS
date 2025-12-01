@@ -237,7 +237,12 @@ const LogView: React.FC<LogViewProps> = ({
             </Box>
 
             {/* Submit Button */}
-            <PrimaryButton title={isUploading ? 'Uploading...' : 'Post Cocktail'} onPress={handleLogCocktail} disabled={!canSubmit || isUploading} />
+            <PrimaryButton 
+                title="Post Cocktail" 
+                onPress={handleLogCocktail} 
+                loading={isUploading}
+                disabled={!canSubmit || isUploading} 
+            />
             {!canSubmit && hasInteracted && (
                 <Text className="text-sm text-red-500 mt-2">Please complete all required fields: cocktail, rating, review, and location or At Home.</Text>
             )}

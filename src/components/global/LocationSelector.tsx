@@ -149,16 +149,14 @@ export const LocationSelector: React.FC<LocationSelectorProps> = ({
                 <TouchableOpacity
                     activeOpacity={1}
                     onPress={() => setIsModalVisible(false)}
-                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' }}
                 >
                     <TouchableOpacity
                         activeOpacity={1}
                         onPress={(e) => e.stopPropagation()}
                         style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
+                            width: '100%',
+                            maxWidth: 480,
                             height: '85%',
                         }}
                     >

@@ -35,7 +35,7 @@ export type EventWithDetails = DBEvent & {
 export async function createEvent(event: {
         name: string;
         description: string;
-        party_type: 'house party' | 'bar meetup' | 'outdoor event' | 'themed party';
+        party_type: 'house party' | 'bar meetup' | 'outdoor event' | 'themed party' | 'workshop' | 'tasting';
         location_id?: string | null;
         user_location_id?: string | null;
         start_time: string;
@@ -491,7 +491,7 @@ export async function updateEvent(
         updates: {
                 name?: string;
                 description?: string;
-                party_type?: 'house party' | 'bar meetup' | 'outdoor event' | 'themed party';
+                party_type?: 'house party' | 'bar meetup' | 'outdoor event' | 'themed party' | 'workshop' | 'tasting';
                 location_id?: string | null;
                 user_location_id?: string | null;
                 start_time?: string;

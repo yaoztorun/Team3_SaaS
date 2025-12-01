@@ -258,8 +258,9 @@ const Settings: React.FC = () => {
                     </Box>
 
                     <PrimaryButton
-                        title={saving ? "Saving..." : "Save Settings"}
+                        title="Save Settings"
                         onPress={handleSaveSettings}
+                        loading={saving}
                         disabled={saving}
                     />
                 </ScrollView>

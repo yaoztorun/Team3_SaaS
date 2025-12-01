@@ -12,7 +12,7 @@ import { spacing } from '@/src/theme/spacing';
 import { supabase } from '@/src/lib/supabase';
 import { User } from 'lucide-react-native';
 
-type EventType = 'All' | 'house party' | 'bar meetup' | 'outdoor event' | 'themed party';
+type EventType = 'All' | 'house party' | 'bar meetup' | 'outdoor event' | 'themed party' | 'workshop' | 'tasting';
 
 export const UpcomingEvents = () => {
     const navigation = useNavigation();
@@ -24,7 +24,7 @@ export const UpcomingEvents = () => {
     const [processingEvents, setProcessingEvents] = useState<Set<string>>(new Set());
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-    const filterTypes: EventType[] = ['All', 'house party', 'bar meetup', 'outdoor event', 'themed party'];
+    const filterTypes: EventType[] = ['All', 'house party', 'bar meetup', 'outdoor event', 'themed party', 'workshop', 'tasting'];
 
     const loadEvents = async () => {
         setLoading(true);
