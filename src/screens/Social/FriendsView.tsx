@@ -164,7 +164,7 @@ export const FriendsView = () => {
                                         <Text className="text-sm text-gray-600 mb-3">Search Results</Text>
                                         {searchingUsers ? (
                                                 <Box className="py-4 items-center">
-                                                        <ActivityIndicator size="small" color="#14b8a6" />
+                                                        <ActivityIndicator size="small" color="#00BBA7" />
                                                 </Box>
                                         ) : searchResults.length === 0 ? (
                                                 <Text className="text-sm text-gray-500 text-center py-4">No users found</Text>
@@ -237,7 +237,7 @@ export const FriendsView = () => {
 
                         {loading ? (
                                 <Box className="py-8 items-center">
-                                        <ActivityIndicator size="large" color="#14b8a6" />
+                                        <ActivityIndicator size="large" color="#00BBA7" />
                                 </Box>
                         ) : (
                                 <>

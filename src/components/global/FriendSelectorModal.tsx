@@ -73,8 +73,8 @@ export const FriendSelectorModal: React.FC<FriendSelectorModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Box className="flex-1 bg-black/50 justify-end">
-        <Box className="bg-white rounded-t-3xl max-h-[80%]">
+      <Box className="flex-1 bg-black/50 justify-end" style={{ alignItems: 'center' }}>
+        <Box className="bg-white rounded-t-3xl max-h-[80%]" style={{ width: '100%', maxWidth: 480 }}>
           {/* Header */}
           <Box className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
             <Text className="text-lg font-semibold text-neutral-900">

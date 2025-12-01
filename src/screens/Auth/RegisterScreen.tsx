@@ -26,6 +26,7 @@ const RegisterScreen: React.FC = () => {
     const [isSignInHovered, setIsSignInHovered] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
 
@@ -35,6 +36,7 @@ const RegisterScreen: React.FC = () => {
             return;
         }
 
+        setIsLoading(true);
         // Track signup started
         posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
             method: 'email',
@@ -51,6 +53,8 @@ const RegisterScreen: React.FC = () => {
                 emailRedirectTo: `${window.location.origin}`,
             }
         });
+
+        setIsLoading(false);
 
         if(error) {
             // Better error handling for password requirements
@@ -144,6 +148,7 @@ const RegisterScreen: React.FC = () => {
                         value={name}
                         onChangeText={setName}
                         autoCapitalize="words"
+                        onSubmitEditing={handleRegister}
                     />
 
                     <Box className="mt-6">
@@ -154,6 +159,7 @@ const RegisterScreen: React.FC = () => {
                             onChangeText={setEmail}
                             autoCapitalize="none"
                             keyboardType="email-address"
+                            onSubmitEditing={handleRegister}
                         />
                     </Box>
 
@@ -164,6 +170,7 @@ const RegisterScreen: React.FC = () => {
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry={!showPassword}
+                            onSubmitEditing={handleRegister}
                             icon={
                                 <Pressable onPress={() => setShowPassword(!showPassword)}>
                                     {showPassword ? (
@@ -191,6 +198,7 @@ const RegisterScreen: React.FC = () => {
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
                             secureTextEntry={!showConfirmPassword}
+                            onSubmitEditing={handleRegister}
                             icon={
                                 <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                                     {showConfirmPassword ? (
@@ -214,6 +222,8 @@ const RegisterScreen: React.FC = () => {
                     <PrimaryButton 
                         title="Create Account" 
                         onPress={handleRegister}
+                        loading={isLoading}
+                        disabled={isLoading}
                     />
 
                     {/* Sign In Link */}

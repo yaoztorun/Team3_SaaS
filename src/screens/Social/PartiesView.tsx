@@ -248,7 +248,7 @@ export const PartiesView = () => {
             <Box>
                 {loading ? (
                     <Box className="py-8 items-center">
-                        <ActivityIndicator size="large" color="#00a294" />
+                        <ActivityIndicator size="large" color="#00BBA7" />
                         <Text className="text-sm text-gray-500 mt-2">Loading parties...</Text>
                     </Box>
                 ) : (

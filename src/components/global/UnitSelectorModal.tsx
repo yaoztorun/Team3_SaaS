@@ -29,7 +29,7 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                         <TouchableOpacity
                                 activeOpacity={1}
                                 onPress={onClose}
-                                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+                                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' }}
                         >
                                 <TouchableOpacity
                                         activeOpacity={1}
@@ -38,7 +38,10 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                                                 backgroundColor: 'white',
                                                 borderTopLeftRadius: 24,
                                                 borderTopRightRadius: 24,
-                                                maxHeight: '50%'
+                                                paddingBottom: 40,
+                                                maxHeight: '50%',
+                                                width: '100%',
+                                                maxWidth: 480
                                         }}
                                 >
                                         <Box className="px-4 py-4 border-b border-gray-200 flex-row items-center justify-between">
@@ -47,11 +50,7 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                                                         <X size={24} color="#666" />
                                                 </TouchableOpacity>
                                         </Box>
-                                        <ScrollView
-                                                style={{ flex: 1 }}
-                                                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 }}
-                                                showsVerticalScrollIndicator={true}
-                                        >
+                                        <ScrollView className="px-4 py-2">
                                                 {units.map((unit) => (
                                                         <TouchableOpacity
                                                                 key={unit}

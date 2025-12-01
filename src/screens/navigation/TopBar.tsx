@@ -267,9 +267,9 @@ export const TopBar: React.FC<TopBarProps> = ({
         }}
       >
         {/* Title on Left (optionally with back) */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
           {showBack && (
-            <Pressable onPress={onBackPress} style={{ padding: 6 }}>
+            <Pressable onPress={onBackPress}>
               <ArrowLeft size={20} color="#111827" />
             </Pressable>
           )}
@@ -299,6 +299,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           ) : (
             <Heading
               level="h2"
+              numberOfLines={1}
               style={{
                 letterSpacing: -0.5,
               }}
@@ -309,10 +310,10 @@ export const TopBar: React.FC<TopBarProps> = ({
         </View>
 
         {/* Right side: either settings icon (for profile) or stats + bell */}
-        <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
           {showSettingsIcon ? (
             <Pressable onPress={onSettingsPress}>
-              <SettingsIcon size={22} color="#6b7280" />
+              <SettingsIcon size={20} color="#6b7280" />
             </Pressable>
           ) : (
             <>
@@ -321,13 +322,13 @@ export const TopBar: React.FC<TopBarProps> = ({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 4,
                 }}
               >
-                <Flame size={18} color="#f97316" fill="#f97316" />
+                <Flame size={16} color="#f97316" fill="#f97316" />
                 <Text
                   style={{
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: '700',
                     color: '#ea580c',
                   }}
@@ -341,13 +342,13 @@ export const TopBar: React.FC<TopBarProps> = ({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 4,
                 }}
               >
-                <GlassWater size={18} color={colors.primary[500]} />
+                <GlassWater size={16} color={colors.primary[500]} />
                 <Text
                   style={{
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: '700',
                     color: colors.primary[600],
                   }}
@@ -358,7 +359,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
               {/* Notification Bell */}
               <Pressable onPress={handleBellPress} className="relative">
-                <Bell size={22} color="#6b7280" strokeWidth={2} />
+                <Bell size={20} color="#6b7280" strokeWidth={2} />
                 {unreadCount > 0 && (
                   <View className="absolute -top-1 -right-1 bg-[#00BBA7] rounded-full w-2 h-2" />
                 )}

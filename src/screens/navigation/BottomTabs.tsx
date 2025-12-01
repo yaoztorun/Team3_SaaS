@@ -1,12 +1,12 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Animated, GestureResponderEvent } from 'react-native';
+import { Animated, GestureResponderEvent, Text as RNText } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Box } from '@/src/components/ui/box';
 import { Center } from '@/src/components/ui/center';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Text } from '@/src/components/ui/text';
-import { HomeIcon, SearchIcon, Users, UserIcon, PlusIcon } from 'lucide-react-native';
+import { HomeIcon, SearchIcon, UserIcon, PlusIcon, PartyPopper } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { CommonActions } from '@react-navigation/native';
 
@@ -37,7 +37,7 @@ export default function BottomTabs() {
                     borderTopWidth: 1,
                     borderTopColor: '#e5e7eb',
                     elevation: 10,
-                    height: 75,
+                    height: 60,
                 },
             }}
         >
@@ -114,7 +114,7 @@ export default function BottomTabs() {
                     tabBarIcon: ({ focused }) => (
                         <IconButton
                             icon={
-                                <Users
+                                <PartyPopper
                                     size={24}
                                     color={focused ? colors.primary[500] : colors.neutral[400]}
                                 />

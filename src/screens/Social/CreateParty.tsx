@@ -16,7 +16,7 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { PrimaryButton, TextInputField, ImageUploadBox, DateTimePicker, LocationSelector, Heading } from '@/src/components/global';
 
-type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party';
+type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party' | 'workshop' | 'tasting';
 
 export const CreateParty = () => {
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
@@ -56,14 +56,18 @@ export const CreateParty = () => {
         { id: 'bar-meetup', label: 'Bar Meetup', emoji: '🍻' },
         { id: 'outdoor-event', label: 'Outdoor Event', emoji: '🌳' },
         { id: 'themed-party', label: 'Themed Party', emoji: '🎭' },
+        { id: 'workshop', label: 'Workshop', emoji: '🛠️' },
+        { id: 'tasting', label: 'Tasting', emoji: '🍷' },
     ] as const;
 
     // Map frontend party type to database enum
-    const partyTypeMap: Record<PartyType, 'house party' | 'bar meetup' | 'outdoor event' | 'themed party'> = {
+    const partyTypeMap: Record<PartyType, 'house party' | 'bar meetup' | 'outdoor event' | 'themed party' | 'workshop' | 'tasting'> = {
         'house-party': 'house party',
         'bar-meetup': 'bar meetup',
         'outdoor-event': 'outdoor event',
         'themed-party': 'themed party',
+        'workshop': 'workshop',
+        'tasting': 'tasting',
     };
 
     const handleCreateParty = async () => {
@@ -217,6 +221,7 @@ export const CreateParty = () => {
                                 if (!hasInteracted && filtered.length > 0) setHasInteracted(true);
                             }}
                             placeholder="e.g., Summer Cocktail Night"
+                            onSubmitEditing={handleCreateParty}
                         />
                     </Box>
 
@@ -362,13 +367,15 @@ export const CreateParty = () => {
                             value={cocktailTheme}
                             onChangeText={setCocktailTheme}
                             placeholder="e.g., Tropical, Classic, Whiskey Night"
+                            onSubmitEditing={handleCreateParty}
                         />
                     </Box>
 
                     {/* Create Party Button */}
                     <PrimaryButton
-                        title={isUploading ? 'Creating Party...' : 'Create Party'}
+                        title="Create Party"
                         onPress={handleCreateParty}
+                        loading={isUploading}
                         disabled={!canSubmit || isUploading}
                     />
                     {!canSubmit && hasInteracted && (

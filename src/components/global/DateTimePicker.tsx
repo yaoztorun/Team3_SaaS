@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { Modal, TouchableOpacity, ScrollView, Platform, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { Calendar as CalendarIcon, Clock, X, ChevronRight } from 'lucide-react-native';
+import { Calendar as CalendarIcon, Clock, X, ChevronRight, ArrowLeft, Check } from 'lucide-react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { colors } from '@/src/theme/colors';
 import { Heading } from './Heading';
@@ -17,183 +17,159 @@ interface DateTimePickerProps {
     onEndTimeChange: (time: Date | null) => void;
 }
 
-const CustomTimePicker = ({ value, onChange, label = 'Select Time' }: { value: Date; onChange: (date: Date) => void; label?: string }) => {
-    const minutes = [0, 15, 30, 45];
-    const [selectedHour, setSelectedHour] = useState(value.getHours());
-    const [selectedMinute, setSelectedMinute] = useState(value.getMinutes());
-    const [activeField, setActiveField] = useState<'hour' | 'minute' | null>(null);
+type PickerStep = 'date' | 'start-hour' | 'start-minute' | 'end-choice' | 'end-hour' | 'end-minute' | 'done';
 
-    // Update internal state when value prop changes, but don't reset activeField
-    useEffect(() => {
-        setSelectedHour(value.getHours());
-        setSelectedMinute(value.getMinutes());
-    }, [value.getTime()]);
+// Clock component for selecting hours
+const ClockPicker = ({
+    selectedValue,
+    onSelect,
+    type
+}: {
+    selectedValue: number;
+    onSelect: (value: number) => void;
+    type: 'hour' | 'minute';
+}) => {
+    const centerX = 150;
+    const centerY = 150;
+    const outerRadius = 110;
+    const innerRadius = 70;
 
-    const handleHourChange = (increment: boolean) => {
-        let newHour = selectedHour + (increment ? 1 : -1);
-        if (newHour < 0) newHour = 23;
-        if (newHour > 23) newHour = 0;
+    const getClockPosition = (value: number, radius: number) => {
+        const angle = type === 'hour'
+            ? (value % 12) * 30 - 90 // 30 degrees per hour, -90 to start at top
+            : value * 6 - 90; // 6 degrees per minute, -90 to start at top
 
-        setSelectedHour(newHour);
-        const newDate = new Date(value.getTime());
-        newDate.setHours(newHour);
-        newDate.setMinutes(selectedMinute);
-        onChange(newDate);
+        const radian = (angle * Math.PI) / 180;
+        return {
+            x: centerX + radius * Math.cos(radian),
+            y: centerY + radius * Math.sin(radian),
+        };
     };
 
-    const handleMinuteChange = (increment: boolean) => {
-        const currentIndex = minutes.indexOf(selectedMinute);
-        let newIndex = currentIndex + (increment ? 1 : -1);
-        if (newIndex < 0) newIndex = minutes.length - 1;
-        if (newIndex >= minutes.length) newIndex = 0;
+    const handlePress = (event: any) => {
+        const { locationX, locationY } = event.nativeEvent;
+        const dx = locationX - centerX;
+        const dy = locationY - centerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
 
-        const newMinute = minutes[newIndex];
-        setSelectedMinute(newMinute);
-        const newDate = new Date(value.getTime());
-        newDate.setHours(selectedHour);
-        newDate.setMinutes(newMinute);
-        onChange(newDate);
+        let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+        if (angle < 0) angle += 360;
+
+        if (type === 'hour') {
+            const hour = Math.round(angle / 30) % 12;
+            const isInner = distance < (outerRadius + innerRadius) / 2;
+            const finalHour = isInner ? (hour === 0 ? 12 : hour) + 12 : (hour === 0 ? 12 : hour);
+            onSelect(finalHour === 24 ? 0 : finalHour);
+        } else {
+            const minute = Math.round(angle / 6) % 60;
+            onSelect(minute);
+        }
     };
+
+    const outerNumbers = type === 'hour'
+        ? [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+        : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+
+    const innerNumbers = type === 'hour'
+        ? [0, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+        : [];
+
+    const selectedPos = type === 'hour'
+        ? selectedValue >= 13 || selectedValue === 0
+            ? getClockPosition(selectedValue, innerRadius)
+            : getClockPosition(selectedValue, outerRadius)
+        : getClockPosition(selectedValue, outerRadius);
 
     return (
-        <Box className="bg-white rounded-xl p-4 border border-neutral-200">
-            <Text className="text-sm font-semibold text-neutral-700 mb-3">{label}</Text>
+        <View
+            onStartShouldSetResponder={() => true}
+            onResponderRelease={handlePress}
+            style={{
+                width: 300,
+                height: 300,
+                justifyContent: 'center',
+                alignItems: 'center',
+            }}
+        >
+            {/* Clock Circle Background */}
+            <View
+                style={{
+                    width: 300,
+                    height: 300,
+                    borderRadius: 150,
+                    backgroundColor: '#f3f4f6',
+                    position: 'absolute',
+                }}
+            />
 
-            <Box className="flex-row items-center justify-center gap-3">
-                {/* Hour Selector */}
-                <TouchableOpacity
-                    onPress={() => setActiveField(activeField === 'hour' ? null : 'hour')}
-                    style={{
-                        flex: 1,
-                        height: 76,
-                        backgroundColor: activeField === 'hour' ? '#f0fdfa' : '#ffffff',
-                        borderRadius: 12,
-                        borderWidth: 2,
-                        borderColor: activeField === 'hour' ? '#14b8a6' : '#e5e7eb',
-                        overflow: 'hidden',
-                    }}
-                >
-                    {activeField === 'hour' ? (
-                        <Box className="flex-row items-center justify-between px-2" style={{ height: '100%' }}>
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleHourChange(false);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>−</Text>
-                            </TouchableOpacity>
+            {/* Outer Numbers */}
+            {outerNumbers.map((num) => {
+                const pos = getClockPosition(num, outerRadius);
+                const isSelected = type === 'hour'
+                    ? (selectedValue === num || (num === 12 && selectedValue === 0))
+                    : selectedValue === num;
 
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#0d9488' }}>
-                                {selectedHour.toString().padStart(2, '0')}
-                            </Text>
+                return (
+                    <TouchableOpacity
+                        key={`outer-${num}`}
+                        onPress={() => onSelect(num === 12 && type === 'hour' ? (selectedValue >= 13 ? 0 : 12) : num)}
+                        style={{
+                            position: 'absolute',
+                            left: pos.x - 20,
+                            top: pos.y - 20,
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: isSelected && (type === 'minute' || selectedValue < 13) ? '#5dade2' : 'transparent',
+                        }}
+                    >
+                        <Text style={{
+                            color: isSelected && (type === 'minute' || selectedValue < 13) ? '#ffffff' : '#374151',
+                            fontSize: 16,
+                            fontWeight: isSelected ? '700' : '400',
+                        }}>
+                            {num.toString().padStart(2, '0')}
+                        </Text>
+                    </TouchableOpacity>
+                );
+            })}
 
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleHourChange(true);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>+</Text>
-                            </TouchableOpacity>
-                        </Box>
-                    ) : (
-                        <Box className="items-center justify-center" style={{ height: '100%' }}>
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#374151' }}>
-                                {selectedHour.toString().padStart(2, '0')}
-                            </Text>
-                            <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280', marginTop: 2 }}>
-                                Hour
-                            </Text>
-                        </Box>
-                    )}
-                </TouchableOpacity>
+            {/* Inner Numbers (13-24 for hours) */}
+            {type === 'hour' && innerNumbers.map((num) => {
+                const pos = getClockPosition(num, innerRadius);
+                const isSelected = selectedValue === num || (num === 0 && selectedValue === 24);
 
-                {/* Separator */}
-                <Text style={{ fontSize: 28, fontWeight: '700', color: '#9ca3af' }}>:</Text>
+                return (
+                    <TouchableOpacity
+                        key={`inner-${num}`}
+                        onPress={() => onSelect(num)}
+                        style={{
+                            position: 'absolute',
+                            left: pos.x - 18,
+                            top: pos.y - 18,
+                            width: 36,
+                            height: 36,
+                            borderRadius: 18,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            backgroundColor: isSelected ? '#5dade2' : 'transparent',
+                        }}
+                    >
+                        <Text style={{
+                            color: isSelected ? '#ffffff' : '#6b7280',
+                            fontSize: 14,
+                            fontWeight: isSelected ? '700' : '400',
+                        }}>
+                            {num.toString().padStart(2, '0')}
+                        </Text>
+                    </TouchableOpacity>
+                );
+            })}
 
-                {/* Minute Selector */}
-                <TouchableOpacity
-                    onPress={() => setActiveField(activeField === 'minute' ? null : 'minute')}
-                    style={{
-                        flex: 1,
-                        height: 76,
-                        backgroundColor: activeField === 'minute' ? '#f0fdfa' : '#ffffff',
-                        borderRadius: 12,
-                        borderWidth: 2,
-                        borderColor: activeField === 'minute' ? '#14b8a6' : '#e5e7eb',
-                        overflow: 'hidden',
-                    }}
-                >
-                    {activeField === 'minute' ? (
-                        <Box className="flex-row items-center justify-between px-2" style={{ height: '100%' }}>
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleMinuteChange(false);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>−</Text>
-                            </TouchableOpacity>
 
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#0d9488' }}>
-                                {selectedMinute.toString().padStart(2, '0')}
-                            </Text>
-
-                            <TouchableOpacity
-                                onPress={(e) => {
-                                    e.stopPropagation();
-                                    handleMinuteChange(true);
-                                }}
-                                style={{
-                                    width: 36,
-                                    height: 36,
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    backgroundColor: '#14b8a6',
-                                    borderRadius: 8,
-                                }}
-                            >
-                                <Text style={{ fontSize: 20, fontWeight: '700', color: '#ffffff' }}>+</Text>
-                            </TouchableOpacity>
-                        </Box>
-                    ) : (
-                        <Box className="items-center justify-center" style={{ height: '100%' }}>
-                            <Text style={{ fontSize: 28, fontWeight: '700', color: '#374151' }}>
-                                {selectedMinute.toString().padStart(2, '0')}
-                            </Text>
-                            <Text style={{ fontSize: 11, fontWeight: '600', color: '#6b7280', marginTop: 2 }}>
-                                Minute
-                            </Text>
-                        </Box>
-                    )}
-                </TouchableOpacity>
-            </Box>
-        </Box>
+        </View>
     );
 };
 
@@ -206,9 +182,13 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     onEndTimeChange,
 }) => {
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [currentStep, setCurrentStep] = useState<PickerStep>('date');
     const [selectedDateString, setSelectedDateString] = useState(date.toISOString().split('T')[0]);
-    const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-    const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+
+    const [tempStartHour, setTempStartHour] = useState(startTime.getHours());
+    const [tempStartMinute, setTempStartMinute] = useState(startTime.getMinutes());
+    const [tempEndHour, setTempEndHour] = useState(endTime?.getHours() || 0);
+    const [tempEndMinute, setTempEndMinute] = useState(endTime?.getMinutes() || 0);
 
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -218,32 +198,101 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
         return date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    const getNextDayDate = (baseDate: Date) => {
-        const nextDay = new Date(baseDate);
-        nextDay.setDate(baseDate.getDate() + 1);
-        return nextDay.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    const handleDateSelect = (day: DateData) => {
+        const selectedDate = new Date(day.dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // Prevent selecting past dates
+        if (selectedDate < today) {
+            return;
+        }
+
+        setSelectedDateString(day.dateString);
+        const newDate = new Date(day.dateString);
+        onDateChange(newDate);
+        setCurrentStep('start-hour');
     };
 
-    const isNextDay = (start: Date, end: Date | null): boolean => {
-        if (!end) return false;
-        const startH = start.getHours();
-        const startM = start.getMinutes();
-        const endH = end.getHours();
-        const endM = end.getMinutes();
-        return (endH < startH) || (endH === startH && endM < startM);
+    const handleStartHourSelect = (hour: number) => {
+        setTempStartHour(hour);
+        setCurrentStep('start-minute');
     };
 
-    const addEndTime = () => {
-        const end = new Date(startTime);
-        end.setHours(end.getHours() + 4);
-        onEndTimeChange(end);
-        setShowEndTimePicker(true);
-        setShowStartTimePicker(false);
+    const handleStartMinuteSelect = (minute: number) => {
+        setTempStartMinute(minute);
+        const newStartTime = new Date(date);
+        newStartTime.setHours(tempStartHour, minute, 0, 0);
+        onStartTimeChange(newStartTime);
+        setCurrentStep('end-hour');
     };
 
-    const removeEndTime = () => {
+    const handleEndHourSelect = (hour: number) => {
+        setTempEndHour(hour);
+        setCurrentStep('end-minute');
+    };
+
+    const handleEndMinuteSelect = (minute: number) => {
+        setTempEndMinute(minute);
+        const newEndTime = new Date(date);
+        newEndTime.setHours(tempEndHour, minute, 0, 0);
+
+        // If end time is before start time, set it to next day
+        if (newEndTime <= startTime) {
+            newEndTime.setDate(newEndTime.getDate() + 1);
+        }
+
+        onEndTimeChange(newEndTime);
+        setIsModalVisible(false);
+        setCurrentStep('date');
+    };
+
+    const handleNoEndTime = () => {
         onEndTimeChange(null);
-        setShowEndTimePicker(false);
+        setIsModalVisible(false);
+        setCurrentStep('date');
+    };
+
+    const handleBack = () => {
+        switch (currentStep) {
+            case 'start-hour':
+                setCurrentStep('date');
+                break;
+            case 'start-minute':
+                setCurrentStep('start-hour');
+                break;
+            case 'end-hour':
+                setCurrentStep('start-minute');
+                break;
+            case 'end-minute':
+                setCurrentStep('end-hour');
+                break;
+            default:
+                setIsModalVisible(false);
+                setCurrentStep('date');
+        }
+    };
+
+    const handleClose = () => {
+        setIsModalVisible(false);
+        setCurrentStep('date');
+    };
+
+    const getStepTitle = () => {
+        switch (currentStep) {
+            case 'date':
+                return 'Selecteer een datum';
+            case 'start-hour':
+                return 'Starttijd selecteren';
+            case 'start-minute':
+                return 'Starttijd selecteren';
+            case 'end-hour':
+                return 'Eindtijd selecteren';
+            case 'end-minute':
+                return 'Eindtijd selecteren';
+            default:
+                return 'Select Date & Time';
+        }
     };
 
     return (
@@ -262,11 +311,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                             </Text>
                             <Text className="text-sm text-neutral-500">
                                 {formatTime(startTime)}
-                                {endTime && (
-                                    <>
-                                        {' - '}{formatTime(endTime)} {isNextDay(startTime, endTime) ? `(${getNextDayDate(date)})` : ''}
-                                    </>
-                                )}
+                                {endTime && ` - ${formatTime(endTime)}`}
                                 {!endTime && ' (no end time)'}
                             </Text>
                         </Box>
@@ -280,208 +325,197 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                 visible={isModalVisible}
                 animationType="slide"
                 transparent={true}
-                onRequestClose={() => setIsModalVisible(false)}
+                onRequestClose={handleClose}
             >
                 <TouchableOpacity
                     activeOpacity={1}
-                    onPress={() => setIsModalVisible(false)}
-                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }}
+                    onPress={handleClose}
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' }}
                 >
                     <TouchableOpacity
                         activeOpacity={1}
                         onPress={(e) => e.stopPropagation()}
                         style={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
+                            width: '100%',
+                            maxWidth: 480,
                             height: '85%',
                         }}
                     >
                         <Box
                             style={{
                                 flex: 1,
-                                backgroundColor: '#f9fafb',
+                                backgroundColor: '#ffffff',
                                 borderTopLeftRadius: 24,
                                 borderTopRightRadius: 24,
                                 overflow: 'hidden',
                             }}
                         >
                             {/* Header */}
-                            <Box className="px-4 py-4 border-b border-gray-200 flex-row items-center justify-between">
-                                <Heading level="h2">Select Date & Time</Heading>
-                                <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                                    <X size={24} color="#666" />
+                            <Box className="px-4 py-4 border-b border-gray-300 flex-row items-center justify-between">
+                                {currentStep !== 'date' && (
+                                    <TouchableOpacity onPress={handleBack}>
+                                        <ArrowLeft size={24} color="#111827" />
+                                    </TouchableOpacity>
+                                )}
+                                {currentStep === 'date' && <View style={{ width: 24 }} />}
+
+                                <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>
+                                    {getStepTitle()}
+                                </Text>
+
+                                <TouchableOpacity onPress={handleClose}>
+                                    <X size={24} color="#111827" />
                                 </TouchableOpacity>
                             </Box>
 
                             <ScrollView
                                 style={{ flex: 1 }}
-                                contentContainerStyle={{ paddingBottom: 100 }}
-                                keyboardShouldPersistTaps="handled"
-                                showsVerticalScrollIndicator={true}
+                                contentContainerStyle={{ paddingBottom: 40, alignItems: 'center', paddingTop: 20 }}
                             >
-                                {/* Date Section */}
-                                <Box className="px-4 pt-4 pb-2">
-                                    <Text className="text-sm font-semibold text-neutral-500 mb-1 uppercase">Pick the Date</Text>
-                                    <Text className="text-xs text-neutral-400">Past dates are disabled</Text>
-                                </Box>
-
-                                {/* Calendar */}
-                                <Calendar
-                                    current={selectedDateString}
-                                    minDate={new Date().toISOString().split('T')[0]}
-                                    onDayPress={(day: DateData) => {
-                                        setSelectedDateString(day.dateString);
-                                        const newDate = new Date(day.dateString);
-                                        onDateChange(newDate);
-                                    }}
-                                    theme={{
-                                        selectedDayBackgroundColor: colors.primary[500],
-                                        selectedDayTextColor: '#ffffff',
-                                        todayTextColor: colors.primary[500],
-                                        todayBackgroundColor: '#d1fae5',
-                                        arrowColor: colors.primary[500],
-                                        monthTextColor: '#111827',
-                                        textMonthFontWeight: '600',
-                                        textDayHeaderFontWeight: '500',
-                                        textDisabledColor: '#d1d5db',
-                                        textDayFontWeight: '500',
-                                        dayTextColor: '#0d9488',
-                                    }}
-                                    markedDates={{
-                                        [new Date().toISOString().split('T')[0]]: {
-                                            marked: true,
-                                            dotColor: colors.primary[500],
-                                            customStyles: {
-                                                container: {
-                                                    backgroundColor: '#d1fae5',
-                                                    borderRadius: 8,
-                                                },
-                                                text: {
-                                                    color: colors.primary[600],
-                                                    fontWeight: 'bold',
+                                {/* Step 1: Date Selection */}
+                                {currentStep === 'date' && (
+                                    <View style={{ width: '100%', backgroundColor: '#ffffff', borderRadius: 12, marginHorizontal: 16 }}>
+                                        <Calendar
+                                            current={selectedDateString}
+                                            minDate={new Date().toISOString().split('T')[0]}
+                                            onDayPress={handleDateSelect}
+                                            theme={{
+                                                selectedDayBackgroundColor: colors.primary[500],
+                                                selectedDayTextColor: '#ffffff',
+                                                todayTextColor: colors.primary[500],
+                                                arrowColor: colors.primary[500],
+                                                monthTextColor: '#111827',
+                                                textMonthFontWeight: '600',
+                                                textDayHeaderFontWeight: '500',
+                                                textDisabledColor: '#d1d5db',
+                                            }}
+                                            markedDates={{
+                                                [selectedDateString]: {
+                                                    selected: true,
+                                                    selectedColor: colors.primary[500]
                                                 }
-                                            }
-                                        },
-                                        [selectedDateString]: {
-                                            selected: true,
-                                            selectedColor: colors.primary[500]
-                                        }
-                                    }}
-                                    markingType={'custom'}
-                                />
+                                            }}
+                                        />
+                                    </View>
+                                )}
 
-                                <Box className="px-4 py-4">
-                                    <Text className="text-sm font-semibold text-neutral-500 mb-3 uppercase">Time</Text>
+                                {/* Step 2: Start Hour Selection */}
+                                {currentStep === 'start-hour' && (
+                                    <View style={{ alignItems: 'center' }}>
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
+                                        }}>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
+                                                {tempStartHour.toString().padStart(2, '0')} : {tempStartMinute.toString().padStart(2, '0')}
+                                            </Text>
+                                        </View>
+                                        <ClockPicker
+                                            selectedValue={tempStartHour}
+                                            onSelect={handleStartHourSelect}
+                                            type="hour"
+                                        />
+                                    </View>
+                                )}
 
-                                    {/* Start Time Section */}
-                                    <Box className="mb-4">
-                                        <Pressable
-                                            className={`border rounded-xl p-3 ${showStartTimePicker ? 'border-teal-500 bg-teal-50' : 'border-neutral-200 bg-white'}`}
-                                            onPress={() => {
-                                                setShowStartTimePicker(true);
-                                                setShowEndTimePicker(false);
+                                {/* Step 3: Start Minute Selection */}
+                                {currentStep === 'start-minute' && (
+                                    <View style={{ alignItems: 'center' }}>
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
+                                        }}>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
+                                                {tempStartHour.toString().padStart(2, '0')} : {tempStartMinute.toString().padStart(2, '0')}
+                                            </Text>
+                                        </View>
+                                        <ClockPicker
+                                            selectedValue={tempStartMinute}
+                                            onSelect={handleStartMinuteSelect}
+                                            type="minute"
+                                        />
+                                    </View>
+                                )}
+
+                                {/* Step 4: End Hour Selection */}
+                                {currentStep === 'end-hour' && (
+                                    <View style={{ alignItems: 'center', width: '100%' }}>
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
+                                        }}>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
+                                                {tempEndHour.toString().padStart(2, '0')} : {tempEndMinute.toString().padStart(2, '0')}
+                                            </Text>
+                                        </View>
+                                        <ClockPicker
+                                            selectedValue={tempEndHour}
+                                            onSelect={handleEndHourSelect}
+                                            type="hour"
+                                        />
+
+                                        <TouchableOpacity
+                                            onPress={handleNoEndTime}
+                                            style={{
+                                                marginTop: 24,
+                                                backgroundColor: '#00BBA7',
+                                                paddingVertical: 14,
+                                                paddingHorizontal: 32,
+                                                borderRadius: 12,
                                             }}
                                         >
-                                            <Text className="text-xs text-neutral-500 mb-1">Start Time *</Text>
-                                            <Box className="flex-row items-center">
-                                                <Clock size={16} color={showStartTimePicker ? "#0d9488" : "#666"} />
-                                                <Text className={`ml-2 text-base font-medium ${showStartTimePicker ? 'text-teal-700' : 'text-neutral-900'}`}>
-                                                    {formatTime(startTime)}
-                                                </Text>
-                                            </Box>
-                                        </Pressable>
+                                            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
+                                                Geen eindtijd
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
 
-                                        {/* Start Time Picker */}
-                                        {showStartTimePicker && (
-                                            <Box className="mt-4">
-                                                <CustomTimePicker
-                                                    key="start"
-                                                    value={startTime}
-                                                    onChange={onStartTimeChange}
-                                                    label="Select Start Time"
-                                                />
-                                            </Box>
-                                        )}
-                                    </Box>
+                                {/* Step 5: End Minute Selection */}
+                                {currentStep === 'end-minute' && (
+                                    <View style={{ alignItems: 'center', width: '100%' }}>
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
+                                        }}>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
+                                                {tempEndHour.toString().padStart(2, '0')} : {tempEndMinute.toString().padStart(2, '0')}
+                                            </Text>
+                                        </View>
+                                        <ClockPicker
+                                            selectedValue={tempEndMinute}
+                                            onSelect={handleEndMinuteSelect}
+                                            type="minute"
+                                        />
 
-                                    {/* End Time Section */}
-                                    <Box className="mb-4">
-                                        {endTime ? (
-                                            <Box style={{ position: 'relative' }}>
-                                                <Pressable
-                                                    className={`border rounded-xl p-3 ${showEndTimePicker ? 'border-teal-500 bg-teal-50' : 'border-neutral-200 bg-white'}`}
-                                                    onPress={() => {
-                                                        setShowEndTimePicker(true);
-                                                        setShowStartTimePicker(false);
-                                                    }}
-                                                >
-                                                    <Text className="text-xs text-neutral-500 mb-1">
-                                                        End Time {isNextDay(startTime, endTime) && `(${getNextDayDate(date)})`}
-                                                    </Text>
-                                                    <Box className="flex-row items-center">
-                                                        <Clock size={16} color={showEndTimePicker ? "#0d9488" : "#666"} />
-                                                        <Text className={`ml-2 text-base font-medium ${showEndTimePicker ? 'text-teal-700' : 'text-neutral-900'}`}>
-                                                            {formatTime(endTime)}
-                                                        </Text>
-                                                    </Box>
-                                                </Pressable>
-                                                {/* Close button */}
-                                                <TouchableOpacity
-                                                    onPress={removeEndTime}
-                                                    style={{
-                                                        position: 'absolute',
-                                                        top: -8,
-                                                        right: -8,
-                                                        width: 24,
-                                                        height: 24,
-                                                        borderRadius: 12,
-                                                        backgroundColor: '#ffffff',
-                                                        borderWidth: 2,
-                                                        borderColor: '#dc2626',
-                                                        justifyContent: 'center',
-                                                        alignItems: 'center',
-                                                        shadowColor: '#000',
-                                                        shadowOffset: { width: 0, height: 2 },
-                                                        shadowOpacity: 0.1,
-                                                        shadowRadius: 3,
-                                                        elevation: 3,
-                                                    }}
-                                                >
-                                                    <X size={14} color="#dc2626" strokeWidth={3} />
-                                                </TouchableOpacity>
-                                            </Box>
-                                        ) : (
-                                            <Pressable
-                                                className="border-2 border-dashed border-neutral-300 rounded-xl p-3 bg-white justify-center items-center"
-                                                onPress={addEndTime}
-                                            >
-                                                <Text className="text-sm font-medium text-teal-600">+ Add End Time</Text>
-                                            </Pressable>
-                                        )}
-
-                                        {/* End Time Picker */}
-                                        {showEndTimePicker && endTime && (
-                                            <Box className="mt-4">
-                                                <CustomTimePicker
-                                                    key="end"
-                                                    value={endTime}
-                                                    onChange={onEndTimeChange}
-                                                    label="Select End Time"
-                                                />
-                                            </Box>
-                                        )}
-                                    </Box>
-
-                                    {/* Confirm Button - Always visible */}
-                                    <TouchableOpacity
-                                        onPress={() => setIsModalVisible(false)}
-                                        className="mt-4 bg-teal-500 rounded-xl py-4 items-center"
-                                    >
-                                        <Text className="text-white font-semibold text-base">Confirm Time</Text>
-                                    </TouchableOpacity>
-                                </Box>
+                                        <TouchableOpacity
+                                            onPress={handleNoEndTime}
+                                            style={{
+                                                marginTop: 24,
+                                                backgroundColor: '#00BBA7',
+                                                paddingVertical: 14,
+                                                paddingHorizontal: 32,
+                                                borderRadius: 12,
+                                            }}
+                                        >
+                                            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
+                                                Geen eindtijd
+                                            </Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                             </ScrollView>
                         </Box>
                     </TouchableOpacity>

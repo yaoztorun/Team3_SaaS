@@ -186,7 +186,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
             }}
           >
             <Text className="text-yellow-500 mr-1">⭐</Text>
-            <Text className="text-sm text-neutral-900">{rating}</Text>
+            <Text className="text-sm text-neutral-900">{Math.round(rating / 2)}</Text>
           </Box>
         </Box>
       </Box>
@@ -311,8 +311,8 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         onRequestClose={() => setShareOpen(false)}
       >
         <Pressable className="flex-1 bg-black/40" onPress={() => setShareOpen(false)}>
-          <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-            <Pressable onPress={(e) => e.stopPropagation()}>
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+            <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 480 }}>
               <Box
                 className="bg-white rounded-t-3xl border-t border-neutral-200"
                 style={{
