@@ -20,12 +20,12 @@ interface DateTimePickerProps {
 type PickerStep = 'date' | 'start-hour' | 'start-minute' | 'end-choice' | 'end-hour' | 'end-minute' | 'done';
 
 // Clock component for selecting hours
-const ClockPicker = ({ 
-    selectedValue, 
-    onSelect, 
-    type 
-}: { 
-    selectedValue: number; 
+const ClockPicker = ({
+    selectedValue,
+    onSelect,
+    type
+}: {
+    selectedValue: number;
     onSelect: (value: number) => void;
     type: 'hour' | 'minute';
 }) => {
@@ -35,10 +35,10 @@ const ClockPicker = ({
     const innerRadius = 70;
 
     const getClockPosition = (value: number, radius: number) => {
-        const angle = type === 'hour' 
+        const angle = type === 'hour'
             ? (value % 12) * 30 - 90 // 30 degrees per hour, -90 to start at top
             : value * 6 - 90; // 6 degrees per minute, -90 to start at top
-        
+
         const radian = (angle * Math.PI) / 180;
         return {
             x: centerX + radius * Math.cos(radian),
@@ -51,7 +51,7 @@ const ClockPicker = ({
         const dx = locationX - centerX;
         const dy = locationY - centerY;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
         if (angle < 0) angle += 360;
 
@@ -66,10 +66,10 @@ const ClockPicker = ({
         }
     };
 
-    const outerNumbers = type === 'hour' 
+    const outerNumbers = type === 'hour'
         ? [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
         : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-    
+
     const innerNumbers = type === 'hour'
         ? [0, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
         : [];
@@ -105,10 +105,10 @@ const ClockPicker = ({
             {/* Outer Numbers */}
             {outerNumbers.map((num) => {
                 const pos = getClockPosition(num, outerRadius);
-                const isSelected = type === 'hour' 
+                const isSelected = type === 'hour'
                     ? (selectedValue === num || (num === 12 && selectedValue === 0))
                     : selectedValue === num;
-                
+
                 return (
                     <TouchableOpacity
                         key={`outer-${num}`}
@@ -125,8 +125,8 @@ const ClockPicker = ({
                             backgroundColor: isSelected && (type === 'minute' || selectedValue < 13) ? '#5dade2' : 'transparent',
                         }}
                     >
-                        <Text style={{ 
-                            color: isSelected && (type === 'minute' || selectedValue < 13) ? '#ffffff' : '#374151', 
+                        <Text style={{
+                            color: isSelected && (type === 'minute' || selectedValue < 13) ? '#ffffff' : '#374151',
                             fontSize: 16,
                             fontWeight: isSelected ? '700' : '400',
                         }}>
@@ -140,7 +140,7 @@ const ClockPicker = ({
             {type === 'hour' && innerNumbers.map((num) => {
                 const pos = getClockPosition(num, innerRadius);
                 const isSelected = selectedValue === num || (num === 0 && selectedValue === 24);
-                
+
                 return (
                     <TouchableOpacity
                         key={`inner-${num}`}
@@ -157,8 +157,8 @@ const ClockPicker = ({
                             backgroundColor: isSelected ? '#5dade2' : 'transparent',
                         }}
                     >
-                        <Text style={{ 
-                            color: isSelected ? '#ffffff' : '#6b7280', 
+                        <Text style={{
+                            color: isSelected ? '#ffffff' : '#6b7280',
                             fontSize: 14,
                             fontWeight: isSelected ? '700' : '400',
                         }}>
@@ -184,7 +184,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [currentStep, setCurrentStep] = useState<PickerStep>('date');
     const [selectedDateString, setSelectedDateString] = useState(date.toISOString().split('T')[0]);
-    
+
     const [tempStartHour, setTempStartHour] = useState(startTime.getHours());
     const [tempStartMinute, setTempStartMinute] = useState(startTime.getMinutes());
     const [tempEndHour, setTempEndHour] = useState(endTime?.getHours() || 0);
@@ -202,12 +202,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
         const selectedDate = new Date(day.dateString);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         // Prevent selecting past dates
         if (selectedDate < today) {
             return;
         }
-        
+
         setSelectedDateString(day.dateString);
         const newDate = new Date(day.dateString);
         onDateChange(newDate);
@@ -236,12 +236,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
         setTempEndMinute(minute);
         const newEndTime = new Date(date);
         newEndTime.setHours(tempEndHour, minute, 0, 0);
-        
+
         // If end time is before start time, set it to next day
         if (newEndTime <= startTime) {
             newEndTime.setDate(newEndTime.getDate() + 1);
         }
-        
+
         onEndTimeChange(newEndTime);
         setIsModalVisible(false);
         setCurrentStep('date');
@@ -358,11 +358,11 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                     </TouchableOpacity>
                                 )}
                                 {currentStep === 'date' && <View style={{ width: 24 }} />}
-                                
+
                                 <Text style={{ fontSize: 18, fontWeight: '600', color: '#111827' }}>
                                     {getStepTitle()}
                                 </Text>
-                                
+
                                 <TouchableOpacity onPress={handleClose}>
                                     <X size={24} color="#111827" />
                                 </TouchableOpacity>
@@ -402,12 +402,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                 {/* Step 2: Start Hour Selection */}
                                 {currentStep === 'start-hour' && (
                                     <View style={{ alignItems: 'center' }}>
-                                        <View style={{ 
-                                            backgroundColor: '#f3f4f6', 
-                                            paddingHorizontal: 24, 
-                                            paddingVertical: 12, 
-                                            borderRadius: 12, 
-                                            marginBottom: 20 
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
                                         }}>
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
                                                 {tempStartHour.toString().padStart(2, '0')} : {tempStartMinute.toString().padStart(2, '0')}
@@ -424,12 +424,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                 {/* Step 3: Start Minute Selection */}
                                 {currentStep === 'start-minute' && (
                                     <View style={{ alignItems: 'center' }}>
-                                        <View style={{ 
-                                            backgroundColor: '#f3f4f6', 
-                                            paddingHorizontal: 24, 
-                                            paddingVertical: 12, 
-                                            borderRadius: 12, 
-                                            marginBottom: 20 
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
                                         }}>
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
                                                 {tempStartHour.toString().padStart(2, '0')} : {tempStartMinute.toString().padStart(2, '0')}
@@ -446,12 +446,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                 {/* Step 4: End Hour Selection */}
                                 {currentStep === 'end-hour' && (
                                     <View style={{ alignItems: 'center', width: '100%' }}>
-                                        <View style={{ 
-                                            backgroundColor: '#f3f4f6', 
-                                            paddingHorizontal: 24, 
-                                            paddingVertical: 12, 
-                                            borderRadius: 12, 
-                                            marginBottom: 20 
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
                                         }}>
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
                                                 {tempEndHour.toString().padStart(2, '0')} : {tempEndMinute.toString().padStart(2, '0')}
@@ -462,7 +462,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             onSelect={handleEndHourSelect}
                                             type="hour"
                                         />
-                                        
+
                                         <TouchableOpacity
                                             onPress={handleNoEndTime}
                                             style={{
@@ -483,12 +483,12 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                 {/* Step 5: End Minute Selection */}
                                 {currentStep === 'end-minute' && (
                                     <View style={{ alignItems: 'center', width: '100%' }}>
-                                        <View style={{ 
-                                            backgroundColor: '#f3f4f6', 
-                                            paddingHorizontal: 24, 
-                                            paddingVertical: 12, 
-                                            borderRadius: 12, 
-                                            marginBottom: 20 
+                                        <View style={{
+                                            backgroundColor: '#f3f4f6',
+                                            paddingHorizontal: 24,
+                                            paddingVertical: 12,
+                                            borderRadius: 12,
+                                            marginBottom: 20
                                         }}>
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
                                                 {tempEndHour.toString().padStart(2, '0')} : {tempEndMinute.toString().padStart(2, '0')}
@@ -499,7 +499,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             onSelect={handleEndMinuteSelect}
                                             type="minute"
                                         />
-                                        
+
                                         <TouchableOpacity
                                             onPress={handleNoEndTime}
                                             style={{
