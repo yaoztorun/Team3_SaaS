@@ -28,10 +28,12 @@ export const RatingStars: React.FC<RatingStarsProps> = ({
     const starSize = sizeMap[size];
 
     const handleStarPress = (starValue: number) => {
-        onChange(starValue);
+        // Emit a 0–10 value to keep Supabase scale unchanged
+        onChange(starValue * 2);
     };
 
-    const displayRating = isHovering ? hoverRating : value;
+    // Show stars on a 0–5 basis for UI
+    const displayRating = (isHovering ? hoverRating : value / 2);
 
     return (
         <HStack space="sm">

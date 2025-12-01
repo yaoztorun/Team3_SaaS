@@ -186,7 +186,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
             }}
           >
             <Text className="text-yellow-500 mr-1">⭐</Text>
-            <Text className="text-sm text-neutral-900">{rating}</Text>
+            <Text className="text-sm text-neutral-900">{Math.round(rating / 2)}</Text>
           </Box>
         </Box>
       </Box>

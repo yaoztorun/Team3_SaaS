@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   TouchableOpacity,
@@ -22,7 +22,9 @@ import { fetchProfile } from '@/src/api/profile';
 import type { Profile } from '@/src/types/profile';
 import { supabase } from '@/src/lib/supabase';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
+import { fetchCocktailById } from '@/src/api/cocktail';
 import { Heading } from '@/src/components/global';
+import { Heart, Lock, LayoutGrid } from 'lucide-react-native';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
 
@@ -39,7 +41,10 @@ type DbDrinkLog = {
   Cocktail?: {
     id: string;
     name: string | null;
+    image_url?: string | null;
+    creator_id?: string | null;
   } | null;
+  image_url?: string | null;
 };
 
 type RecentDrink = {
@@ -49,6 +54,10 @@ type RecentDrink = {
   rating: number;
   time: string;
   creatorId: string | null;
+  imageUrl: string;
+  type: 'log' | 'recipe';
+  visibility?: 'public' | 'friends' | 'private';
+  cocktailId?: string | null;
 };
 
 // ---- helper ----
@@ -82,8 +91,13 @@ export const ProfileScreen = () => {
 
   // recent drinks state
   const [recentDrinks, setRecentDrinks] = useState<RecentDrink[]>([]);
+  const [createdRecipes, setCreatedRecipes] = useState<RecentDrink[]>([]);
+  const [publicLogs, setPublicLogs] = useState<RecentDrink[]>([]);
+  const [privateLogs, setPrivateLogs] = useState<RecentDrink[]>([]);
+  const [likedItems, setLikedItems] = useState<RecentDrink[]>([]);
   const [loadingDrinks, setLoadingDrinks] = useState(false);
   const [drinksError, setDrinksError] = useState<string | null>(null);
+  const [gridTab, setGridTab] = useState<'feed' | 'private' | 'liked'>('feed');
 
   // stats state
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -96,6 +110,26 @@ export const ProfileScreen = () => {
   // topbar stats (streak + total drinks)
   const [streakCount, setStreakCount] = useState(0);
   const [totalDrinks, setTotalDrinks] = useState(0);
+
+  // Derived stats display (out of 5)
+  const avgRatingOutOf5 = useMemo(() => {
+    const raw = userStats?.avgRating ?? 0;
+    return Math.round(raw / 2);
+  }, [userStats?.avgRating]);
+
+  const ratingTrendCounts5 = useMemo(() => {
+    const arr = userStats?.ratingTrend?.map((it: any) => it.count) ?? [];
+    const c = (i: number) => (arr[i] ?? 0);
+    // Collapse 0..10 into 0..5 buckets
+    return [
+      c(0) + c(1),
+      c(2) + c(3),
+      c(4) + c(5),
+      c(6) + c(7),
+      c(8) + c(9),
+      c(10),
+    ];
+  }, [userStats?.ratingTrend]);
 
   const computeStreakFromDates = (dates: string[]): number => {
     if (dates.length === 0) return 0;
@@ -194,10 +228,12 @@ export const ProfileScreen = () => {
           rating,
           visibility,
           user_id,
+          image_url,
           Cocktail (
             id,
             name,
-            creator_id
+            creator_id,
+            image_url
           )
         `
         )
@@ -212,6 +248,7 @@ export const ProfileScreen = () => {
       let mapped: RecentDrink[] = (data ?? []).map((raw: any) => {
         // Supabase returns Cocktail as a single object when using foreign key relation
         const cocktailName = raw.Cocktail?.name ?? 'Unknown cocktail';
+        const preview = raw.image_url || raw.Cocktail?.image_url || '';
 
         return {
           id: raw.id,
@@ -220,15 +257,81 @@ export const ProfileScreen = () => {
           rating: raw.rating ?? 0,
           time: formatTimeAgo(raw.created_at),
           creatorId: raw.Cocktail?.creator_id ?? null,
+          imageUrl: preview,
+          type: 'log',
+          visibility: raw.visibility as any,
+          cocktailId: raw.Cocktail?.id ?? null,
         };
       });
 
-      // Filter by own recipes if toggle is enabled
-      if (isOwnRecipes) {
-        mapped = mapped.filter(drink => drink.creatorId === user.id);
-      }
+      // Split into public/friends vs private logs
+      const pub = mapped.filter(m => m.visibility !== 'private');
+      const priv = mapped.filter(m => m.visibility === 'private');
+      setPublicLogs(pub);
+      setPrivateLogs(priv);
 
-      setRecentDrinks(mapped);
+      // Also fetch user-created recipes (even if not logged)
+      const { data: myCocktails, error: myCocktailsError } = await supabase
+        .from('Cocktail')
+        .select('id, name, creator_id, image_url, created_at')
+        .eq('creator_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (myCocktailsError) {
+        console.warn('Error loading created recipes:', myCocktailsError.message);
+      }
+      const mappedRecipes: RecentDrink[] = (myCocktails ?? []).map((c: any) => ({
+        id: c.id,
+        name: c.name ?? 'Unnamed',
+        subtitle: '',
+        rating: 0,
+        time: c.created_at ? formatTimeAgo(c.created_at) : '',
+        creatorId: c.creator_id ?? user.id,
+        imageUrl: c.image_url ?? '',
+        type: 'recipe',
+      }));
+
+      setCreatedRecipes(mappedRecipes);
+
+      // Liked posts (public/friends) by me
+      const { data: likedRows, error: likedErr } = await supabase
+        .from('DrinkLogLike')
+        .select('drink_log_id')
+        .eq('user_id', user.id)
+        .limit(100);
+      if (likedErr) {
+        console.warn('Error loading liked rows:', likedErr.message);
+      }
+      const likedIds = (likedRows ?? []).map((r: any) => r.drink_log_id);
+      let liked: RecentDrink[] = [];
+      if (likedIds.length > 0) {
+        const { data: likedLogs, error: likedLogsErr } = await supabase
+          .from('DrinkLog')
+          .select(`id, created_at, caption, rating, visibility, user_id, image_url,
+                   Cocktail ( id, name, image_url, creator_id )`)
+          .in('id', likedIds)
+          .in('visibility', ['public', 'friends']);
+        if (!likedLogsErr) {
+          liked = (likedLogs ?? []).map((raw: any) => ({
+            id: raw.id,
+            name: raw.Cocktail?.name ?? 'Unknown',
+            subtitle: raw.caption ?? '',
+            rating: raw.rating ?? 0,
+            time: formatTimeAgo(raw.created_at),
+            creatorId: raw.Cocktail?.creator_id ?? null,
+            imageUrl: raw.image_url || raw.Cocktail?.image_url || '',
+            type: 'log',
+            visibility: raw.visibility as any,
+            cocktailId: raw.Cocktail?.id ?? null,
+          }));
+        }
+      }
+      setLikedItems(liked);
+
+      // Initialize grid with current tab
+      if (gridTab === 'feed') setRecentDrinks(pub);
+      if (gridTab === 'private') setRecentDrinks([...priv, ...mappedRecipes]);
+      if (gridTab === 'liked') setRecentDrinks(liked);
     } catch (err: any) {
       console.error('Error loading recent drinks:', err);
       setDrinksError(
@@ -249,6 +352,13 @@ export const ProfileScreen = () => {
       loadTopBarStats();
     }, [user?.id, isOwnRecipes])
   );
+
+  // Recompute grid when tab changes or datasets refresh
+  React.useEffect(() => {
+    if (gridTab === 'feed') setRecentDrinks(publicLogs);
+    else if (gridTab === 'private') setRecentDrinks([...privateLogs, ...createdRecipes]);
+    else if (gridTab === 'liked') setRecentDrinks(likedItems);
+  }, [gridTab, publicLogs, privateLogs, createdRecipes, likedItems]);
 
 
 
@@ -377,27 +487,17 @@ export const ProfileScreen = () => {
         {currentView === 'logged-drinks' ? (
           <>
             {/* Logged Drinks Header */}
-            <HStack className="justify-between items-center mb-3">
-              <Text className="text-base text-neutral-900">
-                Recent Logged Drinks
-              </Text>
-              <TouchableOpacity
-                onPress={() => setIsOwnRecipes(!isOwnRecipes)}
-                className="flex-row items-center"
-              >
-                <Box
-                  className={
-                    isOwnRecipes
-                      ? 'h-4 w-4 rounded border mr-2 justify-center items-center bg-teal-500 border-teal-500'
-                      : 'h-4 w-4 rounded border mr-2 justify-center items-center bg-neutral-100 border-neutral-300'
-                  }
-                >
-                  {isOwnRecipes && (
-                    <Text className="text-white text-xs">✓</Text>
-                  )}
-                </Box>
-                <Text className="text-sm text-neutral-600">Own recipes</Text>
-              </TouchableOpacity>
+            {/* Grid tabs: Feed / Private+Recipes / Liked */}
+            <HStack className="items-center justify-center mb-3">
+              <Pressable onPress={() => setGridTab('feed')} className="mx-4">
+                <LayoutGrid size={22} color={gridTab === 'feed' ? '#009689' : '#9ca3af'} />
+              </Pressable>
+              <Pressable onPress={() => setGridTab('private')} className="mx-4">
+                <Lock size={22} color={gridTab === 'private' ? '#009689' : '#9ca3af'} />
+              </Pressable>
+              <Pressable onPress={() => setGridTab('liked')} className="mx-4">
+                <Heart size={22} color={gridTab === 'liked' ? '#009689' : '#9ca3af'} />
+              </Pressable>
             </HStack>
 
             {/* Loading / error */}
@@ -421,36 +521,28 @@ export const ProfileScreen = () => {
               </Box>
             )}
 
-            {/* Recent Drinks List */}
-            {!loadingDrinks &&
-              !drinksError &&
-              recentDrinks.map((drink) => (
-                <Box
-                  key={drink.id}
-                  className="bg-white rounded-2xl p-4 mb-3"
-                >
-                  <HStack className="justify-between items-center mb-2">
-                    <Box>
-                      <Text className="text-base text-neutral-900 mb-1">
-                        {drink.name}
-                      </Text>
-                      {!!drink.subtitle && (
-                        <Text className="text-sm text-neutral-600">
-                          {drink.subtitle}
-                        </Text>
-                      )}
-                    </Box>
-                    <Box className="bg-yellow-100 px-2 py-1 rounded-full flex-row items-center">
-                      <Text className="text-sm text-neutral-900">
-                        ⭐ {drink.rating.toFixed(1)}
-                      </Text>
-                    </Box>
-                  </HStack>
-                  <Text className="text-xs text-neutral-500">
-                    {drink.time}
-                  </Text>
-                </Box>
-              ))}
+            {/* Recent Drinks Grid */}
+            {!loadingDrinks && !drinksError && recentDrinks.length > 0 && (
+              <GridGallery
+                items={recentDrinks}
+                onPress={async (item) => {
+                  if (gridTab === 'private') {
+                    if (item.type === 'recipe') {
+                      const cocktail = await fetchCocktailById(item.id);
+                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail } });
+                    } else {
+                      // private log: open its cocktail detail
+                      const cocktailId = item.cocktailId || item.id;
+                      const cocktail = await fetchCocktailById(cocktailId);
+                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail } });
+                    }
+                  } else {
+                    // feed or liked -> open post detail
+                    (navigation.getParent() as any)?.navigate('Home', { openDrinkLogId: item.id });
+                  }
+                }}
+              />
+            )}
           </>
         ) : (
           <>
@@ -470,7 +562,7 @@ export const ProfileScreen = () => {
                 </Box>
                 <Box className="items-center">
                   <Text className="text-3xl text-red-500 font-semibold">
-                    {userStats?.avgRating || 0}
+                    {avgRatingOutOf5}
                   </Text>
                   <Text className="text-xs text-neutral-500">
                     Avg Rating
@@ -527,9 +619,9 @@ export const ProfileScreen = () => {
                 <Box className="items-center justify-center -ml-8">
                   <LineChart
                     data={{
-                      labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+                      labels: ['0', '1', '2', '3', '4', '5'],
                       datasets: [{
-                        data: userStats.ratingTrend.map(item => item.count),
+                        data: ratingTrendCounts5,
                       }],
                     }}
                     width={360}
@@ -631,6 +723,40 @@ export const ProfileScreen = () => {
         badge={selectedBadge}
         onClose={() => setSelectedBadge(null)}
       />
+    </Box>
+  );
+};
+
+// Simple Instagram-like grid gallery for recent drinks
+const GridGallery = ({ items, onPress }: { items: RecentDrink[]; onPress: (item: RecentDrink) => void }) => {
+  const gap = 4; // small modern spacing
+  return (
+    <Box>
+      <Box className="flex-row flex-wrap">
+        {items.map((it, idx) => (
+          <Pressable
+            key={`${it.id}-${idx}`}
+            onPress={() => onPress(it)}
+            style={{ width: '33.333%', paddingRight: ((idx + 1) % 3 === 0) ? 0 : gap, paddingBottom: gap }}
+          >
+            {it.imageUrl ? (
+              <Image
+                source={{ uri: it.imageUrl }}
+                style={{ width: '100%', aspectRatio: 1, borderRadius: 5 }}
+                resizeMode="cover"
+              />
+            ) : (
+              <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 5 }}>
+                <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
+              </Center>
+            )}
+            {/* Centered name below image */}
+            <Box className="mt-1 px-2 items-center">
+              <Text className="text-[12px] font-medium text-neutral-900 text-center" numberOfLines={1}>{it.name}</Text>
+            </Box>
+          </Pressable>
+        ))}
+      </Box>
     </Box>
   );
 };
