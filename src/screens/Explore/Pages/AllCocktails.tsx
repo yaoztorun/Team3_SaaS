@@ -5,7 +5,7 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView, Animated } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
 import { fetchAllCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip, SearchBar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
@@ -25,6 +25,7 @@ const LIST_TOP_SPACER = 24;
 
 export const AllCocktails = () => {
     const navigation = useNavigation<NavigationProp>();
+    const route = useRoute<any>();
     const { user } = useAuth();
     const [query, setQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -81,6 +82,14 @@ export const AllCocktails = () => {
         const handle = setTimeout(() => setDebouncedQuery(query), 200);
         return () => clearTimeout(handle);
     }, [query]);
+
+    // If navigated with an initialQuery param, set it into the search bar
+    useEffect(() => {
+        const initialQuery: string | undefined = route?.params?.initialQuery;
+        if (initialQuery) {
+            setQuery(initialQuery);
+        }
+    }, [route?.params?.initialQuery]);
 
     useEffect(() => {
         let isMounted = true;

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import {
   ScrollView,
@@ -34,6 +34,8 @@ import {
 import { Swipeable } from 'react-native-gesture-handler';
 import { Trash2, ArrowLeft } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
+import { BlurView } from 'expo-blur';
+import * as Haptics from 'expo-haptics';
 
 type FeedFilter = 'friends' | 'for-you';
 
@@ -188,8 +190,19 @@ export const HomeScreen: React.FC = () => {
 
   // carousel state - swipe + fade
   const [currentCocktailIndex, setCurrentCocktailIndex] = useState(0);
+  const currentIndexRef = useRef(0);
   const dragX = useRef(new Animated.Value(0)).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
+  // separate gesture tracker for side preview animations (so final swipe animation doesn't distort previews)
+  const gestureX = useRef(new Animated.Value(0)).current;
+  // dynamic blur intensities for side previews (native only)
+  const [blurIntensityLeft, setBlurIntensityLeft] = useState(8);
+  const [blurIntensityRight, setBlurIntensityRight] = useState(8);
+  // side preview crossfade opacities
+  const sideLeftOpacity = useRef(new Animated.Value(1)).current;
+  const sideRightOpacity = useRef(new Animated.Value(1)).current;
+  // animated scales for pagination dots
+  const dotScales = useRef(COCKTAILS.map((_, i) => new Animated.Value(i === 0 ? 1.15 : 0.9))).current;
   const commentsScrollViewRef = useRef<ScrollView | null>(null);
 
   // PanResponder for swipe gestures
@@ -197,18 +210,46 @@ export const HomeScreen: React.FC = () => {
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        // for tap detection
+        tapStartRef.current = Date.now();
+      },
       onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10,
       onPanResponderMove: (_, gesture) => {
         dragX.setValue(gesture.dx);
+        gestureX.setValue(gesture.dx);
       },
       onPanResponderRelease: (_, gesture) => {
         const { dx } = gesture;
+        // Detect quick tap with minimal movement to open All Cocktails with search
+        const tapDuration = Date.now() - (tapStartRef.current || Date.now());
+        if (Math.abs(dx) < 6 && tapDuration < 200) {
+          const active = COCKTAILS[currentIndexRef.current];
+          // map only existing cocktails; exclude Jungle Bird
+          const map: Record<string, string> = {
+            'margarita': 'Margarita',
+            'clover-club': 'Clover Club',
+            'espresso-martini': 'Espresso Martini',
+            'whiskey-sour': 'Whiskey Sour',
+            'hemingway': 'Hemingway',
+          };
+          const q = map[active.id];
+          if (q) {
+            navigation.navigate('Explore' as never, {
+              screen: 'AllCocktails',
+              params: { initialQuery: q },
+            } as never);
+            return;
+          }
+        }
         if (Math.abs(dx) < swipeThreshold) {
-          // snap back
-          Animated.spring(dragX, { toValue: 0, useNativeDriver: true })?.start();
+          Animated.parallel([
+            Animated.spring(dragX, { toValue: 0, useNativeDriver: true }),
+            Animated.spring(gestureX, { toValue: 0, useNativeDriver: true }),
+          ])?.start();
           return;
         }
-        const direction = dx < 0 ? -1 : 1; // -1 = next (left swipe), 1 = previous (right swipe)
+        const direction = dx < 0 ? -1 : 1;
         Animated.parallel([
           Animated.timing(dragX, {
             toValue: direction * Dimensions.get('window').width,
@@ -221,14 +262,32 @@ export const HomeScreen: React.FC = () => {
             useNativeDriver: true,
           }),
         ]).start(() => {
-          // update index
+          let newIndex = 0;
           setCurrentCocktailIndex((prev) => {
-            if (direction === -1) return (prev + 1) % COCKTAILS.length; // left swipe -> next
-            return (prev - 1 + COCKTAILS.length) % COCKTAILS.length; // right swipe -> previous
+            newIndex = direction === -1 ? (prev + 1) % COCKTAILS.length : (prev - 1 + COCKTAILS.length) % COCKTAILS.length;
+            return newIndex;
           });
-          // prepare new card off-screen opposite side
+          // crossfade side previews
+          sideLeftOpacity.setValue(0);
+          sideRightOpacity.setValue(0);
+          Animated.parallel([
+            Animated.timing(sideLeftOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+            Animated.timing(sideRightOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+          ]).start();
+          // animate dot scales
+          dotScales.forEach((val, idx) => {
+            Animated.spring(val, {
+              toValue: idx === newIndex ? 1.15 : 0.9,
+              useNativeDriver: true,
+              friction: 6,
+              tension: 90,
+            }).start();
+          });
+          // light haptic feedback on successful swipe (native only)
+          try { if (Platform.OS !== 'web') Haptics.selectionAsync(); } catch {}
           dragX.setValue(-direction * Dimensions.get('window').width);
           cardOpacity.setValue(0);
+          gestureX.setValue(0); // reset gesture preview influence immediately
           Animated.parallel([
             Animated.timing(dragX, {
               toValue: 0,
@@ -245,6 +304,38 @@ export const HomeScreen: React.FC = () => {
       },
     })
   ).current;
+  const tapStartRef = useRef<number | null>(null);
+  // keep ref in sync so gesture callbacks always read the latest index
+  useEffect(() => {
+    currentIndexRef.current = currentCocktailIndex;
+  }, [currentCocktailIndex]);
+  // Animated derived opacity for subtle drag blur/glow effects
+  const dragBlurOpacity = gestureX.interpolate({
+    inputRange: [-200, -80, 0, 80, 200],
+    outputRange: [0.18, 0.1, 0, 0.1, 0.18],
+    extrapolate: 'clamp',
+  });
+  const sideOverlayOpacityLeft = gestureX.interpolate({
+    inputRange: [-200, 0, 200],
+    outputRange: [0.08, 0.05, 0.03],
+    extrapolate: 'clamp',
+  });
+  const sideOverlayOpacityRight = gestureX.interpolate({
+    inputRange: [-200, 0, 200],
+    outputRange: [0.03, 0.05, 0.08],
+    extrapolate: 'clamp',
+  });
+
+  // update blur intensities live based on drag distance (native only)
+  useEffect(() => {
+    const id = gestureX.addListener(({ value }) => {
+      const normalized = Math.min(1, Math.abs(value) / 220); // 0..1
+      const dynamic = 14 * normalized; // up to +14 intensity
+      setBlurIntensityLeft(8 + dynamic);
+      setBlurIntensityRight(8 + dynamic);
+    });
+    return () => gestureX.removeListener(id);
+  }, [gestureX]);
   useEffect(() => {
     const loadFeed = async () => {
       try {
@@ -620,48 +711,146 @@ export const HomeScreen: React.FC = () => {
         }}
       >
         {/* Popular Right Now – Swipeable Cocktail Carousel */}
-        <Box className="mb-6">
-          <Heading level="h3" className="mb-3">Popular right now</Heading>
-          <Box className="h-80 items-center justify-center">
-            <View style={{ width: SCREEN_WIDTH, alignItems: 'center', justifyContent: 'center' }}>
+        <Box className="mb-8">
+          <Heading level="h3" className="mb-5">Popular right now</Heading>
+          <Box className="h-80 items-center justify-center" style={{ overflow: 'visible' }}>
+            <View style={{ width: SCREEN_WIDTH, alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
               {/* Side previews */}
-              <Animated.View style={{ position: 'absolute', left: 30, zIndex: 1, transform: [{ scale: 0.8 }], opacity: 0.55 }} pointerEvents="none">
+              <Animated.View style={{
+                position: 'absolute',
+                left: 16,
+                zIndex: 1,
+                transform: [
+                  {
+                    translateX: gestureX.interpolate({
+                      inputRange: [-200, 0, 200],
+                      outputRange: [-6, 0, 6],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                  {
+                    scale: gestureX.interpolate({
+                      inputRange: [-200, 0, 200],
+                      outputRange: [0.82, 0.85, 0.88],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ],
+                opacity: Animated.multiply(
+                  sideLeftOpacity,
+                  gestureX.interpolate({
+                    inputRange: [-200, 0, 200],
+                    outputRange: [0.5, 0.6, 0.7],
+                    extrapolate: 'clamp',
+                  })
+                ),
+              }} pointerEvents="none">
                 <View style={{
-                  width: 120,
+                  width: 116,
                   height: 200,
                   borderRadius: 26,
-                  backgroundColor: '#f1f5f9',
+                  backgroundColor: '#f8fafc',
                   borderWidth: 1,
-                  borderColor: '#e2e8f0',
+                  borderColor: 'rgba(255,255,255,0.55)',
                   overflow: 'hidden',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.08,
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowRadius: 8,
                 }}>
                   <Image
                     source={COCKTAILS[(currentCocktailIndex - 1 + COCKTAILS.length) % COCKTAILS.length].image}
                     style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
                   />
+                  {Platform.OS !== 'web' && (
+                    <BlurView
+                      intensity={blurIntensityLeft}
+                      tint="light"
+                      style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+                    />
+                  )}
+                  {/* Soft vignette mask */}
+                  <Animated.View style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    backgroundColor: '#fff',
+                    opacity: sideOverlayOpacityLeft,
+                  }} />
                 </View>
               </Animated.View>
-              <Animated.View style={{ position: 'absolute', right: 30, zIndex: 1, transform: [{ scale: 0.8 }], opacity: 0.55 }} pointerEvents="none">
+              <Animated.View style={{
+                position: 'absolute',
+                right: 16,
+                zIndex: 1,
+                transform: [
+                  {
+                    translateX: gestureX.interpolate({
+                      inputRange: [-200, 0, 200],
+                      outputRange: [-6, 0, 6],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                  {
+                    scale: gestureX.interpolate({
+                      inputRange: [-200, 0, 200],
+                      outputRange: [0.88, 0.85, 0.82],
+                      extrapolate: 'clamp',
+                    }),
+                  },
+                ],
+                opacity: Animated.multiply(
+                  sideRightOpacity,
+                  gestureX.interpolate({
+                    inputRange: [-200, 0, 200],
+                    outputRange: [0.7, 0.6, 0.5],
+                    extrapolate: 'clamp',
+                  })
+                ),
+              }} pointerEvents="none">
                 <View style={{
-                  width: 120,
+                  width: 116,
                   height: 200,
                   borderRadius: 26,
-                  backgroundColor: '#f1f5f9',
+                  backgroundColor: '#f8fafc',
                   borderWidth: 1,
-                  borderColor: '#e2e8f0',
+                  borderColor: 'rgba(255,255,255,0.55)',
                   overflow: 'hidden',
+                  shadowColor: '#000',
+                  shadowOpacity: 0.08,
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowRadius: 8,
                 }}>
                   <Image
                     source={COCKTAILS[(currentCocktailIndex + 1) % COCKTAILS.length].image}
                     style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
                   />
+                  {Platform.OS !== 'web' && (
+                    <BlurView
+                      intensity={blurIntensityRight}
+                      tint="light"
+                      style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+                    />
+                  )}
+                  {/* Soft vignette mask */}
+                  <Animated.View style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 0,
+                    backgroundColor: '#fff',
+                    opacity: sideOverlayOpacityRight,
+                  }} />
                 </View>
               </Animated.View>
               {/* Active card */}
-              <Animated.View
+               <Animated.View
                 {...panResponder.panHandlers}
                 style={{
-                  width: 240,
+                   width: 220,
                   height: 320,
                   borderRadius: 32,
                   backgroundColor: '#ffffff',
@@ -676,24 +865,51 @@ export const HomeScreen: React.FC = () => {
                   justifyContent: 'center',
                   alignItems: 'center',
                   overflow: 'hidden',
-                  transform: [{ translateX: dragX }],
+                  transform: [
+                    { translateX: dragX },
+                    {
+                      translateY: gestureX.interpolate({
+                        inputRange: [-200, 0, 200],
+                        outputRange: [2, 0, 2],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                    {
+                      scale: gestureX.interpolate({
+                        inputRange: [-200, 0, 200],
+                        outputRange: [0.985, 1, 0.985],
+                        extrapolate: 'clamp',
+                      }),
+                    },
+                  ],
                   opacity: cardOpacity,
                   zIndex: 2,
                 }}
               >
-                <View style={{
+                <Animated.View style={{
                   position: 'absolute',
                   top: 0,
                   left: 0,
                   right: 0,
                   bottom: 0,
-                  backgroundColor: colors.primary[500],
-                  opacity: 0.08,
+                  backgroundColor: colors.primary[100],
+                  opacity: dragBlurOpacity,
                 }} />
-                <Image
-                  source={COCKTAILS[currentCocktailIndex].image}
-                  style={{ width: '100%', height: '92%', resizeMode: 'contain' }}
-                />
+                {(() => {
+                  const enlargedIds = ['margarita','clover-club','jungle-bird'];
+                  const isEnlarged = enlargedIds.includes(COCKTAILS[currentCocktailIndex].id);
+                  return (
+                    <Image
+                      source={COCKTAILS[currentCocktailIndex].image}
+                      style={{
+                        width: '100%',
+                        height: isEnlarged ? '100%' : '92%',
+                        resizeMode: 'contain',
+                        marginTop: isEnlarged ? -4 : 0,
+                      }}
+                    />
+                  );
+                })()}
                 <Text className="mt-3 text-lg font-semibold text-neutral-900 text-center">
                   {COCKTAILS[currentCocktailIndex].name}
                 </Text>
@@ -701,19 +917,22 @@ export const HomeScreen: React.FC = () => {
             </View>
             {/* Pagination dots below card */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
-              {COCKTAILS.map((c, idx) => (
-                <View
-                  key={c.id}
-                  style={{
-                    width: idx === currentCocktailIndex ? 10 : 7,
-                    height: idx === currentCocktailIndex ? 10 : 7,
-                    borderRadius: 10,
-                    marginHorizontal: 5,
-                    backgroundColor: idx === currentCocktailIndex ? colors.primary[500] : '#d1d5db',
-                    opacity: idx === currentCocktailIndex ? 1 : 0.55,
-                  }}
-                />
-              ))}
+               {COCKTAILS.map((c, idx) => (
+                 <Animated.View
+                   key={c.id}
+                   style={{
+                     width: 10,
+                     height: 10,
+                     borderRadius: 10,
+                     marginHorizontal: 5,
+                     backgroundColor: idx === currentCocktailIndex ? colors.primary[500] : '#d1d5db',
+                     opacity: idx === currentCocktailIndex ? 1 : 0.55,
+                     borderWidth: idx === currentCocktailIndex ? 2 : 0,
+                     borderColor: idx === currentCocktailIndex ? 'rgba(0,150,137,0.3)' : 'transparent',
+                     transform: [{ scale: dotScales[idx] }],
+                   }}
+                 />
+               ))}
             </View>
           </Box>
         </Box>
