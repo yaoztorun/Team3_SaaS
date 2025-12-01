@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ScrollView,
   TouchableOpacity,
@@ -108,6 +108,26 @@ export const ProfileScreen = () => {
   // topbar stats (streak + total drinks)
   const [streakCount, setStreakCount] = useState(0);
   const [totalDrinks, setTotalDrinks] = useState(0);
+
+  // Derived stats display (out of 5)
+  const avgRatingOutOf5 = useMemo(() => {
+    const raw = userStats?.avgRating ?? 0;
+    return Math.round(raw / 2);
+  }, [userStats?.avgRating]);
+
+  const ratingTrendCounts5 = useMemo(() => {
+    const arr = userStats?.ratingTrend?.map((it: any) => it.count) ?? [];
+    const c = (i: number) => (arr[i] ?? 0);
+    // Collapse 0..10 into 0..5 buckets
+    return [
+      c(0) + c(1),
+      c(2) + c(3),
+      c(4) + c(5),
+      c(6) + c(7),
+      c(8) + c(9),
+      c(10),
+    ];
+  }, [userStats?.ratingTrend]);
 
   const computeStreakFromDates = (dates: string[]): number => {
     if (dates.length === 0) return 0;
@@ -539,7 +559,7 @@ export const ProfileScreen = () => {
                 </Box>
                 <Box className="items-center">
                   <Text className="text-3xl text-red-500 font-semibold">
-                    {userStats?.avgRating || 0}
+                    {avgRatingOutOf5}
                   </Text>
                   <Text className="text-xs text-neutral-500">
                     Avg Rating
@@ -596,9 +616,9 @@ export const ProfileScreen = () => {
                 <Box className="items-center justify-center -ml-8">
                   <LineChart
                     data={{
-                      labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
+                      labels: ['0', '1', '2', '3', '4', '5'],
                       datasets: [{
-                        data: userStats.ratingTrend.map(item => item.count),
+                        data: ratingTrendCounts5,
                       }],
                     }}
                     width={360}
