@@ -9,6 +9,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { Heading } from '@/src/components/global';
+import { shareCocktailSystemSheet } from '@/src/utils/share';
 import { supabase } from '@/src/lib/supabase';
 
 type RootStackParamList = {
@@ -511,6 +512,7 @@ Rules:
                             paddingVertical: 12,
                             alignItems: 'center',
                         }}
+                        onPress={() => shareCocktailSystemSheet(cocktail.id, cocktail.name || undefined)}
                     >
                         <Text className="text-[#009689] text-sm font-semibold">Share Recipe</Text>
                     </Pressable>
