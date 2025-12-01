@@ -199,6 +199,15 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     };
 
     const handleDateSelect = (day: DateData) => {
+        const selectedDate = new Date(day.dateString);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        // Prevent selecting past dates
+        if (selectedDate < today) {
+            return;
+        }
+        
         setSelectedDateString(day.dateString);
         const newDate = new Date(day.dateString);
         onDateChange(newDate);
@@ -368,6 +377,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                     <View style={{ width: '100%', backgroundColor: '#ffffff', borderRadius: 12, marginHorizontal: 16 }}>
                                         <Calendar
                                             current={selectedDateString}
+                                            minDate={new Date().toISOString().split('T')[0]}
                                             onDayPress={handleDateSelect}
                                             theme={{
                                                 selectedDayBackgroundColor: colors.primary[500],
@@ -377,6 +387,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                                 monthTextColor: '#111827',
                                                 textMonthFontWeight: '600',
                                                 textDayHeaderFontWeight: '500',
+                                                textDisabledColor: '#d1d5db',
                                             }}
                                             markedDates={{
                                                 [selectedDateString]: {
