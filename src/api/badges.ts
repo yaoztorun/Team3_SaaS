@@ -111,13 +111,17 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
       .eq('user_id', userId);
 
     // 2. Count friends (accepted friendships)
-    const { data: friendships } = await supabase
+    // Use the same logic as getFriends() function
+    const { data: friendships, error: friendError } = await supabase
       .from('Friendship')
-      .select('user_id, friend_id')
+      .select('*')
       .eq('status', 'accepted')
       .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
 
+    if (friendError) console.error('Error fetching friendships:', friendError);
+
     const friendCount = friendships?.length || 0;
+    console.log(`Friend count for ${userId}: ${friendCount}`);
 
     // 3. Count events hosted (organiser_id in Event table)
     const { count: eventsHostedCount } = await supabase
@@ -201,8 +205,13 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
       }
     });
 
+    console.log('All badges before filtering:', badges.map(b => ({ type: b.type, count: b.count, tier: b.tier })));
+
     // Filter to only return earned badges (tier not null)
-    return badges.filter(badge => badge.tier !== null);
+    const earnedBadges = badges.filter(badge => badge.tier !== null);
+    console.log('Earned badges after filtering:', earnedBadges.map(b => ({ type: b.type, count: b.count, tier: b.tier })));
+    
+    return earnedBadges;
   } catch (error) {
     console.error('Error fetching user badges:', error);
     return [];

@@ -17,7 +17,7 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { PrimaryButton, TextInputField, ImageUploadBox, DateTimePicker, LocationSelector, Heading } from '@/src/components/global';
 import type { EventWithDetails } from '@/src/api/event';
 
-type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party';
+type PartyType = 'house-party' | 'bar-meetup' | 'outdoor-event' | 'themed-party' | 'workshop' | 'tasting';
 
 export const EditParty = () => {
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
@@ -29,11 +29,13 @@ export const EditParty = () => {
     const [description, setDescription] = useState(party?.description || '');
 
     // Map database party type to frontend type
-    const dbToFrontendType: Record<'house party' | 'bar meetup' | 'outdoor event' | 'themed party', PartyType> = {
+    const dbToFrontendType: Record<'house party' | 'bar meetup' | 'outdoor event' | 'themed party' | 'workshop' | 'tasting', PartyType> = {
         'house party': 'house-party',
         'bar meetup': 'bar-meetup',
         'outdoor event': 'outdoor-event',
         'themed party': 'themed-party',
+        'workshop': 'workshop',
+        'tasting': 'tasting',
     };
     const [selectedType, setSelectedType] = useState<PartyType>(
         party?.party_type ? dbToFrontendType[party.party_type] : 'house-party'
@@ -114,14 +116,18 @@ export const EditParty = () => {
         { id: 'bar-meetup', label: 'Bar Meetup', emoji: '🍻' },
         { id: 'outdoor-event', label: 'Outdoor Event', emoji: '🌳' },
         { id: 'themed-party', label: 'Themed Party', emoji: '🎭' },
+        { id: 'workshop', label: 'Workshop', emoji: '🛠️' },
+        { id: 'tasting', label: 'Tasting', emoji: '🍷' },
     ] as const;
 
     // Map frontend party type to database enum
-    const partyTypeMap: Record<PartyType, 'house party' | 'bar meetup' | 'outdoor event' | 'themed party'> = {
+    const partyTypeMap: Record<PartyType, 'house party' | 'bar meetup' | 'outdoor event' | 'themed party' | 'workshop' | 'tasting'> = {
         'house-party': 'house party',
         'bar-meetup': 'bar meetup',
         'outdoor-event': 'outdoor event',
         'themed-party': 'themed party',
+        'workshop': 'workshop',
+        'tasting': 'tasting',
     };
 
     const handleUpdateParty = async () => {
@@ -390,8 +396,9 @@ export const EditParty = () => {
 
                     {/* Update Party Button */}
                     <PrimaryButton
-                        title={isUploading ? 'Updating Party...' : 'Update Party'}
+                        title="Update Party"
                         onPress={handleUpdateParty}
+                        loading={isUploading}
                         disabled={!canSubmit || isUploading || !hasChanges}
                     />
                     {!canSubmit && (

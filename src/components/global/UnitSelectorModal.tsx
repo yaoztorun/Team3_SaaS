@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, TouchableOpacity } from 'react-native';
+import { Modal, TouchableOpacity, ScrollView } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { X } from 'lucide-react-native';
@@ -29,7 +29,7 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                         <TouchableOpacity
                                 activeOpacity={1}
                                 onPress={onClose}
-                                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+                                style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end', alignItems: 'center' }}
                         >
                                 <TouchableOpacity
                                         activeOpacity={1}
@@ -39,7 +39,9 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                                                 borderTopLeftRadius: 24,
                                                 borderTopRightRadius: 24,
                                                 paddingBottom: 40,
-                                                maxHeight: '50%'
+                                                maxHeight: '50%',
+                                                width: '100%',
+                                                maxWidth: 480
                                         }}
                                 >
                                         <Box className="px-4 py-4 border-b border-gray-200 flex-row items-center justify-between">
@@ -48,7 +50,7 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                                                         <X size={24} color="#666" />
                                                 </TouchableOpacity>
                                         </Box>
-                                        <Box className="px-4 py-2">
+                                        <ScrollView className="px-4 py-2">
                                                 {units.map((unit) => (
                                                         <TouchableOpacity
                                                                 key={unit}
@@ -63,7 +65,7 @@ export const UnitSelectorModal: React.FC<UnitSelectorModalProps> = ({
                                                                 )}
                                                         </TouchableOpacity>
                                                 ))}
-                                        </Box>
+                                        </ScrollView>
                                 </TouchableOpacity>
                         </TouchableOpacity>
                 </Modal>

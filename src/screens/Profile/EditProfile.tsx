@@ -113,7 +113,7 @@ const EditProfile: React.FC = () => {
             >
                 {loading ? (
                     <Box className="mb-6 items-center py-8">
-                        <ActivityIndicator size="large" color="#14b8a6" />
+                        <ActivityIndicator size="large" color="#00BBA7" />
                     </Box>
                 ) : (
                     <Box className="mb-6 items-center">
@@ -152,6 +152,7 @@ const EditProfile: React.FC = () => {
                                     value={fullName}
                                     onChangeText={setFullName}
                                     placeholder="Enter your full name"
+                                    onSubmitEditing={handleSave}
                                 />
                             </Box>
 
@@ -165,8 +166,9 @@ const EditProfile: React.FC = () => {
                         </Box>
 
                         <PrimaryButton
-                            title={uploading ? "Uploading image..." : saving ? "Saving..." : "Save Changes"}
+                            title="Save Changes"
                             onPress={handleSave}
+                            loading={saving || uploading}
                             disabled={saving || uploading}
                         />
                     </>

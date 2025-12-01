@@ -31,10 +31,12 @@ export const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
                 className="flex-1 bg-black/50 justify-end"
                 activeOpacity={1}
                 onPress={onClose}
+                style={{ alignItems: 'center' }}
             >
                 <TouchableOpacity 
                     activeOpacity={1} 
                     onPress={(e) => e.stopPropagation()}
+                    style={{ width: '100%', maxWidth: 480 }}
                 >
                     <Box className="bg-white rounded-t-3xl p-6">
                         <Box className="flex-row justify-between items-center mb-4">

@@ -921,7 +921,7 @@ export const HomeScreen: React.FC = () => {
               {/* Comments list */}
               {commentsLoading && (
                 <Box className="py-3 items-center">
-                  <ActivityIndicator />
+                  <ActivityIndicator size="small" color="#00BBA7" />
                 </Box>
               )}
 

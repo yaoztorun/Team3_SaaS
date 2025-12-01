@@ -3,6 +3,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { ScrollView, TextInput, KeyboardAvoidingView, Platform, View, ActivityIndicator } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Send, ChevronLeft, Bot } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { useNavigation } from '@react-navigation/native';
@@ -11,7 +12,6 @@ import { sendGeminiMessage, ChatMessage, createInitialChatHistory } from '@/src/
 // Example suggested questions that appear below the welcome message
 const suggestedQuestions = [
     "How do I make a Mojito?",
-    "What's a good cocktail for beginners?",
     "Help me plan a cocktail party",
     "What can I make with vodka?"
 ];
@@ -210,7 +210,7 @@ export const AIAssistant = () => {
                                     <Bot size={20} color="#009689" />
                                 </Box>
                                 <Box className="bg-white border border-gray-200 rounded-2xl p-4">
-                                    <ActivityIndicator size="small" color="#009689" />
+                                    <ActivityIndicator size="small" color="#00BBA7" />
                                 </Box>
                             </Box>
                         </Box>
@@ -218,7 +218,7 @@ export const AIAssistant = () => {
 
                     {/* Suggested Questions (only show if only initial message) */}
                     {messages.length === 1 && !isLoading && (
-                        <Box className="mt-4">
+                        <Box className="mt-16">
                             <Text className="text-sm text-[#4a5565] mb-3 ml-2">Try asking:</Text>
                             {suggestedQuestions.map((question, index) => (
                                 <Pressable
@@ -234,13 +234,13 @@ export const AIAssistant = () => {
                 </ScrollView>
 
                 {/* Input Area */}
-                <Box className="bg-white border-t border-gray-200 px-4 py-8">
+                <Box className="bg-white border-t border-gray-200 px-4 py-4" style={{ paddingBottom: 40 }}>
                     <Box className="flex-row items-center">
-                        <Box className="flex-1 bg-[#f3f3f5] rounded-lg px-3 py-3 mr-2">
+                        <Box className="flex-1 bg-[#f3f3f5] rounded-lg px-3 py-2 mr-2">
                             <TextInput
                                 className="text-sm text-neutral-900"
                                 style={{
-                                    minHeight: 44,
+                                    minHeight: 40,
                                     maxHeight: 100,
                                     outlineStyle: 'none'
                                 } as any}
@@ -262,21 +262,43 @@ export const AIAssistant = () => {
                         </Box>
                         <Pressable
                             onPress={handleSend}
-                            className={`w-11 h-11 rounded-lg items-center justify-center ${
-                                inputText.trim()
-                                    ? 'bg-gradient-to-r from-[#009689] to-[#00786f]'
-                                    : 'bg-gray-300'
-                            }`}
-                            style={{
-                                backgroundColor: inputText.trim() && !isLoading ? '#009689' : '#d1d5dc',
-                                opacity: inputText.trim() && !isLoading ? 1 : 0.5,
-                            }}
                             disabled={!inputText.trim() || isLoading}
+                            style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: 8,
+                                overflow: 'hidden',
+                                opacity: (inputText.trim() && !isLoading) ? 1 : 0.5,
+                            }}
                         >
-                            {isLoading ? (
-                                <ActivityIndicator size="small" color="#fff" />
+                            {(inputText.trim() && !isLoading) ? (
+                                <LinearGradient
+                                    colors={[colors.primary[500], colors.primary[600]]}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        justifyContent: 'center',
+                                        alignItems: 'center',
+                                    }}
+                                >
+                                    {isLoading ? (
+                                        <ActivityIndicator size="small" color="#fff" />
+                                    ) : (
+                                        <Send size={16} color="#fff" />
+                                    )}
+                                </LinearGradient>
                             ) : (
-                                <Send size={16} color="#fff" />
+                                <View style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    backgroundColor: '#d1d5dc',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                }}>
+                                    <Send size={16} color="#fff" />
+                                </View>
                             )}
                         </Pressable>
                     </Box>

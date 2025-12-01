@@ -24,6 +24,7 @@ import { supabase } from '@/src/lib/supabase';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { Heading } from '@/src/components/global';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
+import { BadgeModal } from '@/src/components/global/BadgeModal';
 
 type View = 'logged-drinks' | 'stats';
 
@@ -77,6 +78,7 @@ export const ProfileScreen = () => {
   const { user } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
 
   // recent drinks state
   const [recentDrinks, setRecentDrinks] = useState<RecentDrink[]>([]);
@@ -304,8 +306,9 @@ export const ProfileScreen = () => {
               ) : badges.length > 0 ? (
                 <HStack className="flex-wrap gap-2">
                   {badges.slice(0, 6).map((badge) => (
-                    <Box 
+                    <Pressable
                       key={badge.type}
+                      onPress={() => setSelectedBadge(badge)}
                       className="items-center"
                       style={{ width: 50 }}
                     >
@@ -314,7 +317,7 @@ export const ProfileScreen = () => {
                         style={{ width: 48, height: 48 }}
                         resizeMode="contain"
                       />
-                    </Box>
+                    </Pressable>
                   ))}
                 </HStack>
               ) : (
@@ -400,7 +403,7 @@ export const ProfileScreen = () => {
             {/* Loading / error */}
             {loadingDrinks && (
               <Box className="items-center justify-center py-4">
-                <ActivityIndicator />
+                <ActivityIndicator size="large" color="#00BBA7" />
               </Box>
             )}
 
@@ -621,6 +624,13 @@ export const ProfileScreen = () => {
           </>
         )}
       </ScrollView>
+
+      {/* Badge Modal */}
+      <BadgeModal
+        visible={selectedBadge !== null}
+        badge={selectedBadge}
+        onClose={() => setSelectedBadge(null)}
+      />
     </Box>
   );
 };

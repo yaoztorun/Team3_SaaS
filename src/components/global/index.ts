@@ -21,3 +21,4 @@ export { FriendSelectorModal } from './FriendSelectorModal';
 export { TaggedFriendsModal } from './TaggedFriendsModal';
 export { IngredientInput } from './IngredientInput';
 export { UnitSelectorModal } from './UnitSelectorModal';
+export { BadgeModal } from './BadgeModal';
