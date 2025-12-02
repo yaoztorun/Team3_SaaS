@@ -14,7 +14,7 @@ import { colors } from '@/src/theme/colors';
 import { Button } from '@/src/components/ui/button';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
-import { SearchBar } from '@/src/components/global';
+import { SearchBar, ToggleSwitch } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { 
     searchUsers, 
@@ -58,43 +58,13 @@ export const SocialScreen = () => {
                 }}
             >
                 {/* View Toggle */}
-                <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
-                    <Pressable
-                        onPress={() => setActiveView('friends')}
-                        className={
-                            activeView === 'friends'
-                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-                        }
-                    >
-                        <Text
-                            className={
-                                activeView === 'friends'
-                                    ? 'text-sm text-center text-white font-medium'
-                                    : 'text-sm text-center text-neutral-900 font-medium'
-                            }
-                        >
-                            Friends
-                        </Text>
-                    </Pressable>
-                    <Pressable
-                        onPress={() => setActiveView('parties')}
-                        className={
-                            activeView === 'parties'
-                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-                        }
-                    >
-                        <Text
-                            className={
-                                activeView === 'parties'
-                                    ? 'text-sm text-center text-white font-medium'
-                                    : 'text-sm text-center text-neutral-900 font-medium'
-                            }
-                        >
-                            Parties
-                        </Text>
-                    </Pressable>
+                <Box className="mb-4 bg-white rounded-2xl p-1">
+                    <ToggleSwitch
+                        value={activeView === 'friends' ? 'left' : 'right'}
+                        onChange={(val: 'left' | 'right') => setActiveView(val === 'left' ? 'friends' : 'parties')}
+                        leftLabel="Friends"
+                        rightLabel="Parties"
+                    />
                 </Box>
 
                 {activeView === 'friends' ? <FriendsView key={refreshKey} /> : <PartiesView />}

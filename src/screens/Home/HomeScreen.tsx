@@ -18,7 +18,7 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard, TextInputField, Heading, TaggedFriendsModal } from '@/src/components/global';
+import { FeedPostCard, TextInputField, Heading, TaggedFriendsModal, ToggleSwitch } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
@@ -207,6 +207,85 @@ export const HomeScreen: React.FC = () => {
   // animated scales for pagination dots
   const dotScales = useRef(COCKTAILS.map((_, i) => new Animated.Value(i === 0 ? 1.15 : 0.9))).current;
   const commentsScrollViewRef = useRef<ScrollView | null>(null);
+  // auto-scroll timer
+  const autoScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastInteractionRef = useRef<number>(Date.now());
+
+  // Function to advance carousel automatically
+  const autoAdvanceCarousel = () => {
+    const newIndex = (currentIndexRef.current + 1) % COCKTAILS.length;
+    
+    Animated.parallel([
+      Animated.timing(dragX, {
+        toValue: -Dimensions.get('window').width,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(cardOpacity, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setCurrentCocktailIndex(newIndex);
+      
+      // crossfade side previews
+      sideLeftOpacity.setValue(0);
+      sideRightOpacity.setValue(0);
+      Animated.parallel([
+        Animated.timing(sideLeftOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+        Animated.timing(sideRightOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
+      ]).start();
+      
+      // animate dot scales
+      dotScales.forEach((val, idx) => {
+        Animated.spring(val, {
+          toValue: idx === newIndex ? 1.15 : 0.9,
+          useNativeDriver: true,
+          friction: 6,
+          tension: 90,
+        }).start();
+      });
+      
+      dragX.setValue(Dimensions.get('window').width);
+      cardOpacity.setValue(0);
+      gestureX.setValue(0);
+      Animated.parallel([
+        Animated.timing(dragX, {
+          toValue: 0,
+          duration: 260,
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
+  // Reset auto-scroll timer
+  const resetAutoScrollTimer = () => {
+    lastInteractionRef.current = Date.now();
+    if (autoScrollTimerRef.current) {
+      clearTimeout(autoScrollTimerRef.current);
+    }
+    autoScrollTimerRef.current = setTimeout(() => {
+      autoAdvanceCarousel();
+    }, 5000);
+  };
+
+  // Set up auto-scroll effect
+  useEffect(() => {
+    resetAutoScrollTimer();
+    
+    return () => {
+      if (autoScrollTimerRef.current) {
+        clearTimeout(autoScrollTimerRef.current);
+      }
+    };
+  }, [currentCocktailIndex]);
 
   // PanResponder for swipe gestures
   const swipeThreshold = 80; // px drag required to trigger swipe
@@ -216,6 +295,8 @@ export const HomeScreen: React.FC = () => {
       onPanResponderGrant: () => {
         // for tap detection
         tapStartRef.current = Date.now();
+        // Reset auto-scroll timer on user interaction
+        resetAutoScrollTimer();
       },
       onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10,
       onPanResponderMove: (_, gesture) => {
@@ -916,43 +997,13 @@ export const HomeScreen: React.FC = () => {
         </Box>
 
         {/* Feed toggle */}
-        <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
-          <Pressable
-            onPress={() => setFeedFilter('friends')}
-            className={
-              feedFilter === 'friends'
-                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-            }
-          >
-            <Text
-              className={
-                feedFilter === 'friends'
-                  ? 'text-sm text-center text-white font-medium'
-                  : 'text-sm text-center text-neutral-900 font-medium'
-              }
-            >
-              Friends
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setFeedFilter('for-you')}
-            className={
-              feedFilter === 'for-you'
-                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-            }
-          >
-            <Text
-              className={
-                feedFilter === 'for-you'
-                  ? 'text-sm text-center text-white font-medium'
-                  : 'text-sm text-center text-neutral-900 font-medium'
-              }
-            >
-              For you
-            </Text>
-          </Pressable>
+        <Box className="mb-4 bg-white rounded-2xl p-1">
+          <ToggleSwitch
+            value={feedFilter === 'friends' ? 'left' : 'right'}
+            onChange={(val: 'left' | 'right') => setFeedFilter(val === 'left' ? 'friends' : 'for-you')}
+            leftLabel="Friends"
+            rightLabel="For you"
+          />
         </Box>
 
         {/* Loading */}

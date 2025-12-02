@@ -122,7 +122,7 @@ const ClockPicker = ({
                             borderRadius: 20,
                             justifyContent: 'center',
                             alignItems: 'center',
-                            backgroundColor: isSelected && (type === 'minute' || selectedValue < 13) ? '#5dade2' : 'transparent',
+                            backgroundColor: isSelected && (type === 'minute' || selectedValue < 13) ? '#00BBA7' : 'transparent',
                         }}
                     >
                         <Text style={{
@@ -154,7 +154,7 @@ const ClockPicker = ({
                             borderRadius: 18,
                             justifyContent: 'center',
                             alignItems: 'center',
-                            backgroundColor: isSelected ? '#5dade2' : 'transparent',
+                            backgroundColor: isSelected ? '#00BBA7' : 'transparent',
                         }}
                     >
                         <Text style={{
@@ -281,15 +281,15 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
     const getStepTitle = () => {
         switch (currentStep) {
             case 'date':
-                return 'Selecteer een datum';
+                return 'Select a date';
             case 'start-hour':
-                return 'Starttijd selecteren';
+                return 'Select start time';
             case 'start-minute':
-                return 'Starttijd selecteren';
+                return 'Select start time';
             case 'end-hour':
-                return 'Eindtijd selecteren';
+                return 'Select end time';
             case 'end-minute':
-                return 'Eindtijd selecteren';
+                return 'Select end time';
             default:
                 return 'Select Date & Time';
         }
@@ -407,10 +407,25 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             paddingHorizontal: 24,
                                             paddingVertical: 12,
                                             borderRadius: 12,
-                                            marginBottom: 20
+                                            marginBottom: 20,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
                                         }}>
-                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
-                                                {tempStartHour.toString().padStart(2, '0')} : {tempStartMinute.toString().padStart(2, '0')}
+                                        <View style={{
+                                            backgroundColor: '#00BBA7',
+                                            paddingHorizontal: 12,
+                                            paddingVertical: 8,
+                                            borderRadius: 8,
+                                        }}>
+                                                <Text style={{ color: '#ffffff', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempStartHour.toString().padStart(2, '0')}
+                                                </Text>
+                                            </View>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
+                                                :
+                                            </Text>
+                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                {tempStartMinute.toString().padStart(2, '0')}
                                             </Text>
                                         </View>
                                         <ClockPicker
@@ -429,11 +444,26 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             paddingHorizontal: 24,
                                             paddingVertical: 12,
                                             borderRadius: 12,
-                                            marginBottom: 20
+                                            marginBottom: 20,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
                                         }}>
-                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
-                                                {tempStartHour.toString().padStart(2, '0')} : {tempStartMinute.toString().padStart(2, '0')}
+                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                {tempStartHour.toString().padStart(2, '0')}
                                             </Text>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
+                                                :
+                                            </Text>
+                                            <View style={{
+                                                backgroundColor: '#00BBA7',
+                                                paddingHorizontal: 12,
+                                                paddingVertical: 8,
+                                                borderRadius: 8,
+                                            }}>
+                                                <Text style={{ color: '#ffffff', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempStartMinute.toString().padStart(2, '0')}
+                                                </Text>
+                                            </View>
                                         </View>
                                         <ClockPicker
                                             selectedValue={tempStartMinute}
@@ -451,10 +481,25 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             paddingHorizontal: 24,
                                             paddingVertical: 12,
                                             borderRadius: 12,
-                                            marginBottom: 20
+                                            marginBottom: 20,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
                                         }}>
-                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
-                                                {tempEndHour.toString().padStart(2, '0')} : {tempEndMinute.toString().padStart(2, '0')}
+                                        <View style={{
+                                            backgroundColor: '#00BBA7',
+                                            paddingHorizontal: 12,
+                                            paddingVertical: 8,
+                                            borderRadius: 8,
+                                        }}>
+                                                <Text style={{ color: '#ffffff', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempEndHour.toString().padStart(2, '0')}
+                                                </Text>
+                                            </View>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
+                                                :
+                                            </Text>
+                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                {tempEndMinute.toString().padStart(2, '0')}
                                             </Text>
                                         </View>
                                         <ClockPicker
@@ -474,7 +519,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             }}
                                         >
                                             <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
-                                                Geen eindtijd
+                                                No end time
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
@@ -488,11 +533,26 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             paddingHorizontal: 24,
                                             paddingVertical: 12,
                                             borderRadius: 12,
-                                            marginBottom: 20
+                                            marginBottom: 20,
+                                            flexDirection: 'row',
+                                            alignItems: 'center',
                                         }}>
-                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700' }}>
-                                                {tempEndHour.toString().padStart(2, '0')} : {tempEndMinute.toString().padStart(2, '0')}
+                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                {tempEndHour.toString().padStart(2, '0')}
                                             </Text>
+                                            <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
+                                                :
+                                            </Text>
+                                            <View style={{
+                                                backgroundColor: '#00BBA7',
+                                                paddingHorizontal: 12,
+                                                paddingVertical: 8,
+                                                borderRadius: 8,
+                                            }}>
+                                                <Text style={{ color: '#ffffff', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempEndMinute.toString().padStart(2, '0')}
+                                                </Text>
+                                            </View>
                                         </View>
                                         <ClockPicker
                                             selectedValue={tempEndMinute}
@@ -511,7 +571,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             }}
                                         >
                                             <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '600' }}>
-                                                Geen eindtijd
+                                                No end time
                                             </Text>
                                         </TouchableOpacity>
                                     </View>
