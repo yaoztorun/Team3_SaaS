@@ -5,6 +5,9 @@ import {
   Image,
   ActivityIndicator,
   Dimensions,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Box } from '@/src/components/ui/box';
@@ -23,8 +26,11 @@ import type { Profile } from '@/src/types/profile';
 import { supabase } from '@/src/lib/supabase';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { fetchCocktailById } from '@/src/api/cocktail';
-import { Heading } from '@/src/components/global';
-import { Heart, Lock, LayoutGrid } from 'lucide-react-native';
+import { getCommentsForLog, addComment, type CommentRow } from '@/src/api/comments';
+import { getLikesForLogs, toggleLike } from '@/src/api/likes';
+import { getTagsForLogs, TaggedUser } from '@/src/api/tags';
+import { Heading, FeedPostCard, TextInputField, ToggleSwitch } from '@/src/components/global';
+import { Heart, Lock, LayoutGrid, ArrowLeft, Trash2 } from 'lucide-react-native';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
 
@@ -106,6 +112,15 @@ export const ProfileScreen = () => {
   // badges state
   const [badges, setBadges] = useState<Badge[]>([]);
   const [loadingBadges, setLoadingBadges] = useState(false);
+
+  // post detail modal state
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [showPostModal, setShowPostModal] = useState(false);
+  const [focusedPost, setFocusedPost] = useState<any>(null);
+  const [commentsForPost, setCommentsForPost] = useState<any[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState('');
+  const [sendingComment, setSendingComment] = useState(false);
 
   // topbar stats (streak + total drinks)
   const [streakCount, setStreakCount] = useState(0);
@@ -360,6 +375,182 @@ export const ProfileScreen = () => {
     else if (gridTab === 'liked') setRecentDrinks(likedItems);
   }, [gridTab, publicLogs, privateLogs, createdRecipes, likedItems]);
 
+  // ---------- Post modal helpers ----------
+  
+  const loadComments = async (postId: string) => {
+    setCommentsLoading(true);
+    const rows = await getCommentsForLog(postId);
+    setCommentsForPost(rows);
+    setCommentsLoading(false);
+  };
+
+  const openPostModal = async (drink: RecentDrink) => {
+    if (!user) return;
+
+    setSelectedPostId(drink.id);
+    setShowPostModal(true);
+
+    // Load full post data
+    try {
+      const { data: log, error } = await supabase
+        .from('DrinkLog')
+        .select(`
+          id,
+          created_at,
+          caption,
+          rating,
+          image_url,
+          user_id,
+          Cocktail:cocktail_id (
+            id,
+            name,
+            image_url
+          ),
+          Profile:user_id (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('id', drink.id)
+        .single();
+
+      if (error || !log) {
+        console.error('Error loading post:', error);
+        return;
+      }
+
+      // Get likes, comments, tags
+      const likesMap = await getLikesForLogs([drink.id], user.id);
+      const tagsMap = await getTagsForLogs([drink.id]);
+      const likes = { 
+        count: likesMap.counts.get(drink.id) || 0, 
+        isLiked: likesMap.likedByMe.has(drink.id) 
+      };
+      const taggedFriends = tagsMap.get(drink.id) || [];
+
+      // Get comment count
+      const { count: commentCount } = await supabase
+        .from('Comment')
+        .select('*', { count: 'exact', head: true })
+        .eq('drink_log_id', drink.id);
+
+      const cocktailData = log.Cocktail as any;
+      const profileData = log.Profile as any;
+      
+      const imageUrl = log.image_url || cocktailData?.image_url || '';
+      const userName = profileData?.full_name || 'Unknown User';
+      const userInitials = userName
+        .split(/\s+/)
+        .map((n: string) => n[0])
+        .join('')
+        .toUpperCase();
+
+      const focusedPostData = {
+        id: log.id,
+        cocktailId: cocktailData?.id || '',
+        userName,
+        userInitials,
+        userId: log.user_id,
+        timeAgo: formatTimeAgo(log.created_at),
+        cocktailName: cocktailData?.name || 'Unknown Cocktail',
+        rating: log.rating ?? 0,
+        imageUrl,
+        likes: likes.count,
+        comments: commentCount || 0,
+        caption: log.caption ?? '',
+        isLiked: likes.isLiked,
+        taggedFriends,
+      };
+
+      setFocusedPost(focusedPostData);
+      await loadComments(drink.id);
+    } catch (err) {
+      console.error('Error loading post details:', err);
+    }
+  };
+
+  const closePostModal = () => {
+    setShowPostModal(false);
+    setSelectedPostId(null);
+    setFocusedPost(null);
+    setCommentsForPost([]);
+    setNewComment('');
+  };
+
+  const handleSendComment = async () => {
+    if (!user?.id || !selectedPostId || !newComment.trim() || sendingComment) {
+      return;
+    }
+
+    const content = newComment.trim();
+    setSendingComment(true);
+    setNewComment('');
+
+    const res = await addComment(selectedPostId, user.id, content);
+
+    if (!res.success) {
+      console.warn(res.error);
+    } else {
+      await loadComments(selectedPostId);
+      
+      // Update comment count in focused post
+      if (focusedPost) {
+        setFocusedPost({
+          ...focusedPost,
+          comments: focusedPost.comments + 1,
+        });
+      }
+    }
+
+    setSendingComment(false);
+  };
+
+  const handleToggleLike = async (postId: string) => {
+    if (!user?.id || !focusedPost) return;
+
+    const prevLiked = focusedPost.isLiked;
+
+    // Optimistic UI update
+    setFocusedPost({
+      ...focusedPost,
+      isLiked: !focusedPost.isLiked,
+      likes: focusedPost.likes + (focusedPost.isLiked ? -1 : 1),
+    });
+
+    const result = await toggleLike(postId, user.id, prevLiked);
+    if (!result.success) {
+      // Revert on error
+      setFocusedPost({
+        ...focusedPost,
+        isLiked: prevLiked,
+        likes: focusedPost.likes + (prevLiked ? 1 : -1),
+      });
+    }
+  };
+
+  const handlePressCocktail = async (cocktailId: string) => {
+    if (!cocktailId) return;
+    
+    const cocktail = await fetchCocktailById(cocktailId);
+    
+    if (!cocktail) {
+      console.log('Cocktail not found or not accessible');
+      return;
+    }
+    
+    // Close modal first
+    closePostModal();
+    
+    // Navigate to CocktailDetail in the Explore stack
+    const rootNav = navigation.getParent() as any;
+    if (rootNav) {
+      rootNav.navigate('Explore', { 
+        screen: 'CocktailDetail',
+        params: { cocktail }
+      });
+    }
+  };
 
 
   return (
@@ -420,11 +611,11 @@ export const ProfileScreen = () => {
                       key={badge.type}
                       onPress={() => setSelectedBadge(badge)}
                       className="items-center"
-                      style={{ width: 50 }}
+                      style={{ width: 42 }}
                     >
                       <Image
                         source={{ uri: badge.imageUrl }}
-                        style={{ width: 48, height: 48 }}
+                        style={{ width: 40, height: 40 }}
                         resizeMode="contain"
                       />
                     </Pressable>
@@ -445,43 +636,13 @@ export const ProfileScreen = () => {
       </Box>
 
       {/* View Toggle */}
-      <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
-        <Pressable
-          onPress={() => setCurrentView('logged-drinks')}
-          className={
-            currentView === 'logged-drinks'
-              ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-              : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-          }
-        >
-          <Text
-            className={
-              currentView === 'logged-drinks'
-                ? 'text-sm text-center text-white font-medium'
-                : 'text-sm text-center text-neutral-900 font-medium'
-            }
-          >
-            Logged Drinks
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={() => setCurrentView('stats')}
-          className={
-            currentView === 'stats'
-              ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-              : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-          }
-        >
-          <Text
-            className={
-              currentView === 'stats'
-                ? 'text-sm text-center text-white font-medium'
-                : 'text-sm text-center text-neutral-900 font-medium'
-            }
-          >
-            Stats
-          </Text>
-        </Pressable>
+      <Box className="mb-4 bg-white rounded-2xl p-1">
+        <ToggleSwitch
+          value={currentView === 'logged-drinks' ? 'left' : 'right'}
+          onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'logged-drinks' : 'stats')}
+          leftLabel="Logged Drinks"
+          rightLabel="Stats"
+        />
       </Box>
 
         {currentView === 'logged-drinks' ? (
@@ -529,16 +690,16 @@ export const ProfileScreen = () => {
                   if (gridTab === 'private') {
                     if (item.type === 'recipe') {
                       const cocktail = await fetchCocktailById(item.id);
-                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail } });
+                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail, returnTo: 'Profile' } });
                     } else {
                       // private log: open its cocktail detail
                       const cocktailId = item.cocktailId || item.id;
                       const cocktail = await fetchCocktailById(cocktailId);
-                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail } });
+                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail, returnTo: 'Profile' } });
                     }
                   } else {
-                    // feed or liked -> open post detail
-                    (navigation.getParent() as any)?.navigate('Home', { openDrinkLogId: item.id });
+                    // feed or liked -> open post detail modal
+                    await openPostModal(item);
                   }
                 }}
               />
@@ -723,6 +884,104 @@ export const ProfileScreen = () => {
         badge={selectedBadge}
         onClose={() => setSelectedBadge(null)}
       />
+
+      {/* Post Detail Modal */}
+      <Modal
+        visible={showPostModal}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={closePostModal}
+      >
+        <Box style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+          <KeyboardAvoidingView
+            style={{ flex: 1, maxWidth: 480, width: '100%', alignSelf: 'center', backgroundColor: '#fff' }}
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          >
+            <Box className="flex-1 bg-white">
+              {/* Header */}
+              <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
+                <Pressable onPress={closePostModal} className="mr-3">
+                  <ArrowLeft size={24} color="#000" />
+                </Pressable>
+                <Text className="text-base font-semibold text-neutral-900">
+                  Post
+                </Text>
+              </Box>
+
+              {/* Content */}
+              <ScrollView 
+                style={{ flex: 1 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+              >
+                {focusedPost && (
+                  <Box className="mb-4">
+                    <FeedPostCard
+                      {...focusedPost}
+                      onToggleLike={() => handleToggleLike(focusedPost.id)}
+                      onPressComments={() => {}}
+                      onPressCocktail={() => handlePressCocktail(focusedPost.cocktailId)}
+                      onPressUser={() => {}}
+                    />
+                  </Box>
+                )}
+
+                {/* Comments Section */}
+                <Text className="text-sm font-semibold text-neutral-900 mb-2">
+                  Comments
+                </Text>
+
+                {commentsLoading ? (
+                  <Box className="py-3 items-center">
+                    <ActivityIndicator size="small" color="#00BBA7" />
+                  </Box>
+                ) : commentsForPost.length === 0 ? (
+                  <Text className="text-sm text-gray-400">No comments yet</Text>
+                ) : (
+                  commentsForPost.map((comment: CommentRow) => (
+                    <Box key={comment.id} className="mb-4 bg-white">
+                      <Box className="flex-row items-start">
+                        <Box className="flex-1">
+                          <Text className="text-sm font-semibold text-neutral-900">
+                            {comment.Profile?.full_name || 'User'}
+                          </Text>
+                          <Text className="text-sm text-neutral-700 mt-1">
+                            {comment.content}
+                          </Text>
+                          <Text className="text-xs text-neutral-400 mt-1">
+                            {formatTimeAgo(comment.created_at)}
+                          </Text>
+                        </Box>
+                      </Box>
+                    </Box>
+                  ))
+                )}
+              </ScrollView>
+
+              {/* Comment Input */}
+              <Box className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-white border-t border-neutral-200">
+                <Box className="flex-row items-center">
+                  <Box className="flex-1 mr-2">
+                    <TextInputField
+                      value={newComment}
+                      onChangeText={setNewComment}
+                      placeholder="Add a comment..."
+                      multiline={false}
+                    />
+                  </Box>
+                  <Pressable
+                    onPress={handleSendComment}
+                    disabled={!newComment.trim() || sendingComment}
+                  >
+                    <Text className={newComment.trim() ? 'text-sm font-semibold text-teal-500' : 'text-sm font-semibold text-neutral-300'}>
+                      {sendingComment ? 'Sending...' : 'Post'}
+                    </Text>
+                  </Pressable>
+                </Box>
+              </Box>
+            </Box>
+          </KeyboardAvoidingView>
+        </Box>
+      </Modal>
     </Box>
   );
 };

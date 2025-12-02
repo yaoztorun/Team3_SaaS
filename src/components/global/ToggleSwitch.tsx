@@ -21,20 +21,20 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 }) => {
     return (
         <Box className="rounded-lg">
-            <HStack className="h-[29px]">
+            <HStack>
                 <Pressable 
-                    className={`flex-1 rounded-lg justify-center ${value === 'left' ? 'bg-[#00bba7]' : ''}`}
+                    className={`flex-1 py-2 px-4 rounded-xl justify-center ${value === 'left' ? 'bg-teal-500' : 'border border-gray-300'}`}
                     onPress={() => onChange('left')}
                 >
-                    <Text className={`text-center text-sm ${value === 'left' ? 'text-white' : 'text-neutral-950'}`}>
+                    <Text className={`text-center text-sm font-medium ${value === 'left' ? 'text-white' : 'text-neutral-900'}`}>
                         {leftLabel}
                     </Text>
                 </Pressable>
                 <Pressable 
-                    className={`flex-1 rounded-lg justify-center ${value === 'right' ? 'bg-[#00bba7]' : ''}`}
+                    className={`flex-1 py-2 px-4 rounded-xl justify-center ${value === 'right' ? 'bg-teal-500' : 'border border-gray-300'}`}
                     onPress={() => onChange('right')}
                 >
-                    <Text className={`text-center text-sm ${value === 'right' ? 'text-white' : 'text-neutral-950'}`}>
+                    <Text className={`text-center text-sm font-medium ${value === 'right' ? 'text-white' : 'text-neutral-900'}`}>
                         {rightLabel}
                     </Text>
                 </Pressable>

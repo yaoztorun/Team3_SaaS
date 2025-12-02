@@ -266,43 +266,13 @@ export const AddScreen = () => {
                 }}
             >
                 {/* View Toggle */}
-                <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
-                    <Pressable
-                        onPress={() => setActiveView('log')}
-                        className={
-                            activeView === 'log'
-                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-                        }
-                    >
-                        <Text
-                            className={
-                                activeView === 'log'
-                                    ? 'text-sm text-center text-white font-medium'
-                                    : 'text-sm text-center text-neutral-900 font-medium'
-                            }
-                        >
-                            Existing Cocktail
-                        </Text>
-                    </Pressable>
-                    <Pressable
-                        onPress={() => setActiveView('recipe')}
-                        className={
-                            activeView === 'recipe'
-                                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-                        }
-                    >
-                        <Text
-                            className={
-                                activeView === 'recipe'
-                                    ? 'text-sm text-center text-white font-medium'
-                                    : 'text-sm text-center text-neutral-900 font-medium'
-                            }
-                        >
-                            Create Recipe
-                        </Text>
-                    </Pressable>
+                <Box className="mb-4 bg-white rounded-2xl p-1">
+                    <ToggleSwitch
+                        value={activeView === 'log' ? 'left' : 'right'}
+                        onChange={(val: 'left' | 'right') => setActiveView(val === 'left' ? 'log' : 'recipe')}
+                        leftLabel="Existing Cocktail"
+                        rightLabel="Create Recipe"
+                    />
                 </Box>
 
                 {activeView === 'log' ? (

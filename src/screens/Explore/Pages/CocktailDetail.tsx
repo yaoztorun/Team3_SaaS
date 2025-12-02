@@ -13,7 +13,7 @@ import { shareCocktailSystemSheet } from '@/src/utils/share';
 import { supabase } from '@/src/lib/supabase';
 
 type RootStackParamList = {
-    CocktailDetail: { cocktail: DBCocktail };
+    CocktailDetail: { cocktail: DBCocktail; returnTo?: string };
 };
 
 type CocktailDetailRouteProp = RouteProp<RootStackParamList, 'CocktailDetail'>;
@@ -31,7 +31,7 @@ const getDummyData = (cocktailName: string) => ({
 export const CocktailDetail = () => {
     const navigation = useNavigation<NavigationProp>();
     const route = useRoute<CocktailDetailRouteProp>();
-    const { cocktail } = route.params;
+    const { cocktail, returnTo } = route.params;
 
     const [servings, setServings] = useState(1);
     const [isFavorited, setIsFavorited] = useState(false);
@@ -235,7 +235,14 @@ Rules:
                     />
                     {/* Back Button (scrolls with image) */}
                     <Pressable
-                        onPress={() => navigation.goBack()}
+                        onPress={() => {
+                            if (returnTo === 'Profile') {
+                                // Navigate back to Profile tab
+                                (navigation as any).navigate('Profile');
+                            } else {
+                                navigation.goBack();
+                            }
+                        }}
                         style={{
                             position: 'absolute',
                             top: 16,
