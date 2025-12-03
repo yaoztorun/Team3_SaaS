@@ -462,34 +462,36 @@ Rules:
                     </Box>
                 </Box>
 
-                {/* Fun Fact Section */}
-                <Box
-                    className="mb-6 rounded-2xl px-4 py-4"
-                    style={{
-                        backgroundColor: '#f0fdfa',
-                        borderWidth: 1,
-                        borderColor: '#96f7e4',
-                    }}
-                >
-                    <HStack className="items-start gap-3">
-                        <Info size={20} color="#0b4f4a" />
-                        <Box className="flex-1">
-                            <Text className="text-base font-semibold text-[#0b4f4a] mb-2">
-                                Fun Fact
-                            </Text>
-                            {loadingFunFact ? (
-                                <HStack className="items-center gap-2">
-                                    <ActivityIndicator size="small" color="#0b4f4a" />
-                                    <Text className="text-sm text-[#005f5a]">Generating fun fact...</Text>
-                                </HStack>
-                            ) : (
-                                <Text className="text-sm text-[#005f5a] leading-5">
-                                    {funFact || `${cocktail.name} is a carefully crafted cocktail.`}
+                {/* Fun Fact Section - Only show for system recipes */}
+                {cocktail.origin_type === 'system' && (
+                    <Box
+                        className="mb-6 rounded-2xl px-4 py-4"
+                        style={{
+                            backgroundColor: '#f0fdfa',
+                            borderWidth: 1,
+                            borderColor: '#96f7e4',
+                        }}
+                    >
+                        <HStack className="items-start gap-3">
+                            <Info size={20} color="#0b4f4a" />
+                            <Box className="flex-1">
+                                <Text className="text-base font-semibold text-[#0b4f4a] mb-2">
+                                    Fun Fact
                                 </Text>
-                            )}
-                        </Box>
-                    </HStack>
-                </Box>
+                                {loadingFunFact ? (
+                                    <HStack className="items-center gap-2">
+                                        <ActivityIndicator size="small" color="#0b4f4a" />
+                                        <Text className="text-sm text-[#005f5a]">Generating fun fact...</Text>
+                                    </HStack>
+                                ) : (
+                                    <Text className="text-sm text-[#005f5a] leading-5">
+                                        {funFact || `${cocktail.name} is a carefully crafted cocktail.`}
+                                    </Text>
+                                )}
+                            </Box>
+                        </HStack>
+                    </Box>
+                )}
 
                 {/* Action Buttons */}
                 <HStack className="gap-3">
