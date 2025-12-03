@@ -10,7 +10,7 @@ export type AuthStackParamList = {
 export type MainTabParamList = {
     Home: { openDrinkLogId?: string } | undefined;
     Explore: undefined;
-    Add: { prefilledCocktailId?: string; prefilledCocktailName?: string } | undefined;
+    Add: { prefilledCocktailId?: string; prefilledCocktailName?: string; prefilledCocktailImageUrl?: string } | undefined;
     Social: undefined;
     Profile: undefined;
 };
@@ -24,6 +24,6 @@ export type RootStackParamList = {
 
 declare global {
     namespace ReactNavigation {
-        interface RootParamList extends RootStackParamList {}
+        interface RootParamList extends RootStackParamList { }
     }
 }

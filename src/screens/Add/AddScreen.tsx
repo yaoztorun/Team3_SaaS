@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScrollView, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -24,7 +25,7 @@ type ViewType = 'log' | 'recipe';
 export const AddScreen = () => {
     const navigation = useNavigation();
     const route = useRoute<any>();
-    const { prefilledCocktailId, prefilledCocktailName } = route.params || {};
+    const { prefilledCocktailId, prefilledCocktailName, prefilledCocktailImageUrl } = route.params || {};
 
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
@@ -67,6 +68,9 @@ export const AddScreen = () => {
             if (prefilledCocktailId && prefilledCocktailName) {
                 setCocktailQuery(prefilledCocktailName);
                 setSelectedCocktailId(prefilledCocktailId);
+                if (prefilledCocktailImageUrl) {
+                    setPhotoUri(prefilledCocktailImageUrl);
+                }
             }
         })();
         return () => { mounted = false };
@@ -80,6 +84,7 @@ export const AddScreen = () => {
     const [caption, setCaption] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMessage, setModalMessage] = useState<string | null>(null);
+    const [modalActions, setModalActions] = useState<'default' | 'post-or-home'>('default');
     const [taggedFriendIds, setTaggedFriendIds] = useState<string[]>([]);
 
     const handleLogCocktail = async () => {
@@ -220,7 +225,8 @@ export const AddScreen = () => {
             setHasLogInteracted(false);
 
             // Show confirmation modal
-            setModalMessage('Drink logged successfully');
+            setModalMessage('Drink posted successfully');
+            setModalActions('default');
             setModalVisible(true);
 
             // user will dismiss the modal manually
@@ -232,7 +238,7 @@ export const AddScreen = () => {
         }
     };
 
-    const handleRecipeCreated = () => {
+    const handleRecipeCreated = (created: { id: string; name: string; image_url: string | null }) => {
         // Clear form fields first
         setPhotoUri(null);
         setSelectedDifficulty('Easy');
@@ -240,14 +246,34 @@ export const AddScreen = () => {
         // Reset interaction state so errors won't show on fresh form
         setHasRecipeInteracted(false);
 
-        // Show success modal
+        // Prefill log view with created recipe and prompt user to post now or go home
+        setActiveView('log');
+        setCocktailQuery(created.name || '');
+        setSelectedCocktailId(created.id || null);
+        if (created.image_url) setPhotoUri(created.image_url);
+
         setModalMessage('Recipe created successfully');
+        setModalActions('post-or-home');
         setModalVisible(true);
+
+        // Increment recent recipe count for Home tip
+        (async () => {
+            try {
+                const raw = await AsyncStorage.getItem('recent_recipe_count');
+                const n = raw ? parseInt(raw) : 0;
+                await AsyncStorage.setItem('recent_recipe_count', String(n + 1));
+            } catch { }
+        })();
     };
 
     const handleModalConfirm = () => {
         setModalVisible(false);
-        // Navigate to home tab
+        if (modalActions === 'post-or-home') {
+            // Keep user on Add screen with log view prefilled
+            setModalActions('default');
+            return;
+        }
+        // Default action: navigate to Home (used after drink post)
         navigation.navigate('Home' as never);
     };
 
@@ -338,13 +364,28 @@ export const AddScreen = () => {
                         <Heading level="h2" className="mb-3 text-center">
                             {modalMessage ?? 'Success!'}
                         </Heading>
-                        <Text className="text-neutral-600 mb-6 text-center">
-                            {activeView === 'log' ? 'Your drink has been logged.' : 'Your recipe has been created.'}
-                        </Text>
-                        <PrimaryButton
-                            title="OK"
-                            onPress={handleModalConfirm}
-                        />
+                        {modalActions === 'post-or-home' ? (
+                            <>
+                                <Text className="text-neutral-600 mb-6 text-center">
+                                    Post it now or go Home?
+                                </Text>
+                                <Box className="flex-row gap-3">
+                                    <Pressable className="flex-1 rounded-xl" style={{ backgroundColor: colors.primary[500], paddingVertical: 12 }} onPress={handleModalConfirm}>
+                                        <Text className="text-white text-center">Post It</Text>
+                                    </Pressable>
+                                    <Pressable className="flex-1 rounded-xl" style={{ borderWidth: 1, borderColor: colors.primary[500], paddingVertical: 12, backgroundColor: '#fff' }} onPress={() => { setModalVisible(false); navigation.navigate('Home' as never); }}>
+                                        <Text className="text-center" style={{ color: colors.primary[500] }}>Go Home</Text>
+                                    </Pressable>
+                                </Box>
+                            </>
+                        ) : (
+                            <>
+                                <Text className="text-neutral-600 mb-6 text-center">
+                                    Your drink has been posted.
+                                </Text>
+                                <PrimaryButton title="OK" onPress={handleModalConfirm} />
+                            </>
+                        )}
                     </Box>
                 </View>
             </Modal>
