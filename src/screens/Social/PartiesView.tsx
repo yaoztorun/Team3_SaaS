@@ -31,8 +31,16 @@ export const PartiesView = () => {
         setLoading(true);
         const { myEvents, friendsEvents } = await fetchAllVisibleEvents();
 
-        setMyEvents(myEvents);
-        setFriendsEvents(friendsEvents);
+        // Filter out past events
+        const now = new Date();
+        const filterUpcoming = (events: EventWithDetails[]) => 
+            events.filter(event => {
+                const eventDate = event.start_time ? new Date(event.start_time) : null;
+                return !eventDate || eventDate >= now;
+            });
+
+        setMyEvents(filterUpcoming(myEvents));
+        setFriendsEvents(filterUpcoming(friendsEvents));
 
         // Fetch registration status for all events (excluding user's own events)
         const allOtherEvents = [...friendsEvents];

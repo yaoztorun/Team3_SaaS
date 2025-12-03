@@ -65,6 +65,7 @@ export type FeedPost = {
   userName: string;
   userInitials: string;
   userId?: string;
+  avatarUrl?: string;
   timeAgo: string;
   cocktailName: string;
   rating: number;
@@ -521,6 +522,7 @@ export const HomeScreen: React.FC = () => {
             userName: fullName,
             userInitials: initials,
             userId: log.Profile?.id ?? log.user_id,
+            avatarUrl: log.Profile?.avatar_url ?? undefined,
             timeAgo: formatTimeAgo(log.created_at),
             cocktailName,
             rating: log.rating ?? 0,
@@ -1109,6 +1111,7 @@ export const HomeScreen: React.FC = () => {
                   const canDelete = c.user_id === user?.id;
                   const userName = c.Profile?.full_name ?? 'Unknown user';
                   const initials = getInitials(userName);
+                  const avatarUrl = c.Profile?.avatar_url ?? null;
                   return (
                     <Swipeable
                       key={c.id}
@@ -1127,9 +1130,19 @@ export const HomeScreen: React.FC = () => {
                     >
                       <Box className="mb-4 bg-white">
                         <Box className="flex-row items-start">
-                          <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
-                            <Text className="text-white text-xs font-medium">{initials}</Text>
-                          </Box>
+                          {avatarUrl ? (
+                            <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
+                              <Image
+                                source={{ uri: avatarUrl }}
+                                style={{ width: 32, height: 32 }}
+                                resizeMode="cover"
+                              />
+                            </Box>
+                          ) : (
+                            <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
+                              <Text className="text-white text-xs font-medium">{initials}</Text>
+                            </Box>
+                          )}
                           <Box className="flex-1">
                             <Text className="text-sm font-semibold text-neutral-900 mb-1">
                               {userName}

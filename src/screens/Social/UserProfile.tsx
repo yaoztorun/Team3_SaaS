@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { ScrollView, Image, ActivityIndicator, Dimensions } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { ScrollView, Image, ActivityIndicator, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Center } from '@/src/components/ui/center';
@@ -23,15 +23,67 @@ import {
 } from '@/src/api/friendship';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { LineChart, PieChart } from 'react-native-chart-kit';
-import { Heading } from '@/src/components/global';
+import { Heading, ToggleSwitch, FeedPostCard, TextInputField } from '@/src/components/global';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
+import { supabase } from '@/src/lib/supabase';
+import { getCommentsForLog, addComment, type CommentRow } from '@/src/api/comments';
+import { getLikesForLogs, toggleLike } from '@/src/api/likes';
+import { getTagsForLogs } from '@/src/api/tags';
+import { fetchCocktailById } from '@/src/api/cocktail';
+import { ArrowLeft } from 'lucide-react-native';
 
 type RouteParams = {
     UserProfile: { userId: string };
 };
 
 type UserProfileRouteProp = RouteProp<RouteParams, 'UserProfile'>;
+
+type View = 'drinks' | 'stats';
+
+type DbDrinkLog = {
+  id: string;
+  created_at: string;
+  caption: string | null;
+  rating: number | null;
+  visibility: 'public' | 'friends' | 'private';
+  user_id: string;
+  Cocktail?: {
+    id: string;
+    name: string | null;
+    image_url?: string | null;
+  } | null;
+  image_url?: string | null;
+};
+
+type RecentDrink = {
+  id: string;
+  name: string;
+  subtitle: string;
+  rating: number;
+  time: string;
+  imageUrl: string;
+  visibility?: 'public' | 'friends' | 'private';
+  cocktailId?: string | null;
+};
+
+const formatTimeAgo = (isoDate: string) => {
+  const date = new Date(isoDate);
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return 'Just now';
+  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+};
 
 export const UserProfile = () => {
     const route = useRoute<UserProfileRouteProp>();
@@ -50,6 +102,37 @@ export const UserProfile = () => {
     const [badges, setBadges] = useState<Badge[]>([]);
     const [loadingBadges, setLoadingBadges] = useState(false);
     const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
+    const [currentView, setCurrentView] = useState<View>('drinks');
+    const [recentDrinks, setRecentDrinks] = useState<RecentDrink[]>([]);
+    const [loadingDrinks, setLoadingDrinks] = useState(false);
+
+    // Post detail modal state
+    const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+    const [showPostModal, setShowPostModal] = useState(false);
+    const [focusedPost, setFocusedPost] = useState<any>(null);
+    const [commentsForPost, setCommentsForPost] = useState<CommentRow[]>([]);
+    const [commentsLoading, setCommentsLoading] = useState(false);
+    const [newComment, setNewComment] = useState('');
+    const [sendingComment, setSendingComment] = useState(false);
+
+    // Derived stats display (out of 5)
+    const avgRatingOutOf5 = useMemo(() => {
+        const raw = userStats?.avgRating ?? 0;
+        return Math.round(raw / 2);
+    }, [userStats?.avgRating]);
+
+    const ratingTrendCounts5 = useMemo(() => {
+        const arr = userStats?.ratingTrend?.map((it: any) => it.count) ?? [];
+        const c = (i: number) => (arr[i] ?? 0);
+        return [
+            c(0) + c(1),
+            c(2) + c(3),
+            c(4) + c(5),
+            c(6) + c(7),
+            c(8) + c(9),
+            c(10),
+        ];
+    }, [userStats?.ratingTrend]);
 
     useEffect(() => {
         loadUserProfile();
@@ -103,6 +186,9 @@ export const UserProfile = () => {
         
         // Load badges
         loadBadges();
+
+        // Load drinks
+        loadRecentDrinks();
     };
 
     const loadStats = async () => {
@@ -127,6 +213,226 @@ export const UserProfile = () => {
         } finally {
             setLoadingBadges(false);
         }
+    };
+
+    const loadRecentDrinks = async () => {
+        if (!userId) return;
+
+        try {
+            setLoadingDrinks(true);
+
+            // Fetch only public and friends visibility posts
+            const { data, error } = await supabase
+                .from('DrinkLog')
+                .select(`
+                    id,
+                    created_at,
+                    caption,
+                    rating,
+                    visibility,
+                    user_id,
+                    image_url,
+                    Cocktail (
+                        id,
+                        name,
+                        image_url
+                    )
+                `)
+                .eq('user_id', userId)
+                .in('visibility', ['public', 'friends'])
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            if (error) throw error;
+
+            const mapped: RecentDrink[] = (data ?? []).map((raw: any) => {
+                const cocktailName = raw.Cocktail?.name ?? 'Unknown cocktail';
+                const preview = raw.image_url || raw.Cocktail?.image_url || '';
+
+                return {
+                    id: raw.id,
+                    name: cocktailName,
+                    subtitle: raw.caption ?? '',
+                    rating: raw.rating ?? 0,
+                    time: formatTimeAgo(raw.created_at),
+                    imageUrl: preview,
+                    visibility: raw.visibility as any,
+                    cocktailId: raw.Cocktail?.id ?? null,
+                };
+            });
+
+            setRecentDrinks(mapped);
+        } catch (err: any) {
+            console.error('Error loading recent drinks:', err);
+            setRecentDrinks([]);
+        } finally {
+            setLoadingDrinks(false);
+        }
+    };
+
+    const loadComments = async (postId: string) => {
+        setCommentsLoading(true);
+        const rows = await getCommentsForLog(postId);
+        setCommentsForPost(rows);
+        setCommentsLoading(false);
+    };
+
+    const openPostModal = async (drink: RecentDrink) => {
+        if (!currentUser) return;
+
+        setSelectedPostId(drink.id);
+        setShowPostModal(true);
+
+        try {
+            const { data: log, error } = await supabase
+                .from('DrinkLog')
+                .select(`
+                    id,
+                    created_at,
+                    caption,
+                    rating,
+                    image_url,
+                    user_id,
+                    Cocktail:cocktail_id (
+                        id,
+                        name,
+                        image_url
+                    ),
+                    Profile:user_id (
+                        id,
+                        full_name,
+                        avatar_url
+                    )
+                `)
+                .eq('id', drink.id)
+                .single();
+
+            if (error || !log) {
+                console.error('Error loading post:', error);
+                return;
+            }
+
+            const likesMap = await getLikesForLogs([drink.id], currentUser.id);
+            const tagsMap = await getTagsForLogs([drink.id]);
+            const likes = { 
+                count: likesMap.counts.get(drink.id) || 0, 
+                isLiked: likesMap.likedByMe.has(drink.id) 
+            };
+            const taggedFriends = tagsMap.get(drink.id) || [];
+
+            const { count: commentCount } = await supabase
+                .from('DrinkLogComment')
+                .select('*', { count: 'exact', head: true })
+                .eq('drink_log_id', drink.id);
+
+            const cocktailData = log.Cocktail as any;
+            const profileData = log.Profile as any;
+            
+            const imageUrl = log.image_url || cocktailData?.image_url || '';
+            const userName = profileData?.full_name || 'Unknown User';
+            const userInitials = userName
+                .split(/\s+/)
+                .map((n: string) => n[0])
+                .join('')
+                .toUpperCase();
+
+            const focusedPostData = {
+                id: log.id,
+                cocktailId: cocktailData?.id || '',
+                userName,
+                userInitials,
+                userId: log.user_id,
+                avatarUrl: profileData?.avatar_url || null,
+                timeAgo: formatTimeAgo(log.created_at),
+                cocktailName: cocktailData?.name || 'Unknown Cocktail',
+                rating: log.rating ?? 0,
+                imageUrl,
+                likes: likes.count,
+                comments: commentCount || 0,
+                caption: log.caption ?? '',
+                isLiked: likes.isLiked,
+                taggedFriends,
+            };
+
+            setFocusedPost(focusedPostData);
+            await loadComments(drink.id);
+        } catch (err) {
+            console.error('Error loading post details:', err);
+        }
+    };
+
+    const closePostModal = () => {
+        setShowPostModal(false);
+        setSelectedPostId(null);
+        setFocusedPost(null);
+        setCommentsForPost([]);
+        setNewComment('');
+    };
+
+    const handleSendComment = async () => {
+        if (!currentUser?.id || !selectedPostId || !newComment.trim() || sendingComment) {
+            return;
+        }
+
+        const content = newComment.trim();
+        setSendingComment(true);
+        setNewComment('');
+
+        const res = await addComment(selectedPostId, currentUser.id, content);
+
+        if (!res.success) {
+            console.warn(res.error);
+        } else {
+            await loadComments(selectedPostId);
+            
+            if (focusedPost) {
+                setFocusedPost({
+                    ...focusedPost,
+                    comments: focusedPost.comments + 1,
+                });
+            }
+        }
+
+        setSendingComment(false);
+    };
+
+    const handleToggleLike = async (postId: string) => {
+        if (!currentUser?.id || !focusedPost) return;
+
+        const prevLiked = focusedPost.isLiked;
+
+        setFocusedPost({
+            ...focusedPost,
+            isLiked: !focusedPost.isLiked,
+            likes: focusedPost.likes + (focusedPost.isLiked ? -1 : 1),
+        });
+
+        const result = await toggleLike(postId, currentUser.id, prevLiked);
+        if (!result.success) {
+            setFocusedPost({
+                ...focusedPost,
+                isLiked: prevLiked,
+                likes: focusedPost.likes + (prevLiked ? 1 : -1),
+            });
+        }
+    };
+
+    const handlePressCocktail = async (cocktailId: string) => {
+        if (!cocktailId) return;
+        
+        const cocktail = await fetchCocktailById(cocktailId);
+        
+        if (!cocktail) {
+            console.log('Cocktail not found or not accessible');
+            return;
+        }
+        
+        closePostModal();
+        
+        (navigation as any).navigate('Explore', { 
+            screen: 'CocktailDetail',
+            params: { cocktail }
+        });
     };
 
     const handleSendRequest = async () => {
@@ -262,31 +568,33 @@ export const UserProfile = () => {
                             {profile.full_name || 'User'}
                         </Heading>
                         
-                        {/* Badges */}
-                        <Box className="mt-2">
-                            {loadingBadges ? (
-                                <Text className="text-xs text-neutral-500">Loading badges...</Text>
-                            ) : badges.length > 0 ? (
-                                <HStack className="flex-wrap gap-2 justify-center">
-                                    {badges.slice(0, 6).map((badge) => (
-                                        <Pressable
-                                            key={badge.type}
-                                            onPress={() => setSelectedBadge(badge)}
-                                            className="items-center"
-                                            style={{ width: 50 }}
-                                        >
-                                            <Image
-                                                source={{ uri: badge.imageUrl }}
-                                                style={{ width: 48, height: 48 }}
-                                                resizeMode="contain"
-                                            />
-                                        </Pressable>
-                                    ))}
-                                </HStack>
-                            ) : (
-                                <Text className="text-xs text-neutral-500">No badges earned yet</Text>
-                            )}
-                        </Box>
+                        {/* Badges - only visible to friends or own profile */}
+                        {(friendshipStatus === 'accepted' || currentUser?.id === userId) && (
+                            <Box className="mt-2">
+                                {loadingBadges ? (
+                                    <Text className="text-xs text-neutral-500">Loading badges...</Text>
+                                ) : badges.length > 0 ? (
+                                    <HStack className="flex-wrap gap-2 justify-center">
+                                        {badges.slice(0, 6).map((badge) => (
+                                            <Pressable
+                                                key={badge.type}
+                                                onPress={() => setSelectedBadge(badge)}
+                                                className="items-center"
+                                                style={{ width: 50 }}
+                                            >
+                                                <Image
+                                                    source={{ uri: badge.imageUrl }}
+                                                    style={{ width: 48, height: 48 }}
+                                                    resizeMode="contain"
+                                                />
+                                            </Pressable>
+                                        ))}
+                                    </HStack>
+                                ) : (
+                                    <Text className="text-xs text-neutral-500">No badges earned yet</Text>
+                                )}
+                            </Box>
+                        )}
                     </Center>
 
                     {/* Friend Action Button */}
@@ -346,165 +654,233 @@ export const UserProfile = () => {
                                     <Text>{processingRequest ? 'Unfriending...' : 'Unfriend'}</Text>
                                 </Button>
                             )}
-
                         </Box>
                     )}
                 </Box>
 
-                {/* Stats Section */}
-                <Box className="bg-white rounded-2xl p-4 mb-4">
-                    <Text className="text-base text-neutral-900 mb-4">Stats</Text>
-                    {loadingStats ? (
-                        <Center className="py-4">
-                            <ActivityIndicator size="small" color="#00BBA7" />
-                        </Center>
-                    ) : (
-                        <HStack className="justify-around">
-                            <Box className="items-center">
-                                <Text className="text-2xl text-teal-500 font-semibold">
-                                    {userStats?.drinksLogged || 0}
-                                </Text>
-                                <Text className="text-xs text-neutral-500">Drinks Logged</Text>
-                            </Box>
-                            <Box className="items-center">
-                                <Text className="text-2xl text-red-500 font-semibold">
-                                    {userStats?.avgRating || 0}
-                                </Text>
-                                <Text className="text-xs text-neutral-500">Avg Rating</Text>
-                            </Box>
-                            <Box className="items-center">
-                                <Text className="text-2xl text-blue-500 font-semibold">
-                                    {userStats?.barsVisited || 0}
-                                </Text>
-                                <Text className="text-xs text-neutral-500">Bars Visited</Text>
-                            </Box>
-                        </HStack>
-                    )}
-                </Box>
+                {/* Show content only if friends or viewing own profile */}
+                {(friendshipStatus === 'accepted' || currentUser?.id === userId) ? (
+                    <>
+                        {/* View Toggle */}
+                        <Box className="mb-4 bg-white rounded-2xl p-1">
+                            <ToggleSwitch
+                                value={currentView === 'drinks' ? 'left' : 'right'}
+                                onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'drinks' : 'stats')}
+                                leftLabel="Drinks"
+                                rightLabel="Stats"
+                            />
+                        </Box>
 
-                {/* Top Cocktails */}
-                {userStats?.topCocktails && userStats.topCocktails.length > 0 && (
-                    <Box className="bg-white rounded-2xl p-4 mb-4">
-                        <Text className="text-base text-neutral-900 mb-3">
-                            Most Popular
-                        </Text>
-                        {userStats.topCocktails.map((cocktail, index) => (
-                            <Box
-                                key={index}
-                                className="flex-row items-center justify-between py-3 border-b border-neutral-100 last:border-b-0"
-                            >
-                                <HStack className="items-center flex-1">
-                                    <Box className="w-8 h-8 rounded-full bg-teal-500 items-center justify-center mr-3">
-                                        <Text className="text-white font-semibold">
-                                            {index + 1}
+                        {currentView === 'drinks' ? (
+                            <>
+                                {/* Drinks Grid */}
+                                {loadingDrinks && (
+                            <Box className="items-center justify-center py-4">
+                                <ActivityIndicator size="large" color="#00BBA7" />
+                            </Box>
+                        )}
+
+                        {!loadingDrinks && recentDrinks.length === 0 && (
+                            <Box className="py-4">
+                                <Text className="text-sm text-neutral-500">
+                                    No drinks logged yet.
+                                </Text>
+                            </Box>
+                        )}
+
+                        {!loadingDrinks && recentDrinks.length > 0 && (
+                            <GridGallery
+                                items={recentDrinks}
+                                onPress={(item) => openPostModal(item)}
+                            />
+                        )}
+                    </>
+                ) : (
+                    <>
+                        {/* Stats View */}
+                        <Box className="bg-white rounded-2xl p-4 mb-4">
+                            <Text className="text-base text-neutral-900 mb-4">Stats</Text>
+                            {loadingStats ? (
+                                <Center className="py-4">
+                                    <ActivityIndicator size="small" color="#00BBA7" />
+                                </Center>
+                            ) : (
+                                <HStack className="justify-around">
+                                    <Box className="items-center">
+                                        <Text className="text-3xl text-teal-500 font-semibold">
+                                            {userStats?.drinksLogged || 0}
                                         </Text>
+                                        <Text className="text-xs text-neutral-500">Drinks Logged</Text>
                                     </Box>
-                                    <Text className="text-sm text-neutral-900 flex-1" numberOfLines={1}>
-                                        {cocktail.name}
-                                    </Text>
+                                    <Box className="items-center">
+                                        <Text className="text-3xl text-red-500 font-semibold">
+                                            {avgRatingOutOf5}
+                                        </Text>
+                                        <Text className="text-xs text-neutral-500">Avg Rating</Text>
+                                    </Box>
+                                    <Box className="items-center">
+                                        <Text className="text-3xl text-blue-500 font-semibold">
+                                            {userStats?.barsVisited || 0}
+                                        </Text>
+                                        <Text className="text-xs text-neutral-500">Bars Visited</Text>
+                                    </Box>
                                 </HStack>
-                                <Box className="bg-teal-50 px-3 py-1 rounded-full ml-2">
-                                    <Text className="text-sm text-teal-600 font-medium">
-                                        {cocktail.count}x
-                                    </Text>
-                                </Box>
-                            </Box>
-                        ))}
-                    </Box>
-                )}
-
-                {/* Rating Trend */}
-                {userStats?.ratingTrend && userStats.ratingTrend.some(item => item.count > 0) && (
-                    <Box className="bg-white rounded-2xl p-4 mb-4">
-                        <Text className="text-base text-neutral-900 mb-4">
-                            Rating Trend
-                        </Text>
-                        <Box className="items-center justify-center">
-                            <LineChart
-                                data={{
-                                    labels: ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'],
-                                    datasets: [{
-                                        data: userStats.ratingTrend.map(item => item.count),
-                                    }],
-                                }}
-                                width={300}
-                                height={180}
-                                yAxisLabel=""
-                                yAxisSuffix=""
-                                chartConfig={{
-                                    backgroundColor: '#ffffff',
-                                    backgroundGradientFrom: '#ffffff',
-                                    backgroundGradientTo: '#ffffff',
-                                    decimalPlaces: 0,
-                                    color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
-                                    labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                                    propsForDots: {
-                                        r: '3',
-                                        strokeWidth: '2',
-                                        stroke: '#60A5FA',
-                                    },
-                                }}
-                                bezier
-                                style={{
-                                    marginVertical: 8,
-                                    borderRadius: 16,
-                                }}
-                                withDots={true}
-                                withInnerLines={false}
-                                withOuterLines={false}
-                                withVerticalLines={false}
-                                withHorizontalLines={false}
-                                withShadow={false}
-                                segments={4}
-                            />
+                            )}
                         </Box>
-                    </Box>
-                )}
 
-                {/* Cocktail Breakdown */}
-                {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 && (
-                    <Box className="bg-white rounded-2xl p-4">
-                        <Heading level="h3" className="mb-4">
-                            Cocktail Breakdown
-                        </Heading>
-                        <Box className="items-center justify-center mb-4">
-                            <PieChart
-                                data={userStats.cocktailBreakdown.map(item => ({
-                                    name: item.name,
-                                    population: item.count,
-                                    color: item.color,
-                                    legendFontColor: '#374151',
-                                    legendFontSize: 12,
-                                }))}
-                                width={260}
-                                height={200}
-                                chartConfig={{
-                                    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                                }}
-                                accessor="population"
-                                backgroundColor="transparent"
-                                paddingLeft="60"
-                                hasLegend={false}
-                            />
-                        </Box>
-                        <Box className="flex-row flex-wrap">
-                            {userStats.cocktailBreakdown.map((item, index) => (
-                                <Box
-                                    key={index}
-                                    className="w-1/2 flex-row items-center mb-2 pr-2"
-                                >
+                        {/* Top Cocktails */}
+                        {userStats?.topCocktails && userStats.topCocktails.length > 0 && (
+                            <Box className="bg-white rounded-2xl p-4 mb-4">
+                                <Text className="text-base text-neutral-900 mb-3">
+                                    Most Popular
+                                </Text>
+                                {userStats.topCocktails.map((cocktail, index) => (
                                     <Box
-                                        style={{ backgroundColor: item.color }}
-                                        className="h-4 w-4 rounded-full mr-2"
+                                        key={index}
+                                        className="flex-row items-center justify-between py-3 border-b border-neutral-100 last:border-b-0"
+                                    >
+                                        <HStack className="items-center flex-1">
+                                            <Box className="w-8 h-8 rounded-full bg-teal-500 items-center justify-center mr-3">
+                                                <Text className="text-white font-semibold">
+                                                    {index + 1}
+                                                </Text>
+                                            </Box>
+                                            <Text className="text-sm text-neutral-900 flex-1" numberOfLines={1}>
+                                                {cocktail.name}
+                                            </Text>
+                                        </HStack>
+                                        <Box className="bg-teal-50 px-3 py-1 rounded-full ml-2">
+                                            <Text className="text-sm text-teal-600 font-medium">
+                                                {cocktail.count}x
+                                            </Text>
+                                        </Box>
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
+
+                        {/* Rating Trend */}
+                        <Box className="bg-white rounded-2xl p-4 mb-4">
+                            <Text className="text-base text-neutral-900 mb-4">
+                                Rating Trend
+                            </Text>
+                            {userStats?.ratingTrend && userStats.ratingTrend.some(item => item.count > 0) ? (
+                                <Box className="items-center justify-center -ml-8">
+                                    <LineChart
+                                        data={{
+                                            labels: ['0', '1', '2', '3', '4', '5'],
+                                            datasets: [{
+                                                data: ratingTrendCounts5,
+                                            }],
+                                        }}
+                                        width={360}
+                                        height={220}
+                                        yAxisLabel=""
+                                        yAxisSuffix=""
+                                        chartConfig={{
+                                            backgroundColor: '#ffffff',
+                                            backgroundGradientFrom: '#ffffff',
+                                            backgroundGradientTo: '#ffffff',
+                                            decimalPlaces: 0,
+                                            color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
+                                            labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                            propsForDots: {
+                                                r: '3',
+                                                strokeWidth: '2',
+                                                stroke: '#60A5FA',
+                                            },
+                                        }}
+                                        bezier
+                                        style={{
+                                            marginVertical: 8,
+                                            borderRadius: 16,
+                                            marginLeft: -40,
+                                        }}
+                                        withDots={true}
+                                        withInnerLines={false}
+                                        withOuterLines={false}
+                                        withVerticalLines={false}
+                                        withHorizontalLines={false}
+                                        withShadow={false}
+                                        segments={4}
                                     />
-                                    <Text className="text-sm text-neutral-900" numberOfLines={1}>
-                                        {item.name} ({item.count})
-                                    </Text>
                                 </Box>
-                            ))}
+                            ) : (
+                                <Box className="h-48 items-center justify-center">
+                                    <Text className="text-gray-400">No rating data yet</Text>
+                                </Box>
+                            )}
                         </Box>
-                    </Box>
+
+                        {/* Cocktail Breakdown */}
+                        <Box className="bg-white rounded-2xl p-4">
+                            <Heading level="h3" className="mb-4">
+                                Cocktail Breakdown
+                            </Heading>
+                            {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 ? (
+                                <>
+                                    <Box className="items-center justify-center mb-4">
+                                        <PieChart
+                                            data={userStats.cocktailBreakdown.map(item => ({
+                                                name: item.name,
+                                                population: item.count,
+                                                color: item.color,
+                                                legendFontColor: '#374151',
+                                                legendFontSize: 12,
+                                            }))}
+                                            width={260}
+                                            height={200}
+                                            chartConfig={{
+                                                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                            }}
+                                            accessor="population"
+                                            backgroundColor="transparent"
+                                            paddingLeft="60"
+                                            hasLegend={false}
+                                        />
+                                    </Box>
+                                    <Box className="flex-row flex-wrap">
+                                        {userStats.cocktailBreakdown.map((item, index) => (
+                                            <Box
+                                                key={index}
+                                                className="w-1/2 flex-row items-center mb-2 pr-2"
+                                            >
+                                                <Box
+                                                    style={{ backgroundColor: item.color }}
+                                                    className="h-4 w-4 rounded-full mr-2"
+                                                />
+                                                <Text className="text-sm text-neutral-900" numberOfLines={1}>
+                                                    {item.name} ({item.count})
+                                                </Text>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </>
+                            ) : (
+                                <Box className="h-48 items-center justify-center">
+                                    <Text className="text-gray-400">No cocktail data yet</Text>
+                                </Box>
+                            )}
+                        </Box>
+                    </>
                 )}
+            </>
+        ) : (
+            /* Private Profile Message */
+            <Box className="bg-white rounded-2xl p-8">
+                <Center>
+                    <Box className="w-16 h-16 rounded-full bg-neutral-200 items-center justify-center mb-4">
+                        <Text className="text-3xl">🔒</Text>
+                    </Box>
+                    <Heading level="h3" className="mb-2">
+                        This Profile is Private
+                    </Heading>
+                    <Text className="text-sm text-neutral-500 text-center">
+                        Add this user as a friend to see their drinks and stats
+                    </Text>
+                </Center>
+            </Box>
+        )}
             </ScrollView>
 
             {/* Badge Modal */}
@@ -513,6 +889,152 @@ export const UserProfile = () => {
                 badge={selectedBadge}
                 onClose={() => setSelectedBadge(null)}
             />
+
+            {/* Post Detail Modal */}
+            <Modal
+                visible={showPostModal}
+                animationType="slide"
+                transparent={false}
+                onRequestClose={closePostModal}
+            >
+                <Box style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+                    <KeyboardAvoidingView
+                        style={{ flex: 1, maxWidth: 480, width: '100%', alignSelf: 'center', backgroundColor: '#fff' }}
+                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    >
+                        <Box className="flex-1 bg-white">
+                            {/* Header */}
+                            <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
+                                <Pressable onPress={closePostModal} className="mr-3">
+                                    <ArrowLeft size={24} color="#000" />
+                                </Pressable>
+                                <Text className="text-base font-semibold text-neutral-900">
+                                    Post
+                                </Text>
+                            </Box>
+
+                            {/* Content */}
+                            <ScrollView 
+                                style={{ flex: 1 }}
+                                contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
+                            >
+                                {focusedPost && (
+                                    <FeedPostCard
+                                        {...focusedPost}
+                                        onToggleLike={() => handleToggleLike(focusedPost.id)}
+                                        onPressComments={() => {}}
+                                        onPressCocktail={handlePressCocktail}
+                                    />
+                                )}
+
+                                <Box className="mt-4" />
+                                <Text className="text-sm font-semibold text-neutral-900 mb-2">
+                                    Comments
+                                </Text>
+
+                                {commentsLoading ? (
+                                    <Box className="py-3 items-center">
+                                        <ActivityIndicator size="small" color="#00BBA7" />
+                                    </Box>
+                                ) : commentsForPost.length === 0 ? (
+                                    <Text className="text-sm text-gray-400">No comments yet</Text>
+                                ) : (
+                                    commentsForPost.map((comment: CommentRow) => {
+                                        const userName = comment.Profile?.full_name || 'User';
+                                        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                                        const avatarUrl = comment.Profile?.avatar_url ?? null;
+                                        return (
+                                            <Box key={comment.id} className="mb-4 bg-white">
+                                                <Box className="flex-row items-start">
+                                                    {avatarUrl ? (
+                                                        <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
+                                                            <Image
+                                                                source={{ uri: avatarUrl }}
+                                                                style={{ width: 32, height: 32 }}
+                                                                resizeMode="cover"
+                                                            />
+                                                        </Box>
+                                                    ) : (
+                                                        <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
+                                                            <Text className="text-white text-xs font-medium">{initials}</Text>
+                                                        </Box>
+                                                    )}
+                                                    <Box className="flex-1">
+                                                        <Text className="text-sm font-semibold text-neutral-900">
+                                                            {userName}
+                                                        </Text>
+                                                        <Text className="text-sm text-neutral-700 mt-1">
+                                                            {comment.content}
+                                                        </Text>
+                                                        <Text className="text-xs text-neutral-400 mt-1">
+                                                            {formatTimeAgo(comment.created_at)}
+                                                        </Text>
+                                                    </Box>
+                                                </Box>
+                                            </Box>
+                                        );
+                                    })
+                                )}
+                            </ScrollView>
+
+                            {/* Comment Input */}
+                            <Box className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-white border-t border-neutral-200">
+                                <Box className="flex-row items-center">
+                                    <Box className="flex-1 mr-2">
+                                        <TextInputField
+                                            value={newComment}
+                                            onChangeText={setNewComment}
+                                            placeholder="Add a comment..."
+                                            multiline={false}
+                                        />
+                                    </Box>
+                                    <Pressable
+                                        onPress={handleSendComment}
+                                        disabled={!newComment.trim() || sendingComment}
+                                    >
+                                        <Text className={newComment.trim() ? 'text-sm font-semibold text-teal-500' : 'text-sm font-semibold text-neutral-300'}>
+                                            {sendingComment ? 'Sending...' : 'Post'}
+                                        </Text>
+                                    </Pressable>
+                                </Box>
+                            </Box>
+                        </Box>
+                    </KeyboardAvoidingView>
+                </Box>
+            </Modal>
+        </Box>
+    );
+};
+
+// Grid gallery component
+const GridGallery = ({ items, onPress }: { items: RecentDrink[]; onPress: (item: RecentDrink) => void }) => {
+    const gap = 4;
+    return (
+        <Box>
+            <Box className="flex-row flex-wrap">
+                {items.map((it, idx) => (
+                    <Pressable
+                        key={`${it.id}-${idx}`}
+                        onPress={() => onPress(it)}
+                        style={{ width: '33.333%', paddingRight: ((idx + 1) % 3 === 0) ? 0 : gap, paddingBottom: gap }}
+                    >
+                        {it.imageUrl ? (
+                            <Image
+                                source={{ uri: it.imageUrl }}
+                                style={{ width: '100%', aspectRatio: 1, borderRadius: 5 }}
+                                resizeMode="cover"
+                            />
+                        ) : (
+                            <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 5 }}>
+                                <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
+                            </Center>
+                        )}
+                        <Box className="mt-1 px-2 items-center">
+                            <Text className="text-[12px] font-medium text-neutral-900 text-center" numberOfLines={1}>{it.name}</Text>
+                        </Box>
+                    </Pressable>
+                ))}
+            </Box>
         </Box>
     );
 };

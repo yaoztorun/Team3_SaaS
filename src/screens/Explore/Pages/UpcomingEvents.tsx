@@ -65,10 +65,16 @@ export const UpcomingEvents = () => {
         }, [])
     );
 
-    const filteredEvents = events.filter(event =>
-        (selectedType === 'All' || event.party_type === selectedType) &&
-        (searchQuery === '' || event.name?.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    const filteredEvents = events.filter(event => {
+        // Filter out past events
+        const now = new Date();
+        const eventDate = event.start_time ? new Date(event.start_time) : null;
+        const isUpcoming = !eventDate || eventDate >= now;
+
+        return isUpcoming &&
+            (selectedType === 'All' || event.party_type === selectedType) &&
+            (searchQuery === '' || event.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+    });
 
     const formatDate = (dateStr: string | null) => {
         if (!dateStr) return 'TBA';
