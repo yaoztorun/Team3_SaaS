@@ -11,11 +11,11 @@ export const ANALYTICS_EVENTS = {
   FIRST_COCKTAIL_LOGGED: 'first_cocktail_logged',
   FEATURE_USED: 'feature_used',
   
-  // Revenue
-  PREMIUM_UPGRADED: 'premium_upgraded',
+  // Revenue - Partnership tracking
+  SHOP_ITEM_VIEWED: 'shop_item_viewed',
+  SHOP_ITEM_CLICKED: 'shop_item_clicked',
   
   // Referral
-  INVITE_SENT: 'invite_sent',
   SHARE_CLICKED: 'share_clicked',
   SHARE_LINK_OPENED: 'share_link_opened',
   SHARE_CONVERTED: 'share_converted',

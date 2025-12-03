@@ -13,7 +13,7 @@ import { shareCocktailSystemSheet } from '@/src/utils/share';
 import { supabase } from '@/src/lib/supabase';
 
 type RootStackParamList = {
-    CocktailDetail: { cocktail: DBCocktail; returnTo?: string };
+    CocktailDetail: { cocktail: DBCocktail; returnTo?: string; userIngredients?: string[] };
 };
 
 type CocktailDetailRouteProp = RouteProp<RootStackParamList, 'CocktailDetail'>;
@@ -31,11 +31,13 @@ const getDummyData = (cocktailName: string) => ({
 export const CocktailDetail = () => {
     const navigation = useNavigation<NavigationProp>();
     const route = useRoute<CocktailDetailRouteProp>();
-    const { cocktail, returnTo } = route.params;
+    const { cocktail, returnTo, userIngredients } = route.params;
+
+    // Check if we're coming from "What Can I Make" page
+    const isFromWhatCanIMake = userIngredients !== undefined;
 
     const [servings, setServings] = useState(1);
     const [isFavorited, setIsFavorited] = useState(false);
-    const [checkedIngredients, setCheckedIngredients] = useState<{ [key: number]: boolean }>({});
     const [funFact, setFunFact] = useState<string | null>(cocktail.fun_fact || null);
     const [loadingFunFact, setLoadingFunFact] = useState(false);
     const [hasAttemptedGeneration, setHasAttemptedGeneration] = useState(false);
@@ -60,6 +62,23 @@ export const CocktailDetail = () => {
 
     const ingredients = parseJsonArray<{ name?: string; amount?: number; unit?: string }>(cocktail.ingredients);
     const instructions = parseJsonArray<{ step?: number; description?: string }>(cocktail.instructions);
+
+    // Initialize checked ingredients based on what user has
+    const [checkedIngredients, setCheckedIngredients] = useState<{ [key: number]: boolean }>(() => {
+        if (!isFromWhatCanIMake || !userIngredients) return {};
+
+        const normalizedUserIngredients = userIngredients.map(i => i.toLowerCase().trim());
+        const initialChecked: { [key: number]: boolean } = {};
+
+        ingredients.forEach((ingredient, index) => {
+            const ingredientName = (ingredient.name || '').toLowerCase().trim();
+            if (normalizedUserIngredients.includes(ingredientName)) {
+                initialChecked[index] = true;
+            }
+        });
+
+        return initialChecked;
+    });
 
     // Fetch the latest cocktail data from database to get updated fun_fact
     useEffect(() => {
@@ -385,49 +404,82 @@ Rules:
                 {/* Ingredients Section */}
                 <Box className="mb-6">
                     <Heading level="h5" className="mb-4">Ingredients</Heading>
+                    {isFromWhatCanIMake && (
+                        <Box
+                            className="mb-3 px-3 py-2 rounded-lg"
+                            style={{ backgroundColor: '#e0f2f1' }}
+                        >
+                            <Text className="text-sm text-[#00695c]">
+                                ✓ Ingredients that you do not have are unchecked. Tap to mark as obtained.
+                            </Text>
+                        </Box>
+                    )}
                     <Box className="gap-3">
                         {ingredients.map((ingredient, index) => (
-                            <Pressable
-                                key={index}
-                                onPress={() => toggleIngredient(index)}
-                                style={{
-                                    backgroundColor: '#f9fafb',
-                                    borderWidth: 2,
-                                    borderColor: '#e5e7eb',
-                                    borderRadius: 14,
-                                    paddingHorizontal: 18,
-                                    paddingVertical: 18,
-                                }}
-                            >
-                                <HStack className="items-center gap-3">
-                                    <View
-                                        style={{
-                                            width: 16,
-                                            height: 16,
-                                            borderWidth: 1,
-                                            borderColor: '#030213',
-                                            borderRadius: 4,
-                                            backgroundColor: checkedIngredients[index] ? '#030213' : 'transparent',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                        }}
-                                    >
-                                        {checkedIngredients[index] && (
-                                            <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>
-                                        )}
-                                    </View>
-                                    <Box className="flex-1">
-                                        <HStack className="items-center justify-between">
-                                            <Text className="text-base text-neutral-950">
-                                                {ingredient.name}
-                                            </Text>
-                                            <Text className="text-base text-neutral-600">
-                                                {(ingredient.amount ?? 0) * servings} {ingredient.unit ?? ''}
-                                            </Text>
-                                        </HStack>
-                                    </Box>
-                                </HStack>
-                            </Pressable>
+                            isFromWhatCanIMake ? (
+                                <Pressable
+                                    key={index}
+                                    onPress={() => toggleIngredient(index)}
+                                    style={{
+                                        backgroundColor: '#f9fafb',
+                                        borderWidth: 2,
+                                        borderColor: '#e5e7eb',
+                                        borderRadius: 14,
+                                        paddingHorizontal: 18,
+                                        paddingVertical: 18,
+                                    }}
+                                >
+                                    <HStack className="items-center gap-3">
+                                        <View
+                                            style={{
+                                                width: 16,
+                                                height: 16,
+                                                borderWidth: 1,
+                                                borderColor: '#030213',
+                                                borderRadius: 4,
+                                                backgroundColor: checkedIngredients[index] ? '#030213' : 'transparent',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                            }}
+                                        >
+                                            {checkedIngredients[index] && (
+                                                <Text style={{ color: '#fff', fontSize: 10 }}>✓</Text>
+                                            )}
+                                        </View>
+                                        <Box className="flex-1">
+                                            <HStack className="items-center justify-between">
+                                                <Text className="text-base text-neutral-950">
+                                                    {ingredient.name}
+                                                </Text>
+                                                <Text className="text-base text-neutral-600">
+                                                    {(ingredient.amount ?? 0) * servings} {ingredient.unit ?? ''}
+                                                </Text>
+                                            </HStack>
+                                        </Box>
+                                    </HStack>
+                                </Pressable>
+                            ) : (
+                                <View
+                                    key={index}
+                                    style={{
+                                        backgroundColor: '#f9fafb',
+                                        borderWidth: 2,
+                                        borderColor: '#e5e7eb',
+                                        borderRadius: 14,
+                                        paddingHorizontal: 18,
+                                        paddingVertical: 18,
+                                    }}
+                                >
+                                    <HStack className="items-center justify-between">
+                                        <Text className="text-base text-neutral-950">
+                                            {ingredient.name}
+                                        </Text>
+                                        <Text className="text-base text-neutral-600">
+                                            {(ingredient.amount ?? 0) * servings} {ingredient.unit ?? ''}
+                                        </Text>
+                                    </HStack>
+                                </View>
+                            )
                         ))}
                     </Box>
                 </Box>
@@ -462,34 +514,36 @@ Rules:
                     </Box>
                 </Box>
 
-                {/* Fun Fact Section */}
-                <Box
-                    className="mb-6 rounded-2xl px-4 py-4"
-                    style={{
-                        backgroundColor: '#f0fdfa',
-                        borderWidth: 1,
-                        borderColor: '#96f7e4',
-                    }}
-                >
-                    <HStack className="items-start gap-3">
-                        <Info size={20} color="#0b4f4a" />
-                        <Box className="flex-1">
-                            <Text className="text-base font-semibold text-[#0b4f4a] mb-2">
-                                Fun Fact
-                            </Text>
-                            {loadingFunFact ? (
-                                <HStack className="items-center gap-2">
-                                    <ActivityIndicator size="small" color="#0b4f4a" />
-                                    <Text className="text-sm text-[#005f5a]">Generating fun fact...</Text>
-                                </HStack>
-                            ) : (
-                                <Text className="text-sm text-[#005f5a] leading-5">
-                                    {funFact || `${cocktail.name} is a carefully crafted cocktail.`}
+                {/* Fun Fact Section - Only show for system recipes */}
+                {cocktail.origin_type === 'system' && (
+                    <Box
+                        className="mb-6 rounded-2xl px-4 py-4"
+                        style={{
+                            backgroundColor: '#f0fdfa',
+                            borderWidth: 1,
+                            borderColor: '#96f7e4',
+                        }}
+                    >
+                        <HStack className="items-start gap-3">
+                            <Info size={20} color="#0b4f4a" />
+                            <Box className="flex-1">
+                                <Text className="text-base font-semibold text-[#0b4f4a] mb-2">
+                                    Fun Fact
                                 </Text>
-                            )}
-                        </Box>
-                    </HStack>
-                </Box>
+                                {loadingFunFact ? (
+                                    <HStack className="items-center gap-2">
+                                        <ActivityIndicator size="small" color="#0b4f4a" />
+                                        <Text className="text-sm text-[#005f5a]">Generating fun fact...</Text>
+                                    </HStack>
+                                ) : (
+                                    <Text className="text-sm text-[#005f5a] leading-5">
+                                        {funFact || `${cocktail.name} is a carefully crafted cocktail.`}
+                                    </Text>
+                                )}
+                            </Box>
+                        </HStack>
+                    </Box>
+                )}
 
                 {/* Action Buttons */}
                 <HStack className="gap-3">

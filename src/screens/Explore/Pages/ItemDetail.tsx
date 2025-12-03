@@ -7,6 +7,7 @@ import { HStack } from '@/src/components/ui/hstack';
 import { ArrowLeft, ExternalLink, Package } from 'lucide-react-native';
 import { PrimaryButton, Heading } from '@/src/components/global';
 import { fetchShopItemById, DBShopItem } from '@/src/api/shop';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 export const ItemDetail = () => {
     const route = useRoute();
@@ -24,10 +25,30 @@ export const ItemDetail = () => {
         const data = await fetchShopItemById(itemId);
         setItem(data);
         setLoading(false);
+        
+        // Track item view for revenue analytics
+        if (data) {
+            posthogCapture(ANALYTICS_EVENTS.SHOP_ITEM_VIEWED, {
+                item_id: data.id,
+                item_name: data.name,
+                item_category: data.category,
+                item_price: data.price,
+                store_url: data.store_url,
+            });
+        }
     };
 
     const handleBuyNow = () => {
         if (item?.store_url) {
+            // Track revenue event - user clicked to buy
+            posthogCapture(ANALYTICS_EVENTS.SHOP_ITEM_CLICKED, {
+                item_id: item.id,
+                item_name: item.name,
+                item_category: item.category,
+                item_price: item.price,
+                store_url: item.store_url,
+            });
+            
             Linking.openURL(item.store_url);
         }
     };
