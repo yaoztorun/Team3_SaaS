@@ -20,7 +20,7 @@ interface RecipeViewProps {
     photoUri: string | null;
     selectedDifficulty: 'Easy' | 'Medium' | 'Hard';
     setSelectedDifficulty: (v: 'Easy' | 'Medium' | 'Hard') => void;
-    onRecipeCreated: () => void;
+    onRecipeCreated: (created: { id: string; name: string; image_url: string | null }) => void;
     hasInteracted: boolean;
     setHasInteracted: (v: boolean) => void;
 }
@@ -256,7 +256,9 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                         instructions: formattedInstructions as any,
                         created_at: new Date().toISOString(),
                     },
-                ]);
+                ])
+                .select()
+                .single();
 
             if (insertError) {
                 console.error('Insert error', insertError);
@@ -264,8 +266,12 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                 return;
             }
 
-            // Success - notify parent to show modal and clear form
-            onRecipeCreated();
+            // Success - notify parent with created recipe info
+            if (insertData) {
+                onRecipeCreated({ id: insertData.id, name: insertData.name, image_url: insertData.image_url });
+            } else {
+                onRecipeCreated({ id: '', name: recipeName.trim(), image_url: uploadedUrl });
+            }
 
             // Clear all form fields
             setRecipeName('');

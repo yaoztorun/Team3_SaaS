@@ -16,7 +16,7 @@ import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
 import { TopBar } from '@/src/screens/navigation/TopBar';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from './ProfileStack';
 import { spacing } from '@/src/theme/spacing';
@@ -88,6 +88,7 @@ const formatTimeAgo = (isoDate: string) => {
 export const ProfileScreen = () => {
   const navigation =
     useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
+  const route = useRoute<any>();
   const [currentView, setCurrentView] = useState<View>('logged-drinks');
   const [isOwnRecipes, setIsOwnRecipes] = useState(false);
   const { user } = useAuth();
@@ -104,6 +105,7 @@ export const ProfileScreen = () => {
   const [loadingDrinks, setLoadingDrinks] = useState(false);
   const [drinksError, setDrinksError] = useState<string | null>(null);
   const [gridTab, setGridTab] = useState<'feed' | 'private' | 'liked'>('feed');
+  // removed red-dot indicator state
 
   // stats state
   const [userStats, setUserStats] = useState<UserStats | null>(null);
@@ -365,6 +367,11 @@ export const ProfileScreen = () => {
       loadStats();
       loadBadges();
       loadTopBarStats();
+      // If navigated with intent to show private/recipes, switch tab and clear recent badge
+      try {
+        const desiredTab = route?.params?.initialGridTab as ('feed' | 'private' | 'liked') | undefined;
+        if (desiredTab) setGridTab(desiredTab);
+      } catch { }
     }, [user?.id, isOwnRecipes])
   );
 
@@ -376,7 +383,7 @@ export const ProfileScreen = () => {
   }, [gridTab, publicLogs, privateLogs, createdRecipes, likedItems]);
 
   // ---------- Post modal helpers ----------
-  
+
   const loadComments = async (postId: string) => {
     setCommentsLoading(true);
     const rows = await getCommentsForLog(postId);
@@ -423,9 +430,9 @@ export const ProfileScreen = () => {
       // Get likes, comments, tags
       const likesMap = await getLikesForLogs([drink.id], user.id);
       const tagsMap = await getTagsForLogs([drink.id]);
-      const likes = { 
-        count: likesMap.counts.get(drink.id) || 0, 
-        isLiked: likesMap.likedByMe.has(drink.id) 
+      const likes = {
+        count: likesMap.counts.get(drink.id) || 0,
+        isLiked: likesMap.likedByMe.has(drink.id)
       };
       const taggedFriends = tagsMap.get(drink.id) || [];
 
@@ -437,7 +444,7 @@ export const ProfileScreen = () => {
 
       const cocktailData = log.Cocktail as any;
       const profileData = log.Profile as any;
-      
+
       const imageUrl = log.image_url || cocktailData?.image_url || '';
       const userName = profileData?.full_name || 'Unknown User';
       const userInitials = userName
@@ -494,7 +501,7 @@ export const ProfileScreen = () => {
       console.warn(res.error);
     } else {
       await loadComments(selectedPostId);
-      
+
       // Update comment count in focused post
       if (focusedPost) {
         setFocusedPost({
@@ -532,21 +539,21 @@ export const ProfileScreen = () => {
 
   const handlePressCocktail = async (cocktailId: string) => {
     if (!cocktailId) return;
-    
+
     const cocktail = await fetchCocktailById(cocktailId);
-    
+
     if (!cocktail) {
       console.log('Cocktail not found or not accessible');
       return;
     }
-    
+
     // Close modal first
     closePostModal();
-    
+
     // Navigate to CocktailDetail in the Explore stack
     const rootNav = navigation.getParent() as any;
     if (rootNav) {
-      rootNav.navigate('Explore', { 
+      rootNav.navigate('Explore', {
         screen: 'CocktailDetail',
         params: { cocktail }
       });
@@ -575,76 +582,76 @@ export const ProfileScreen = () => {
       >
         {/* User Profile Card */}
         <Box className="mb-4 p-6 bg-white rounded-2xl">
-        <HStack className="mb-4">
-          {profile?.avatar_url ? (
-            <Box className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
-              <Image
-                source={{ uri: profile.avatar_url }}
-                style={{ width: 80, height: 80 }}
-                resizeMode="cover"
-              />
+          <HStack className="mb-4">
+            {profile?.avatar_url ? (
+              <Box className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
+                <Image
+                  source={{ uri: profile.avatar_url }}
+                  style={{ width: 80, height: 80 }}
+                  resizeMode="cover"
+                />
+              </Box>
+            ) : (
+              <Center className="h-20 w-20 rounded-full bg-teal-500">
+                <Text className="text-2xl text-white">
+                  {profile?.full_name?.charAt(0)?.toUpperCase() ||
+                    user?.email?.charAt(0)?.toUpperCase() ||
+                    '?'}
+                </Text>
+              </Center>
+            )}
+            <Box className="ml-4 flex-1">
+              <Heading level="h4">
+                {loadingProfile
+                  ? 'Loading...'
+                  : profile?.full_name ||
+                  user?.email?.split('@')[0] ||
+                  'User'}
+              </Heading>
+              {/* Badges */}
+              <Box className="mt-2">
+                {loadingBadges ? (
+                  <Text className="text-xs text-neutral-500">Loading badges...</Text>
+                ) : badges.length > 0 ? (
+                  <HStack className="flex-wrap gap-2">
+                    {badges.slice(0, 6).map((badge) => (
+                      <Pressable
+                        key={badge.type}
+                        onPress={() => setSelectedBadge(badge)}
+                        className="items-center"
+                        style={{ width: 42 }}
+                      >
+                        <Image
+                          source={{ uri: badge.imageUrl }}
+                          style={{ width: 40, height: 40 }}
+                          resizeMode="contain"
+                        />
+                      </Pressable>
+                    ))}
+                  </HStack>
+                ) : (
+                  <Text className="text-xs text-neutral-500">No badges earned yet</Text>
+                )}
+              </Box>
             </Box>
-          ) : (
-            <Center className="h-20 w-20 rounded-full bg-teal-500">
-              <Text className="text-2xl text-white">
-                {profile?.full_name?.charAt(0)?.toUpperCase() ||
-                  user?.email?.charAt(0)?.toUpperCase() ||
-                  '?'}
-              </Text>
-            </Center>
-          )}
-          <Box className="ml-4 flex-1">
-            <Heading level="h4">
-              {loadingProfile
-                ? 'Loading...'
-                : profile?.full_name ||
-                user?.email?.split('@')[0] ||
-                'User'}
-            </Heading>            
-            {/* Badges */}
-            <Box className="mt-2">
-              {loadingBadges ? (
-                <Text className="text-xs text-neutral-500">Loading badges...</Text>
-              ) : badges.length > 0 ? (
-                <HStack className="flex-wrap gap-2">
-                  {badges.slice(0, 6).map((badge) => (
-                    <Pressable
-                      key={badge.type}
-                      onPress={() => setSelectedBadge(badge)}
-                      className="items-center"
-                      style={{ width: 42 }}
-                    >
-                      <Image
-                        source={{ uri: badge.imageUrl }}
-                        style={{ width: 40, height: 40 }}
-                        resizeMode="contain"
-                      />
-                    </Pressable>
-                  ))}
-                </HStack>
-              ) : (
-                <Text className="text-xs text-neutral-500">No badges earned yet</Text>
-              )}
-            </Box>
-          </Box>
-        </HStack>
-        <Pressable
-          onPress={() => navigation.navigate('EditProfile')}
-          className="flex-row justify-center items-center py-2 rounded-lg bg-teal-500"
-        >
-          <Text className="text-sm text-white font-medium">Edit Profile</Text>
-        </Pressable>
-      </Box>
+          </HStack>
+          <Pressable
+            onPress={() => navigation.navigate('EditProfile')}
+            className="flex-row justify-center items-center py-2 rounded-lg bg-teal-500"
+          >
+            <Text className="text-sm text-white font-medium">Edit Profile</Text>
+          </Pressable>
+        </Box>
 
-      {/* View Toggle */}
-      <Box className="mb-4 bg-white rounded-2xl p-1">
-        <ToggleSwitch
-          value={currentView === 'logged-drinks' ? 'left' : 'right'}
-          onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'logged-drinks' : 'stats')}
-          leftLabel="Drinks"
-          rightLabel="Stats"
-        />
-      </Box>
+        {/* View Toggle */}
+        <Box className="mb-4 bg-white rounded-2xl p-1">
+          <ToggleSwitch
+            value={currentView === 'logged-drinks' ? 'left' : 'right'}
+            onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'logged-drinks' : 'stats')}
+            leftLabel="Drinks"
+            rightLabel="Stats"
+          />
+        </Box>
 
         {currentView === 'logged-drinks' ? (
           <>
@@ -910,7 +917,7 @@ export const ProfileScreen = () => {
               </Box>
 
               {/* Content */}
-              <ScrollView 
+              <ScrollView
                 style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
               >
@@ -919,9 +926,9 @@ export const ProfileScreen = () => {
                     <FeedPostCard
                       {...focusedPost}
                       onToggleLike={() => handleToggleLike(focusedPost.id)}
-                      onPressComments={() => {}}
+                      onPressComments={() => { }}
                       onPressCocktail={() => handlePressCocktail(focusedPost.cocktailId)}
-                      onPressUser={() => {}}
+                      onPressUser={() => { }}
                     />
                   </Box>
                 )}
