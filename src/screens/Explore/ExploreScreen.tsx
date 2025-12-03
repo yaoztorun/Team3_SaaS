@@ -113,8 +113,16 @@ export const ExploreScreen = () => {
         const loadPublicEvents = async () => {
             setLoadingEvents(true);
             const events = await fetchPublicEventsWithDetails();
+            
+            // Filter out past events
+            const now = new Date();
+            const upcomingEvents = events.filter(event => {
+                const eventDate = event.start_time ? new Date(event.start_time) : null;
+                return !eventDate || eventDate >= now;
+            });
+            
             // Show first 5 for preview
-            setPublicEvents(events.slice(0, 5));
+            setPublicEvents(upcomingEvents.slice(0, 5));
             setLoadingEvents(false);
         };
         loadPublicEvents();

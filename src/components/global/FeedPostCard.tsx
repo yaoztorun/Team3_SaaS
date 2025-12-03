@@ -14,6 +14,7 @@ interface FeedPostCardProps {
   cocktailId: string;
   userName: string;
   userInitials: string;
+  userId?: string;
   timeAgo: string;
   cocktailName: string;
   rating: number;
@@ -23,6 +24,7 @@ interface FeedPostCardProps {
   caption: string;
   isLiked?: boolean;
   taggedFriends?: TaggedUser[];
+  avatarUrl?: string;
 
   // highlight glow
   isHighlighted?: boolean;
@@ -40,6 +42,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   cocktailId,
   userName,
   userInitials,
+  userId: postUserId,
   timeAgo,
   cocktailName,
   rating,
@@ -49,6 +52,7 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   caption,
   isLiked = false,
   taggedFriends = [],
+  avatarUrl,
   isHighlighted = false,
   onToggleLike,
   onPressComments,
@@ -136,9 +140,19 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         className="flex-row items-center px-4 pt-4 pb-3"
         onPress={onPressUser}
       >
-        <Box className="w-10 h-10 rounded-full bg-[#009689] items-center justify-center mr-3">
-          <Text className="text-white font-medium">{userInitials}</Text>
-        </Box>
+        {avatarUrl ? (
+          <Box className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 mr-3">
+            <Image
+              source={{ uri: avatarUrl }}
+              style={{ width: 40, height: 40 }}
+              resizeMode="cover"
+            />
+          </Box>
+        ) : (
+          <Box className="w-10 h-10 rounded-full bg-[#009689] items-center justify-center mr-3">
+            <Text className="text-white font-medium">{userInitials}</Text>
+          </Box>
+        )}
         <Box className="flex-1">
           <Text className="text-base font-medium text-neutral-900">
             {userName}

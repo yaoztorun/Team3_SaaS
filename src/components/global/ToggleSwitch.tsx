@@ -20,25 +20,26 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
     rightLabel 
 }) => {
     return (
-        <Box className="rounded-lg">
-            <HStack>
-                <Pressable 
-                    className={`flex-1 py-2 px-4 rounded-xl justify-center ${value === 'left' ? 'bg-teal-500' : 'border border-gray-300'}`}
-                    onPress={() => onChange('left')}
-                >
-                    <Text className={`text-center text-sm font-medium ${value === 'left' ? 'text-white' : 'text-neutral-900'}`}>
-                        {leftLabel}
-                    </Text>
-                </Pressable>
-                <Pressable 
-                    className={`flex-1 py-2 px-4 rounded-xl justify-center ${value === 'right' ? 'bg-teal-500' : 'border border-gray-300'}`}
-                    onPress={() => onChange('right')}
-                >
-                    <Text className={`text-center text-sm font-medium ${value === 'right' ? 'text-white' : 'text-neutral-900'}`}>
-                        {rightLabel}
-                    </Text>
-                </Pressable>
-            </HStack>
+        <Box 
+            className="rounded-xl border border-gray-300 bg-white overflow-hidden"
+            style={{ flexDirection: 'row' }}
+        >
+            <Pressable 
+                className={`flex-1 py-2 px-4 justify-center ${value === 'left' ? 'bg-teal-500' : ''}`}
+                onPress={() => onChange('left')}
+            >
+                <Text className={`text-center text-sm font-medium ${value === 'left' ? 'text-white' : 'text-neutral-900'}`}>
+                    {leftLabel}
+                </Text>
+            </Pressable>
+            <Pressable 
+                className={`flex-1 py-2 px-4 justify-center ${value === 'right' ? 'bg-teal-500' : ''}`}
+                onPress={() => onChange('right')}
+            >
+                <Text className={`text-center text-sm font-medium ${value === 'right' ? 'text-white' : 'text-neutral-900'}`}>
+                    {rightLabel}
+                </Text>
+            </Pressable>
         </Box>
     );
 };

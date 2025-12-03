@@ -4,10 +4,11 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { ScrollView, TextInput, KeyboardAvoidingView, Platform, View, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Send, ChevronLeft, Bot } from 'lucide-react-native';
+import { Send, Bot } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { useNavigation } from '@react-navigation/native';
 import { sendGeminiMessage, ChatMessage, createInitialChatHistory } from '@/src/api/gemini';
+import { TopBar } from '../../navigation/TopBar';
 
 // Example suggested questions that appear below the welcome message
 const suggestedQuestions = [
@@ -140,19 +141,8 @@ export const AIAssistant = () => {
 
     return (
         <Box className="flex-1 bg-gray-50">
-            {/* Custom Header */}
-            <Box className="bg-white border-b border-gray-200 px-4 py-4 flex-row items-center">
-                <Pressable onPress={() => navigation.goBack()} className="mr-4">
-                    <ChevronLeft size={24} color="#000" />
-                </Pressable>
-                <Box className="w-9 h-9 rounded-full bg-gray-100 items-center justify-center mr-3">
-                    <Bot size={20} color="#009689" />
-                </Box>
-                <Box className="flex-1">
-                    <Text className="text-lg font-medium text-neutral-900">AI Assistant</Text>
-                    <Text className="text-xs text-[#6a7282]">Always here to help</Text>
-                </Box>
-            </Box>
+            {/* Standard TopBar */}
+            <TopBar title="AI Assistant" showBack />
 
             <KeyboardAvoidingView 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

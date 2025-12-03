@@ -452,6 +452,7 @@ export const ProfileScreen = () => {
         userName,
         userInitials,
         userId: log.user_id,
+        avatarUrl: profileData?.avatar_url || null,
         timeAgo: formatTimeAgo(log.created_at),
         cocktailName: cocktailData?.name || 'Unknown Cocktail',
         rating: log.rating ?? 0,
@@ -640,7 +641,7 @@ export const ProfileScreen = () => {
         <ToggleSwitch
           value={currentView === 'logged-drinks' ? 'left' : 'right'}
           onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'logged-drinks' : 'stats')}
-          leftLabel="Logged Drinks"
+          leftLabel="Drinks"
           rightLabel="Stats"
         />
       </Box>
@@ -937,23 +938,41 @@ export const ProfileScreen = () => {
                 ) : commentsForPost.length === 0 ? (
                   <Text className="text-sm text-gray-400">No comments yet</Text>
                 ) : (
-                  commentsForPost.map((comment: CommentRow) => (
-                    <Box key={comment.id} className="mb-4 bg-white">
-                      <Box className="flex-row items-start">
-                        <Box className="flex-1">
-                          <Text className="text-sm font-semibold text-neutral-900">
-                            {comment.Profile?.full_name || 'User'}
-                          </Text>
-                          <Text className="text-sm text-neutral-700 mt-1">
-                            {comment.content}
-                          </Text>
-                          <Text className="text-xs text-neutral-400 mt-1">
-                            {formatTimeAgo(comment.created_at)}
-                          </Text>
+                  commentsForPost.map((comment: CommentRow) => {
+                    const userName = comment.Profile?.full_name || 'User';
+                    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    const avatarUrl = comment.Profile?.avatar_url ?? null;
+                    return (
+                      <Box key={comment.id} className="mb-4 bg-white">
+                        <Box className="flex-row items-start">
+                          {avatarUrl ? (
+                            <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
+                              <Image
+                                source={{ uri: avatarUrl }}
+                                style={{ width: 32, height: 32 }}
+                                resizeMode="cover"
+                              />
+                            </Box>
+                          ) : (
+                            <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
+                              <Text className="text-white text-xs font-medium">{initials}</Text>
+                            </Box>
+                          )}
+                          <Box className="flex-1">
+                            <Text className="text-sm font-semibold text-neutral-900">
+                              {userName}
+                            </Text>
+                            <Text className="text-sm text-neutral-700 mt-1">
+                              {comment.content}
+                            </Text>
+                            <Text className="text-xs text-neutral-400 mt-1">
+                              {formatTimeAgo(comment.created_at)}
+                            </Text>
+                          </Box>
                         </Box>
                       </Box>
-                    </Box>
-                  ))
+                    );
+                  })
                 )}
               </ScrollView>
 
