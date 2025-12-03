@@ -225,7 +225,8 @@ export const AddScreen = () => {
             setHasLogInteracted(false);
 
             // Show confirmation modal
-            setModalMessage('Drink logged successfully');
+            setModalMessage('Drink posted successfully');
+            setModalActions('default');
             setModalVisible(true);
 
             // user will dismiss the modal manually
@@ -269,8 +270,10 @@ export const AddScreen = () => {
         setModalVisible(false);
         if (modalActions === 'post-or-home') {
             // Keep user on Add screen with log view prefilled
+            setModalActions('default');
             return;
         }
+        // Default action: navigate to Home (used after drink post)
         navigation.navigate('Home' as never);
     };
 
@@ -368,7 +371,7 @@ export const AddScreen = () => {
                                 </Text>
                                 <Box className="flex-row gap-3">
                                     <Pressable className="flex-1 rounded-xl" style={{ backgroundColor: colors.primary[500], paddingVertical: 12 }} onPress={handleModalConfirm}>
-                                        <Text className="text-white text-center">Log It</Text>
+                                        <Text className="text-white text-center">Post It</Text>
                                     </Pressable>
                                     <Pressable className="flex-1 rounded-xl" style={{ borderWidth: 1, borderColor: colors.primary[500], paddingVertical: 12, backgroundColor: '#fff' }} onPress={() => { setModalVisible(false); navigation.navigate('Home' as never); }}>
                                         <Text className="text-center" style={{ color: colors.primary[500] }}>Go Home</Text>
@@ -378,7 +381,7 @@ export const AddScreen = () => {
                         ) : (
                             <>
                                 <Text className="text-neutral-600 mb-6 text-center">
-                                    {activeView === 'log' ? 'Your drink has been logged.' : 'Your recipe has been created.'}
+                                    Your drink has been posted.
                                 </Text>
                                 <PrimaryButton title="OK" onPress={handleModalConfirm} />
                             </>
