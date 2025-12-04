@@ -1061,14 +1061,14 @@ export const HomeScreen: React.FC = () => {
             {user && feedFilter === 'friends' && (
               <Box className="flex-col items-center gap-3 w-full px-8">
                 <Pressable
-                  className="bg-[#009689] px-6 py-3 rounded-full w-full flex-row items-center justify-center gap-2"
+                  className="bg-[#009689] px-6 py-3 rounded-lg w-full flex-row items-center justify-center gap-2"
                   onPress={() => setFeedFilter('for-you')}
                 >
                   <Sparkles size={18} color="#fff" />
                   <Text className="text-white font-medium text-center">Explore the community</Text>
                 </Pressable>
                 <Pressable
-                  className="border-2 border-[#009689] px-6 py-3 rounded-full w-full flex-row items-center justify-center gap-2"
+                  className="border-2 border-[#009689] px-6 py-3 rounded-lg w-full flex-row items-center justify-center gap-2"
                   onPress={() => navigation.navigate('Social')}
                 >
                   <Search size={18} color="#009689" />

@@ -7,13 +7,13 @@ import { Text } from '@/src/components/ui/text';
 import { Button } from '@/src/components/ui/button';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
-import { ChevronDown, User } from 'lucide-react-native';
+import { ChevronDown, User, PartyPopper, Sparkles, Calendar } from 'lucide-react-native';
 import { SocialStackParamList } from './SocialStack';
 import { fetchAllVisibleEvents, registerForEvent, cancelEventRegistration, getUserEventRegistration, type EventWithDetails } from '@/src/api/event';
 import { Heading } from '@/src/components/global';
 
 export const PartiesView = () => {
-    const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
+    const navigation = useNavigation<any>();
     const [registrationStatus, setRegistrationStatus] = useState<Record<string, 'registered' | 'cancelled' | 'waitlisted' | null>>({});
     const [processingEvents, setProcessingEvents] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
@@ -33,7 +33,7 @@ export const PartiesView = () => {
 
         // Filter out past events
         const now = new Date();
-        const filterUpcoming = (events: EventWithDetails[]) => 
+        const filterUpcoming = (events: EventWithDetails[]) =>
             events.filter(event => {
                 const eventDate = event.start_time ? new Date(event.start_time) : null;
                 return !eventDate || eventDate >= now;
@@ -209,8 +209,8 @@ export const PartiesView = () => {
                         ) : (
                             <TouchableOpacity
                                 className={`px-3 py-1.5 rounded-lg border-2 ${registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
-                                        ? 'bg-[#00a294] border-[#00a294]'
-                                        : 'bg-white border-[#00a294]'
+                                    ? 'bg-[#00a294] border-[#00a294]'
+                                    : 'bg-white border-[#00a294]'
                                     }`}
                                 onPress={(e) => {
                                     e.stopPropagation();
@@ -220,8 +220,8 @@ export const PartiesView = () => {
                                 activeOpacity={0.8}
                             >
                                 <Text className={`text-sm font-medium ${registrationStatus[event.id] === 'registered' || registrationStatus[event.id] === 'waitlisted'
-                                        ? 'text-white'
-                                        : 'text-[#00a294]'
+                                    ? 'text-white'
+                                    : 'text-[#00a294]'
                                     }`}>
                                     {processingEvents.has(event.id)
                                         ? 'Processing...'
@@ -310,11 +310,32 @@ export const PartiesView = () => {
                         {/* Empty State */}
                         {myEvents.length === 0 && friendsEvents.length === 0 && (
                             <Box className="py-12 items-center">
-                                <Text className="text-6xl mb-4">🎉</Text>
+                                <Box className="mb-4 bg-teal-50 rounded-full p-4">
+                                    <PartyPopper size={48} color="#009689" strokeWidth={1.5} />
+                                </Box>
                                 <Heading level="h3" className="mb-2">No parties yet</Heading>
-                                <Text className="text-sm text-gray-500 text-center px-8">
-                                    Create your first party or wait for your friends to organize one!
+                                <Text className="text-sm text-gray-500 text-center px-8 mb-6">
+                                    Host your first party or explore public events happening in your area!
                                 </Text>
+                                <Box className="flex-col items-center gap-3 w-full px-8">
+                                    <Pressable
+                                        className="bg-[#009689] py-3 px-6 rounded-lg w-full max-w-sm flex-row items-center justify-center gap-2"
+                                        onPress={() => navigation.navigate('CreateParty')}
+                                    >
+                                        <Sparkles size={18} color="#fff" />
+                                        <Text className="text-white font-medium">Host your first party</Text>
+                                    </Pressable>
+                                    <Pressable
+                                        className="border-2 border-[#009689] py-3 px-6 rounded-lg w-full max-w-sm flex-row items-center justify-center gap-2"
+                                        onPress={() => navigation.navigate('Explore' as never, {
+                                            screen: 'UpcomingEvents',
+                                            params: {}
+                                        } as never)}
+                                    >
+                                        <Calendar size={18} color="#009689" />
+                                        <Text className="text-[#009689] font-medium">Explore public events</Text>
+                                    </Pressable>
+                                </Box>
                             </Box>
                         )}
                     </>
