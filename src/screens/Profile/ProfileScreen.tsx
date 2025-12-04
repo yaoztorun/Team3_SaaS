@@ -10,10 +10,10 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ProfileStackParamList } from './ProfileStack';
 import { spacing } from '@/src/theme/spacing';
 import { useAuth } from '@/src/hooks/useAuth';
+import { useUserStats } from '@/src/hooks/useUserStats';
 import { fetchProfile } from '@/src/api/profile';
 import type { Profile } from '@/src/types/profile';
 import { supabase } from '@/src/lib/supabase';
-import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { calculateStreakFromDates } from '@/src/utils/streak';
 import { fetchCocktailById } from '@/src/api/cocktail';
 import { getCommentsForLog, addComment, type CommentRow } from '@/src/api/comments';
@@ -71,9 +71,8 @@ export const ProfileScreen = () => {
   const [gridTab, setGridTab] = useState<'posts' | 'recipes' | 'likes'>('posts');
   // removed red-dot indicator state
 
-  // stats state
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [loadingStats, setLoadingStats] = useState(false);
+  // stats state - using centralized hook
+  const { userStats, loadingStats, avgRatingOutOf5, ratingTrendCounts5, refreshStats } = useUserStats(user?.id);
 
   // badges state
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -92,40 +91,12 @@ export const ProfileScreen = () => {
   const [streakCount, setStreakCount] = useState(0);
   const [totalDrinks, setTotalDrinks] = useState(0);
 
-  // Derived stats display (0-5 scale)
-  const avgRatingOutOf5 = useMemo(() => {
-    const raw = userStats?.avgRating ?? 0;
-    return Math.round(raw);
-  }, [userStats?.avgRating]);
-
-  const ratingTrendCounts5 = useMemo(() => {
-    const arr = userStats?.ratingTrend?.map((it: any) => it.count) ?? [];
-    // Ratings are already on 0-5 scale, map them directly
-    return [
-      arr[0] ?? 0,  // 0 stars
-      arr[1] ?? 0,  // 1 star
-      arr[2] ?? 0,  // 2 stars
-      arr[3] ?? 0,  // 3 stars
-      arr[4] ?? 0,  // 4 stars
-      arr[5] ?? 0,  // 5 stars
-    ];
-  }, [userStats?.ratingTrend]);
-
   const loadProfile = async () => {
     if (user?.id) {
       setLoadingProfile(true);
       const profileData = await fetchProfile(user.id);
       setProfile(profileData);
       setLoadingProfile(false);
-    }
-  };
-
-  const loadStats = async () => {
-    if (user?.id) {
-      setLoadingStats(true);
-      const stats = await fetchUserStats(user.id);
-      setUserStats(stats);
-      setLoadingStats(false);
     }
   };
 
@@ -308,7 +279,7 @@ export const ProfileScreen = () => {
     React.useCallback(() => {
       loadProfile();
       loadRecentDrinks();
-      loadStats();
+      refreshStats();
       loadBadges();
       loadTopBarStats();
       // If navigated with intent to show private/recipes, switch tab and clear recent badge
@@ -654,6 +625,7 @@ export const ProfileScreen = () => {
               userStats={userStats}
               avgRatingOutOf5={avgRatingOutOf5}
               ratingTrendCounts5={ratingTrendCounts5}
+              loading={loadingStats}
             />
           </>
         )}
