@@ -1,18 +1,7 @@
 import React, { useMemo, useState } from 'react';
-import {
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Dimensions,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import { LineChart, PieChart } from 'react-native-chart-kit';
+import { ScrollView, ActivityIndicator } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
-import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
 import { TopBar } from '@/src/screens/navigation/TopBar';
@@ -28,44 +17,17 @@ import { fetchUserStats, UserStats } from '@/src/api/stats';
 import { fetchCocktailById } from '@/src/api/cocktail';
 import { getCommentsForLog, addComment, type CommentRow } from '@/src/api/comments';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
-import { getTagsForLogs, TaggedUser } from '@/src/api/tags';
-import { Heading, FeedPostCard, TextInputField, ToggleSwitch } from '@/src/components/global';
-import { Heart, Lock, LayoutGrid, ArrowLeft, Trash2 } from 'lucide-react-native';
+import { getTagsForLogs } from '@/src/api/tags';
+import { ToggleSwitch } from '@/src/components/global';
+import { Heart, Lock, LayoutGrid } from 'lucide-react-native';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
+import { GridGallery, type RecentDrink } from './components/GridGallery';
+import { ProfileHeader } from './components/ProfileHeader';
+import { ProfileStats } from './components/ProfileStats';
+import { PostModal } from './components/PostModal';
 
 type View = 'logged-drinks' | 'stats';
-
-// ---- types for recent drinks ----
-type DbDrinkLog = {
-  id: string;
-  created_at: string;
-  caption: string | null;
-  rating: number | null;
-  visibility: 'public' | 'friends' | 'private';
-  user_id: string;
-  Cocktail?: {
-    id: string;
-    name: string | null;
-    image_url?: string | null;
-    creator_id?: string | null;
-  } | null;
-  image_url?: string | null;
-};
-
-type RecentDrink = {
-  id: string;
-  name: string;
-  subtitle: string; // caption / location
-  rating: number;
-  time: string;
-  createdAt: string; // ISO timestamp for sorting
-  creatorId: string | null;
-  imageUrl: string;
-  type: 'log' | 'recipe';
-  visibility?: 'public' | 'friends' | 'private';
-  cocktailId?: string | null;
-};
 
 // ---- helper ----
 const formatTimeAgo = (isoDate: string) => {
@@ -594,67 +556,15 @@ export const ProfileScreen = () => {
         }}
       >
         {/* User Profile Card */}
-        <Box className="mb-4 p-6 bg-white rounded-2xl">
-          <HStack className="mb-4">
-            {profile?.avatar_url ? (
-              <Box className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
-                <Image
-                  source={{ uri: profile.avatar_url }}
-                  style={{ width: 80, height: 80 }}
-                  resizeMode="cover"
-                />
-              </Box>
-            ) : (
-              <Center className="h-20 w-20 rounded-full bg-teal-500">
-                <Text className="text-2xl text-white">
-                  {profile?.full_name?.charAt(0)?.toUpperCase() ||
-                    user?.email?.charAt(0)?.toUpperCase() ||
-                    '?'}
-                </Text>
-              </Center>
-            )}
-            <Box className="ml-4 flex-1">
-              <Heading level="h4">
-                {loadingProfile
-                  ? 'Loading...'
-                  : profile?.full_name ||
-                  user?.email?.split('@')[0] ||
-                  'User'}
-              </Heading>
-              {/* Badges */}
-              <Box className="mt-2">
-                {loadingBadges ? (
-                  <Text className="text-xs text-neutral-500">Loading badges...</Text>
-                ) : badges.length > 0 ? (
-                  <HStack className="flex-wrap gap-2">
-                    {badges.slice(0, 6).map((badge) => (
-                      <Pressable
-                        key={badge.type}
-                        onPress={() => setSelectedBadge(badge)}
-                        className="items-center"
-                        style={{ width: 42 }}
-                      >
-                        <Image
-                          source={{ uri: badge.imageUrl }}
-                          style={{ width: 40, height: 40 }}
-                          resizeMode="contain"
-                        />
-                      </Pressable>
-                    ))}
-                  </HStack>
-                ) : (
-                  <Text className="text-xs text-neutral-500">No badges earned yet</Text>
-                )}
-              </Box>
-            </Box>
-          </HStack>
-          <Pressable
-            onPress={() => navigation.navigate('EditProfile')}
-            className="flex-row justify-center items-center py-2 rounded-lg bg-teal-500"
-          >
-            <Text className="text-sm text-white font-medium">Edit Profile</Text>
-          </Pressable>
-        </Box>
+        <ProfileHeader
+          profile={profile}
+          loadingProfile={loadingProfile}
+          userEmail={user?.email}
+          badges={badges}
+          loadingBadges={loadingBadges}
+          onBadgePress={(badge) => setSelectedBadge(badge)}
+          onEditProfile={() => navigation.navigate('EditProfile')}
+        />
 
         {/* View Toggle */}
         <Box className="mb-4 bg-white rounded-2xl p-1">
@@ -729,172 +639,11 @@ export const ProfileScreen = () => {
         ) : (
           <>
             {/* Stats View */}
-            <Box className="bg-white rounded-2xl p-4 mb-4">
-              <Text className="text-base text-neutral-900 mb-4">
-                Your Stats
-              </Text>
-              <HStack className="justify-between">
-                <Box className="items-center">
-                  <Text className="text-3xl text-teal-500 font-semibold">
-                    {userStats?.drinksLogged || 0}
-                  </Text>
-                  <Text className="text-xs text-neutral-500">
-                    Drinks Logged
-                  </Text>
-                </Box>
-                <Box className="items-center">
-                  <Text className="text-3xl text-red-500 font-semibold">
-                    {avgRatingOutOf5}
-                  </Text>
-                  <Text className="text-xs text-neutral-500">
-                    Avg Rating
-                  </Text>
-                </Box>
-                <Box className="items-center">
-                  <Text className="text-3xl text-blue-500 font-semibold">
-                    {userStats?.barsVisited || 0}
-                  </Text>
-                  <Text className="text-xs text-neutral-500">
-                    Bars Visited
-                  </Text>
-                </Box>
-              </HStack>
-            </Box>
-
-            {/* Top Cocktails */}
-            {userStats?.topCocktails && userStats.topCocktails.length > 0 && (
-              <Box className="bg-white rounded-2xl p-4 mb-4">
-                <Text className="text-base text-neutral-900 mb-3">
-                  Top 3 Most Popular
-                </Text>
-                {userStats.topCocktails.map((cocktail, index) => (
-                  <Box
-                    key={index}
-                    className="flex-row items-center justify-between py-3 border-b border-neutral-100 last:border-b-0"
-                  >
-                    <HStack className="items-center flex-1">
-                      <Box className="w-8 h-8 rounded-full bg-teal-500 items-center justify-center mr-3">
-                        <Text className="text-white font-semibold">
-                          {index + 1}
-                        </Text>
-                      </Box>
-                      <Text className="text-sm text-neutral-900 flex-1" numberOfLines={1}>
-                        {cocktail.name}
-                      </Text>
-                    </HStack>
-                    <Box className="bg-teal-50 px-3 py-1 rounded-full ml-2">
-                      <Text className="text-sm text-teal-600 font-medium">
-                        {cocktail.count}x
-                      </Text>
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            )}
-
-            {/* Rating Trend */}
-            <Box className="bg-white rounded-2xl p-4 mb-4">
-              <Text className="text-base text-neutral-900 mb-4">
-                Rating Trend
-              </Text>
-              {userStats?.ratingTrend && userStats.ratingTrend.some(item => item.count > 0) ? (
-                <Box className="items-center justify-center -ml-8">
-                  <LineChart
-                    data={{
-                      labels: ['0', '1', '2', '3', '4', '5'],
-                      datasets: [{
-                        data: ratingTrendCounts5,
-                      }],
-                    }}
-                    width={360}
-                    height={220}
-                    yAxisLabel=""
-                    yAxisSuffix=""
-                    chartConfig={{
-                      backgroundColor: '#ffffff',
-                      backgroundGradientFrom: '#ffffff',
-                      backgroundGradientTo: '#ffffff',
-                      decimalPlaces: 0,
-                      color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                      propsForDots: {
-                        r: '3',
-                        strokeWidth: '2',
-                        stroke: '#60A5FA',
-                      },
-                    }}
-                    bezier
-                    style={{
-                      marginVertical: 8,
-                      borderRadius: 16,
-                      marginLeft: -40,
-                    }}
-                    withDots={true}
-                    withInnerLines={false}
-                    withOuterLines={false}
-                    withVerticalLines={false}
-                    withHorizontalLines={false}
-                    withShadow={false}
-                    segments={4}
-                  />
-                </Box>
-              ) : (
-                <Box className="h-48 items-center justify-center">
-                  <Text className="text-gray-400">No rating data yet</Text>
-                </Box>
-              )}
-            </Box>
-
-            {/* Cocktail Breakdown */}
-            <Box className="bg-white rounded-2xl p-4">
-              <Heading level="h3" className="mb-4">
-                Cocktail Breakdown
-              </Heading>
-              {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 ? (
-                <>
-                  <Box className="items-center justify-center mb-4">
-                    <PieChart
-                      data={userStats.cocktailBreakdown.map(item => ({
-                        name: item.name,
-                        population: item.count,
-                        color: item.color,
-                        legendFontColor: '#374151',
-                        legendFontSize: 12,
-                      }))}
-                      width={260}
-                      height={200}
-                      chartConfig={{
-                        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                      }}
-                      accessor="population"
-                      backgroundColor="transparent"
-                      paddingLeft="60"
-                      hasLegend={false}
-                    />
-                  </Box>
-                  <Box className="flex-row flex-wrap">
-                    {userStats.cocktailBreakdown.map((item, index) => (
-                      <Box
-                        key={index}
-                        className="w-1/2 flex-row items-center mb-2 pr-2"
-                      >
-                        <Box
-                          style={{ backgroundColor: item.color }}
-                          className="h-4 w-4 rounded-full mr-2"
-                        />
-                        <Text className="text-sm text-neutral-900" numberOfLines={1}>
-                          {item.name} ({item.count})
-                        </Text>
-                      </Box>
-                    ))}
-                  </Box>
-                </>
-              ) : (
-                <Box className="h-48 items-center justify-center">
-                  <Text className="text-gray-400">No cocktail data yet</Text>
-                </Box>
-              )}
-            </Box>
+            <ProfileStats
+              userStats={userStats}
+              avgRatingOutOf5={avgRatingOutOf5}
+              ratingTrendCounts5={ratingTrendCounts5}
+            />
           </>
         )}
       </ScrollView>
@@ -907,192 +656,20 @@ export const ProfileScreen = () => {
       />
 
       {/* Post Detail Modal */}
-      <Modal
+      <PostModal
         visible={showPostModal}
-        animationType="slide"
-        transparent={false}
-        onRequestClose={closePostModal}
-      >
-        <Box style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-          <KeyboardAvoidingView
-            style={{ flex: 1, maxWidth: 480, width: '100%', alignSelf: 'center', backgroundColor: '#fff' }}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          >
-            <Box className="flex-1 bg-white">
-              {/* Header */}
-              <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
-                <Pressable onPress={closePostModal} className="mr-3">
-                  <ArrowLeft size={24} color="#000" />
-                </Pressable>
-                <Text className="text-base font-semibold text-neutral-900">
-                  Post
-                </Text>
-              </Box>
-
-              {/* Content */}
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-              >
-                {focusedPost && (
-                  <Box className="mb-4">
-                    <FeedPostCard
-                      {...focusedPost}
-                      onToggleLike={() => handleToggleLike(focusedPost.id)}
-                      onPressComments={() => { }}
-                      onPressCocktail={() => handlePressCocktail(focusedPost.cocktailId)}
-                      onPressUser={() => { }}
-                    />
-                  </Box>
-                )}
-
-                {/* Comments Section */}
-                <Text className="text-sm font-semibold text-neutral-900 mb-2">
-                  Comments
-                </Text>
-
-                {commentsLoading ? (
-                  <Box className="py-3 items-center">
-                    <ActivityIndicator size="small" color="#00BBA7" />
-                  </Box>
-                ) : commentsForPost.length === 0 ? (
-                  <Text className="text-sm text-gray-400">No comments yet</Text>
-                ) : (
-                  commentsForPost.map((comment: CommentRow) => {
-                    const userName = comment.Profile?.full_name || 'User';
-                    const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                    const avatarUrl = comment.Profile?.avatar_url ?? null;
-                    return (
-                      <Box key={comment.id} className="mb-4 bg-white">
-                        <Box className="flex-row items-start">
-                          {avatarUrl ? (
-                            <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
-                              <Image
-                                source={{ uri: avatarUrl }}
-                                style={{ width: 32, height: 32 }}
-                                resizeMode="cover"
-                              />
-                            </Box>
-                          ) : (
-                            <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
-                              <Text className="text-white text-xs font-medium">{initials}</Text>
-                            </Box>
-                          )}
-                          <Box className="flex-1">
-                            <Text className="text-sm font-semibold text-neutral-900">
-                              {userName}
-                            </Text>
-                            <Text className="text-sm text-neutral-700 mt-1">
-                              {comment.content}
-                            </Text>
-                            <Text className="text-xs text-neutral-400 mt-1">
-                              {formatTimeAgo(comment.created_at)}
-                            </Text>
-                          </Box>
-                        </Box>
-                      </Box>
-                    );
-                  })
-                )}
-              </ScrollView>
-
-              {/* Comment Input */}
-              <Box className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-white border-t border-neutral-200">
-                <Box className="flex-row items-center">
-                  <Box className="flex-1 mr-2">
-                    <TextInputField
-                      value={newComment}
-                      onChangeText={setNewComment}
-                      placeholder="Add a comment..."
-                      multiline={false}
-                    />
-                  </Box>
-                  <Pressable
-                    onPress={handleSendComment}
-                    disabled={!newComment.trim() || sendingComment}
-                  >
-                    <Text className={newComment.trim() ? 'text-sm font-semibold text-teal-500' : 'text-sm font-semibold text-neutral-300'}>
-                      {sendingComment ? 'Sending...' : 'Post'}
-                    </Text>
-                  </Pressable>
-                </Box>
-              </Box>
-            </Box>
-          </KeyboardAvoidingView>
-        </Box>
-      </Modal>
-    </Box>
-  );
-};
-
-// Simple Instagram-like grid gallery for recent drinks
-const GridGallery = ({ items, onPress }: { items: RecentDrink[]; onPress: (item: RecentDrink) => void }) => {
-  const gap = 12; // spacing between cards
-
-  // Helper to format date like "Nov 28"
-  const formatDate = (isoDate: string) => {
-    const date = new Date(isoDate);
-    const month = date.toLocaleDateString('en-US', { month: 'short' });
-    const day = date.getDate();
-    return `${month} ${day}`;
-  };
-
-  // Helper to truncate title to fit on one line with ellipsis
-  const truncateTitle = (title: string, maxLength: number = 16): string => {
-    if (title.length <= maxLength) return title;
-    return title.substring(0, maxLength - 3) + '...';
-  };
-
-  return (
-    <Box>
-      <Box className="flex-row flex-wrap" style={{ marginRight: -gap }}>
-        {items.map((it, idx) => (
-          <Pressable
-            key={`${it.id}-${idx}`}
-            onPress={() => onPress(it)}
-            style={{ width: '33.333%', paddingRight: gap, paddingBottom: gap }}
-          >
-            {/* White card container with border */}
-            <Box
-              className="bg-white rounded-xl overflow-hidden"
-              style={{
-                borderWidth: 1,
-                borderColor: '#e5e7eb',
-              }}
-            >
-              {/* Image container with rounded corners */}
-              <Box style={{ padding: 8 }}>
-                {it.imageUrl ? (
-                  <Image
-                    source={{ uri: it.imageUrl }}
-                    style={{ width: '100%', aspectRatio: 1, borderRadius: 8 }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 8 }}>
-                    <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
-                  </Center>
-                )}
-              </Box>
-
-              {/* Gray divider line */}
-              <Box style={{ height: 1, backgroundColor: '#e5e7eb' }} />
-
-              {/* Text content area with fixed height for consistency */}
-              <Box style={{ paddingLeft: 8, paddingRight: 8, paddingTop: 8, paddingBottom: 10, height: 48 }}>
-                <Text
-                  className="text-xs font-medium text-neutral-900"
-                >
-                  {truncateTitle(it.name)}
-                </Text>
-                <Text className="text-[10px] text-neutral-400" style={{ marginTop: 3 }}>
-                  {formatDate(it.createdAt)}
-                </Text>
-              </Box>
-            </Box>
-          </Pressable>
-        ))}
-      </Box>
+        focusedPost={focusedPost}
+        commentsLoading={commentsLoading}
+        commentsForPost={commentsForPost}
+        newComment={newComment}
+        sendingComment={sendingComment}
+        onClose={closePostModal}
+        onToggleLike={() => handleToggleLike(focusedPost?.id || '')}
+        onPressCocktail={() => handlePressCocktail(focusedPost?.cocktailId || '')}
+        onCommentChange={setNewComment}
+        onSendComment={handleSendComment}
+        formatTimeAgo={formatTimeAgo}
+      />
     </Box>
   );
 };
