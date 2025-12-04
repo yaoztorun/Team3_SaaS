@@ -27,6 +27,7 @@ import {
   formatTimeAgo,
   type NotificationRow,
 } from '@/src/api/notifications';
+import { calculateStreakFromDates } from '@/src/utils/streak';
 
 interface TopBarProps {
   streakCount?: number;
@@ -68,34 +69,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [computedStreak, setComputedStreak] = useState<number | null>(null);
   const [computedDrinks, setComputedDrinks] = useState<number | null>(null);
 
-  // ---------- helpers ----------
-
-  const toDayString = (date: Date) => date.toISOString().slice(0, 10);
-
-  const computeStreakFromDates = (dates: string[]): number => {
-    if (dates.length === 0) return 0;
-
-    const daySet = new Set<string>(
-      dates.map((iso) => new Date(iso).toISOString().slice(0, 10)),
-    );
-
-    const today = new Date();
-    let current = new Date(today);
-    let streak = 0;
-
-    // Only count if user has logged *today*
-    if (!daySet.has(toDayString(today))) {
-      return 0;
-    }
-
-    while (daySet.has(toDayString(current))) {
-      streak += 1;
-      current.setDate(current.getDate() - 1);
-    }
-
-    return streak;
-  };
-
   // ---------- load stats from DrinkLog ----------
 
   useEffect(() => {
@@ -121,7 +94,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       }
 
       const dates = (data ?? []).map((row: any) => row.created_at as string);
-      const streak = computeStreakFromDates(dates);
+      const streak = calculateStreakFromDates(dates);
       setComputedStreak(streak);
       setComputedDrinks(count ?? 0);
     };

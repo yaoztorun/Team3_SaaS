@@ -14,6 +14,7 @@ import { fetchProfile } from '@/src/api/profile';
 import type { Profile } from '@/src/types/profile';
 import { supabase } from '@/src/lib/supabase';
 import { fetchUserStats, UserStats } from '@/src/api/stats';
+import { calculateStreakFromDates } from '@/src/utils/streak';
 import { fetchCocktailById } from '@/src/api/cocktail';
 import { getCommentsForLog, addComment, type CommentRow } from '@/src/api/comments';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
@@ -111,32 +112,6 @@ export const ProfileScreen = () => {
     ];
   }, [userStats?.ratingTrend]);
 
-  const computeStreakFromDates = (dates: string[]): number => {
-    if (dates.length === 0) return 0;
-
-    const daySet = new Set<string>(
-      dates.map((iso) => new Date(iso).toISOString().slice(0, 10)),
-    );
-
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
-
-    // Only count if user has logged today
-    if (!daySet.has(todayStr)) {
-      return 0;
-    }
-
-    let current = new Date(today);
-    let streak = 0;
-
-    while (daySet.has(current.toISOString().slice(0, 10))) {
-      streak += 1;
-      current.setDate(current.getDate() - 1);
-    }
-
-    return streak;
-  };
-
   const loadProfile = async () => {
     if (user?.id) {
       setLoadingProfile(true);
@@ -186,7 +161,7 @@ export const ProfileScreen = () => {
     }
 
     const dates = (data ?? []).map((row: any) => row.created_at as string);
-    const streak = computeStreakFromDates(dates);
+    const streak = calculateStreakFromDates(dates);
     setStreakCount(streak);
     setTotalDrinks(count ?? 0);
   };
