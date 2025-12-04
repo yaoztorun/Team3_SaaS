@@ -184,10 +184,13 @@ export const ExploreScreen = () => {
 
                 {/* AI Assistant Section */}
                 <Box className="px-4 mb-6">
-                    <Box className="flex-row items-center justify-between mb-3">
+                    <Pressable
+                        onPress={() => navigateToSection('AIAssistant')}
+                        className="flex-row items-center justify-between mb-3"
+                    >
                         <Heading level="h4">AI Assistant</Heading>
                         <ChevronRight size={20} color="#000" />
-                    </Box>
+                    </Pressable>
                     <Pressable
                         onPress={() => navigateToSection('AIAssistant')}
                         className="bg-white border-2 border-[#00bba7] rounded-2xl p-6"
