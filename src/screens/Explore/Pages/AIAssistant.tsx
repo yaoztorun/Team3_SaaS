@@ -142,7 +142,7 @@ export const AIAssistant = () => {
     return (
         <Box className="flex-1 bg-gray-50">
             {/* Standard TopBar */}
-            <TopBar title="AI Assistant" showBack />
+            <TopBar title="AI Assistant" showBack onBackPress={() => navigation.goBack()} />
 
             <KeyboardAvoidingView 
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

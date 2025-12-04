@@ -4,7 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
-import { ArrowLeft, Heart, Star, Clock, Info, Users, Minus, Plus } from 'lucide-react-native';
+import { ArrowLeft, Heart, Clock, Info, Users, Minus, Plus } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { DBCocktail } from '@/src/api/cocktail';
@@ -20,13 +20,6 @@ type CocktailDetailRouteProp = RouteProp<RootStackParamList, 'CocktailDetail'>;
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/400x300.png?text=Cocktail';
-
-// Dummy data for fields not in DB
-const getDummyData = (cocktailName: string) => ({
-    rating: 4.8,
-    reviewCount: 2847,
-    prepTime: '5 min',
-});
 
 export const CocktailDetail = () => {
     const navigation = useNavigation<NavigationProp>();
@@ -44,7 +37,6 @@ export const CocktailDetail = () => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [hasFetchedFromDB, setHasFetchedFromDB] = useState(false);
 
-    const dummyData = getDummyData(cocktail.name || '');
     const imageUri = cocktail.image_url ?? PLACEHOLDER_IMAGE;
 
     // Get difficulty from database, fallback to 'medium' if not set
@@ -82,6 +74,13 @@ export const CocktailDetail = () => {
 
     // Fetch the latest cocktail data from database to get updated fun_fact
     useEffect(() => {
+        // Skip fetching fun fact for user-created recipes
+        if (cocktail.origin_type === 'user') {
+            console.log('User-created recipe, skipping fun fact fetch');
+            setHasFetchedFromDB(true);
+            return;
+        }
+
         const fetchLatestCocktail = async () => {
             console.log('------------ DB FETCH START ------------');
             console.log(`Fetching cocktail: ${cocktail.name} (${cocktail.id})`);
@@ -120,6 +119,12 @@ export const CocktailDetail = () => {
 
     // Generate fun fact if not already in database
     useEffect(() => {
+        // Skip generation for user-created recipes
+        if (cocktail.origin_type === 'user') {
+            console.log('User-created recipe, skipping fun fact generation');
+            return;
+        }
+
         // Wait for DB fetch to complete before deciding to generate
         if (!hasFetchedFromDB) {
             console.log('Waiting for DB fetch...');
@@ -302,55 +307,41 @@ Rules:
                 <View style={{ height: 24 }} />
                 {/* Title and Metadata */}
                 <Box className="mb-6">
-                    <Heading level="h3" className="mb-3">
+                    {/* Title */}
+                    <Heading level="h3" className="mb-2">
                         {cocktail.name ?? 'Unnamed Cocktail'}
                     </Heading>
 
                     {/* Creator Info - Show if it's a user-created cocktail */}
                     {cocktail.origin_type === 'user' && (cocktail as any).Profile && (
-                        <Box className="mb-3">
-                            <HStack className="items-center gap-2">
-                                <Text className="text-sm text-neutral-600">Created by</Text>
-                                <Text className="text-sm font-semibold text-primary-500">
-                                    {((cocktail as any).Profile.full_name) || 'Unknown User'}
-                                </Text>
-                            </HStack>
-                        </Box>
-                    )}
-
-                    <HStack className="items-center gap-4">
-                        {/* Rating */}
-                        <HStack className="items-center gap-1">
-                            <Star size={20} color="#fbbf24" fill="#fbbf24" />
-                            <Text className="text-base font-semibold text-neutral-950">
-                                {dummyData.rating}
-                            </Text>
-                            <Text className="text-sm text-neutral-600">
-                                ({dummyData.reviewCount})
+                        <HStack className="items-center gap-2 mb-2">
+                            <Text className="text-sm text-neutral-600">Created by</Text>
+                            <Text className="text-sm font-semibold text-primary-500">
+                                {((cocktail as any).Profile.full_name) || 'Unknown User'}
                             </Text>
                         </HStack>
-                        {/* Difficulty Badge */}
-                        <View
-                            style={{
-                                backgroundColor: difficultyColors.bg,
-                                borderWidth: 1,
-                                borderColor: difficultyColors.border,
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                                borderRadius: 8,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 4,
-                            }}
-                        >
-                            <Clock size={12} color={difficultyColors.text} />
-                            <Text style={{ fontSize: 12, color: difficultyColors.text, fontWeight: '600' }}>
-                                {difficulty}
-                            </Text>
-                        </View>
-                        {/* Prep Time */}
-                        <Text className="text-sm text-neutral-600">{dummyData.prepTime}</Text>
-                    </HStack>
+                    )}
+                    
+                    {/* Difficulty Badge */}
+                    <View
+                        style={{
+                            backgroundColor: difficultyColors.bg,
+                            borderWidth: 1,
+                            borderColor: difficultyColors.border,
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 8,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4,
+                            alignSelf: 'flex-start',
+                        }}
+                    >
+                        <Clock size={12} color={difficultyColors.text} />
+                        <Text style={{ fontSize: 12, color: difficultyColors.text, fontWeight: '600' }}>
+                            {difficulty}
+                        </Text>
+                    </View>
                 </Box>
 
                 {/* Servings Control */}
