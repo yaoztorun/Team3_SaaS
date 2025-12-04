@@ -1,4 +1,5 @@
 import { supabase } from '@/src/lib/supabase';
+import { calculateStreakFromDates } from '@/src/utils/streak';
 
 export type BadgeType =
   | 'cocktails'
@@ -40,7 +41,7 @@ const BADGE_LABELS: Record<BadgeType, string> = {
   partiesHosted: 'Parties Hosted',
   partiesAttended: 'Parties Attended',
   recipes: 'Recipes Created',
-  streak: 'Day Streak',
+  streak: 'Week Streak',
 };
 
 /**
@@ -68,35 +69,6 @@ function getBadgeImageUrl(type: BadgeType, tier: BadgeTier): string {
     .getPublicUrl(fullFileName);
 
   return data.publicUrl;
-}
-
-/**
- * Calculate current streak from drink logs
- */
-function calculateStreak(drinkDates: string[]): number {
-  if (drinkDates.length === 0) return 0;
-
-  const daySet = new Set<string>(
-    drinkDates.map((iso) => new Date(iso).toISOString().slice(0, 10))
-  );
-
-  const today = new Date();
-  const todayStr = today.toISOString().slice(0, 10);
-
-  // Only count if user has logged today
-  if (!daySet.has(todayStr)) {
-    return 0;
-  }
-
-  let current = new Date(today);
-  let streak = 0;
-
-  while (daySet.has(current.toISOString().slice(0, 10))) {
-    streak += 1;
-    current.setDate(current.getDate() - 1);
-  }
-
-  return streak;
 }
 
 /**
@@ -150,7 +122,7 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
       .limit(365);
 
     const drinkDates = (drinkLogs || []).map(log => log.created_at);
-    const streakCount = calculateStreak(drinkDates);
+    const streakCount = calculateStreakFromDates(drinkDates);
 
     // Build badge array
     const badges: Badge[] = [
