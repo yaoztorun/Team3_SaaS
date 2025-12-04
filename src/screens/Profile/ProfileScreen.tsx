@@ -19,7 +19,7 @@ import { getCommentsForLog, addComment, type CommentRow } from '@/src/api/commen
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
 import { getTagsForLogs } from '@/src/api/tags';
 import { ToggleSwitch } from '@/src/components/global';
-import { Heart, Lock, LayoutGrid } from 'lucide-react-native';
+import { Heart, Wine, BookOpen } from 'lucide-react-native';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
 import { GridGallery, type RecentDrink } from './components/GridGallery';
@@ -67,7 +67,7 @@ export const ProfileScreen = () => {
   const [likedItems, setLikedItems] = useState<RecentDrink[]>([]);
   const [loadingDrinks, setLoadingDrinks] = useState(false);
   const [drinksError, setDrinksError] = useState<string | null>(null);
-  const [gridTab, setGridTab] = useState<'feed' | 'private' | 'liked'>('feed');
+  const [gridTab, setGridTab] = useState<'posts' | 'recipes' | 'likes'>('posts');
   // removed red-dot indicator state
 
   // stats state
@@ -245,11 +245,14 @@ export const ProfileScreen = () => {
         };
       });
 
-      // Split into public/friends vs private logs
-      const pub = mapped.filter(m => m.visibility !== 'private');
-      const priv = mapped.filter(m => m.visibility === 'private');
-      setPublicLogs(pub);
-      setPrivateLogs(priv);
+      // All user posts (public + friends + private) - chronologically ordered
+      const allPosts = mapped.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA; // newest first
+      });
+      setPublicLogs(allPosts);
+      setPrivateLogs([]);
 
       // Also fetch user-created recipes (even if not logged)
       const { data: myCocktails, error: myCocktailsError } = await supabase
@@ -292,7 +295,8 @@ export const ProfileScreen = () => {
           .select(`id, created_at, caption, rating, visibility, user_id, image_url,
                    Cocktail ( id, name, image_url, creator_id )`)
           .in('id', likedIds)
-          .in('visibility', ['public', 'friends']);
+          .in('visibility', ['public', 'friends'])
+          .neq('user_id', user.id);
         if (!likedLogsErr) {
           liked = (likedLogs ?? []).map((raw: any) => ({
             id: raw.id,
@@ -312,9 +316,9 @@ export const ProfileScreen = () => {
       setLikedItems(liked);
 
       // Initialize grid with current tab
-      if (gridTab === 'feed') setRecentDrinks(pub);
-      if (gridTab === 'private') setRecentDrinks([...priv, ...mappedRecipes]);
-      if (gridTab === 'liked') setRecentDrinks(liked);
+      if (gridTab === 'posts') setRecentDrinks(allPosts);
+      if (gridTab === 'recipes') setRecentDrinks(mappedRecipes);
+      if (gridTab === 'likes') setRecentDrinks(liked);
     } catch (err: any) {
       console.error('Error loading recent drinks:', err);
       setDrinksError(
@@ -335,7 +339,7 @@ export const ProfileScreen = () => {
       loadTopBarStats();
       // If navigated with intent to show private/recipes, switch tab and clear recent badge
       try {
-        const desiredTab = route?.params?.initialGridTab as ('feed' | 'private' | 'liked') | undefined;
+        const desiredTab = route?.params?.initialGridTab as ('posts' | 'recipes' | 'likes') | undefined;
         if (desiredTab) setGridTab(desiredTab);
       } catch { }
     }, [user?.id, isOwnRecipes])
@@ -343,19 +347,19 @@ export const ProfileScreen = () => {
 
   // Recompute grid when tab changes or datasets refresh
   React.useEffect(() => {
-    if (gridTab === 'feed') setRecentDrinks(publicLogs);
-    else if (gridTab === 'private') {
-      // Merge and sort private logs with created recipes chronologically by actual timestamp
-      const combined = [...privateLogs, ...createdRecipes];
-      combined.sort((a, b) => {
-        const dateA = new Date(a.createdAt).getTime();
-        const dateB = new Date(b.createdAt).getTime();
-        return dateB - dateA; // newest first
-      });
-      setRecentDrinks(combined);
+    if (gridTab === 'posts') {
+      // All user posts already sorted chronologically
+      setRecentDrinks(publicLogs);
     }
-    else if (gridTab === 'liked') setRecentDrinks(likedItems);
-  }, [gridTab, publicLogs, privateLogs, createdRecipes, likedItems]);
+    else if (gridTab === 'recipes') {
+      // All user recipes (published or not)
+      setRecentDrinks(createdRecipes);
+    }
+    else if (gridTab === 'likes') {
+      // Liked posts from other people only
+      setRecentDrinks(likedItems);
+    }
+  }, [gridTab, publicLogs, createdRecipes, likedItems]);
 
   // ---------- Post modal helpers ----------
 
@@ -578,17 +582,54 @@ export const ProfileScreen = () => {
 
         {currentView === 'logged-drinks' ? (
           <>
-            {/* Logged Drinks Header */}
-            {/* Grid tabs: Feed / Private+Recipes / Liked */}
-            <HStack className="items-center justify-center mb-3">
-              <Pressable onPress={() => setGridTab('feed')} className="mx-4">
-                <LayoutGrid size={22} color={gridTab === 'feed' ? '#009689' : '#9ca3af'} />
+            {/* Grid tabs: Posts / Recipes / Likes */}
+            <HStack className="items-center justify-center mb-4 gap-10">
+              <Pressable
+                onPress={() => setGridTab('posts')}
+                className="items-center"
+              >
+                <Wine
+                  size={26}
+                  color={gridTab === 'posts' ? '#009689' : '#9ca3af'}
+                />
+                <Text
+                  className={`text-xs mt-1.5 ${gridTab === 'posts' ? 'text-[#009689] font-semibold' : 'text-neutral-400'
+                    }`}
+                >
+                  Posts
+                </Text>
               </Pressable>
-              <Pressable onPress={() => setGridTab('private')} className="mx-4">
-                <Lock size={22} color={gridTab === 'private' ? '#009689' : '#9ca3af'} />
+
+              <Pressable
+                onPress={() => setGridTab('recipes')}
+                className="items-center"
+              >
+                <BookOpen
+                  size={26}
+                  color={gridTab === 'recipes' ? '#009689' : '#9ca3af'}
+                />
+                <Text
+                  className={`text-xs mt-1.5 ${gridTab === 'recipes' ? 'text-[#009689] font-semibold' : 'text-neutral-400'
+                    }`}
+                >
+                  Recipes
+                </Text>
               </Pressable>
-              <Pressable onPress={() => setGridTab('liked')} className="mx-4">
-                <Heart size={22} color={gridTab === 'liked' ? '#009689' : '#9ca3af'} />
+
+              <Pressable
+                onPress={() => setGridTab('likes')}
+                className="items-center"
+              >
+                <Heart
+                  size={26}
+                  color={gridTab === 'likes' ? '#009689' : '#9ca3af'}
+                />
+                <Text
+                  className={`text-xs mt-1.5 ${gridTab === 'likes' ? 'text-[#009689] font-semibold' : 'text-neutral-400'
+                    }`}
+                >
+                  Likes
+                </Text>
               </Pressable>
             </HStack>
 
@@ -608,7 +649,9 @@ export const ProfileScreen = () => {
             {!loadingDrinks && !drinksError && recentDrinks.length === 0 && (
               <Box className="py-4">
                 <Text className="text-sm text-neutral-500">
-                  You haven&apos;t logged any drinks yet.
+                  {gridTab === 'posts' && "You haven't logged any drinks yet."}
+                  {gridTab === 'recipes' && "You haven't created any recipes yet."}
+                  {gridTab === 'likes' && "You haven't liked any posts yet."}
                 </Text>
               </Box>
             )}
@@ -618,18 +661,12 @@ export const ProfileScreen = () => {
               <GridGallery
                 items={recentDrinks}
                 onPress={async (item) => {
-                  if (gridTab === 'private') {
-                    if (item.type === 'recipe') {
-                      const cocktail = await fetchCocktailById(item.id);
-                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail, returnTo: 'Profile' } });
-                    } else {
-                      // private log: open its cocktail detail
-                      const cocktailId = item.cocktailId || item.id;
-                      const cocktail = await fetchCocktailById(cocktailId);
-                      if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail, returnTo: 'Profile' } });
-                    }
-                  } else {
-                    // feed or liked -> open post detail modal
+                  if (gridTab === 'recipes') {
+                    // Navigate to recipe detail
+                    const cocktail = await fetchCocktailById(item.id);
+                    if (cocktail) (navigation.getParent() as any)?.navigate('Explore', { screen: 'CocktailDetail', params: { cocktail, returnTo: 'Profile' } });
+                  } else if (item.type === 'log') {
+                    // Log post: open post detail modal
                     await openPostModal(item);
                   }
                 }}
