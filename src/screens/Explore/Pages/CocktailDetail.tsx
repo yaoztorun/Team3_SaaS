@@ -316,9 +316,20 @@ Rules:
                     {cocktail.origin_type === 'user' && (cocktail as any).Profile && (
                         <HStack className="items-center gap-2 mb-2">
                             <Text className="text-sm text-neutral-600">Created by</Text>
-                            <Text className="text-sm font-semibold text-primary-500">
-                                {((cocktail as any).Profile.full_name) || 'Unknown User'}
-                            </Text>
+                            <Pressable
+                                onPress={() => {
+                                    if (cocktail.creator_id) {
+                                        (navigation as any).navigate('Social', {
+                                            screen: 'UserProfile',
+                                            params: { userId: cocktail.creator_id }
+                                        });
+                                    }
+                                }}
+                            >
+                                <Text className="text-sm font-semibold text-primary-500 underline">
+                                    {((cocktail as any).Profile.full_name) || 'Unknown User'}
+                                </Text>
+                            </Pressable>
                         </HStack>
                     )}
                     

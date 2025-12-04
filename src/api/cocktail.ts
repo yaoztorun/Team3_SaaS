@@ -41,7 +41,14 @@ export async function fetchPrivatePersonalRecipes(): Promise<DBCocktail[]> {
 
         const { data, error } = await supabase
                 .from('Cocktail')
-                .select('*')
+                .select(`
+                        *,
+                        Profile (
+                                id,
+                                full_name,
+                                avatar_url
+                        )
+                `)
                 .eq('creator_id', user.id) // Only user's own recipes
                 .eq('is_public', false) // Only private recipes (public ones are already in fetchPublicCocktails)
                 .order('created_at', { ascending: false });
@@ -59,57 +66,18 @@ export async function fetchPrivatePersonalRecipes(): Promise<DBCocktail[]> {
  * - System cocktails (creator_id IS NULL)
  * - Public recipes from all users (is_public = true)
  * - User's own private recipes (creator_id = user.id AND is_public = false)
+ * 
+ * Combines fetchPublicCocktails() and fetchPrivatePersonalRecipes()
  */
 export async function fetchAllCocktails(): Promise<DBCocktail[]> {
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        // Fetch system cocktails (creator_id IS NULL)
-        const { data: systemData, error: systemError } = await supabase
-                .from('Cocktail')
-                .select('*')
-                .is('creator_id', null)
-                .order('created_at', { ascending: false });
+        // Fetch public cocktails (includes system + public user recipes with Profile data)
+        const [publicCocktails, privateRecipes] = await Promise.all([
+                fetchPublicCocktails(),
+                fetchPrivatePersonalRecipes()
+        ]);
 
-        if (systemError) {
-                console.error('Error fetching system cocktails:', systemError);
-        }
-
-        // Fetch public cocktails from all users (is_public = true)
-        const { data: publicData, error: publicError } = await supabase
-                .from('Cocktail')
-                .select('*')
-                .eq('is_public', true)
-                .order('created_at', { ascending: false });
-
-        if (publicError) {
-                console.error('Error fetching public cocktails:', publicError);
-        }
-
-        // If user is logged in, fetch their private recipes
-        let userPrivateData: DBCocktail[] = [];
-        if (user) {
-                const { data: privateData, error: privateError } = await supabase
-                        .from('Cocktail')
-                        .select('*')
-                        .eq('creator_id', user.id)
-                        .eq('is_public', false)
-                        .order('created_at', { ascending: false });
-
-                if (privateError) {
-                        console.error('Error fetching user private recipes:', privateError);
-                } else {
-                        userPrivateData = (privateData ?? []) as DBCocktail[];
-                }
-        }
-
-        // Combine all results and remove duplicates
-        const allCocktails = [
-                ...(systemData ?? []),
-                ...(publicData ?? []),
-                ...userPrivateData
-        ];
-
-        // Remove duplicates based on ID
+        // Combine and remove duplicates based on ID
+        const allCocktails = [...publicCocktails, ...privateRecipes];
         const uniqueCocktails = Array.from(
                 new Map(allCocktails.map(c => [c.id, c])).values()
         );
