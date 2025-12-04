@@ -23,6 +23,8 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
     const scaleRight = useRef(new Animated.Value(value === 'right' ? 1 : 0.95)).current;
     const opacityLeft = useRef(new Animated.Value(value === 'left' ? 1 : 0)).current;
     const opacityRight = useRef(new Animated.Value(value === 'right' ? 1 : 0)).current;
+    const textOpacityLeft = useRef(new Animated.Value(value === 'left' ? 1 : 0)).current;
+    const textOpacityRight = useRef(new Animated.Value(value === 'right' ? 1 : 0)).current;
 
     useEffect(() => {
         Animated.parallel([
@@ -48,13 +50,23 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
                 duration: 200,
                 useNativeDriver: true,
             }),
+            Animated.timing(textOpacityLeft, {
+                toValue: value === 'left' ? 1 : 0,
+                duration: 200,
+                useNativeDriver: true,
+            }),
+            Animated.timing(textOpacityRight, {
+                toValue: value === 'right' ? 1 : 0,
+                duration: 200,
+                useNativeDriver: true,
+            }),
         ]).start();
     }, [value]);
 
     return (
         <Box 
-            className="rounded-xl bg-gray-100 overflow-hidden"
-            style={{ flexDirection: 'row' }}
+            className="rounded-xl bg-white overflow-hidden p-1"
+            style={{ flexDirection: 'row', borderWidth: 2, borderColor: '#e5e7eb' }}
         >
             <Pressable 
                 className="flex-1 py-2 px-4 justify-center rounded-lg"
@@ -74,12 +86,16 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
                         transform: [{ scale: scaleLeft }],
                     }}
                 />
-                <Text 
-                    className={`text-center text-sm font-medium ${value === 'left' ? 'text-white' : 'text-neutral-900'}`}
-                    style={{ zIndex: 1 }}
-                >
-                    {leftLabel}
-                </Text>
+                <Animated.View style={{ zIndex: 1, opacity: textOpacityLeft }}>
+                    <Text className="text-center text-sm font-medium text-white">
+                        {leftLabel}
+                    </Text>
+                </Animated.View>
+                <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', opacity: textOpacityLeft.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
+                    <Text className="text-center text-sm font-medium text-neutral-900">
+                        {leftLabel}
+                    </Text>
+                </Animated.View>
             </Pressable>
             <Pressable 
                 className="flex-1 py-2 px-4 justify-center rounded-lg"
@@ -99,12 +115,16 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
                         transform: [{ scale: scaleRight }],
                     }}
                 />
-                <Text 
-                    className={`text-center text-sm font-medium ${value === 'right' ? 'text-white' : 'text-neutral-900'}`}
-                    style={{ zIndex: 1 }}
-                >
-                    {rightLabel}
-                </Text>
+                <Animated.View style={{ zIndex: 1, opacity: textOpacityRight }}>
+                    <Text className="text-center text-sm font-medium text-white">
+                        {rightLabel}
+                    </Text>
+                </Animated.View>
+                <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', opacity: textOpacityRight.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
+                    <Text className="text-center text-sm font-medium text-neutral-900">
+                        {rightLabel}
+                    </Text>
+                </Animated.View>
             </Pressable>
         </Box>
     );
