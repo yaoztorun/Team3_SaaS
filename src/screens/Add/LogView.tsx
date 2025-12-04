@@ -9,7 +9,6 @@ import {
     ImageUploadBox,
     RatingStars,
     RadioOption,
-    LocationSelector,
 } from '@/src/components/global';
 import { FriendSelectorModal } from '@/src/components/global/FriendSelectorModal';
 import { spacing } from '@/src/theme/spacing';
@@ -32,17 +31,6 @@ interface LogViewProps {
     setRating: (n: number) => void;
     caption: string;
     setCaption: (s: string) => void;
-    locationQuery: string;
-    setLocationQuery: (s: string) => void;
-    suggestionsVisible: boolean;
-    setSuggestionsVisible: (v: boolean) => void;
-    locations: Array<{ id: string; name: string | null }>;
-    selectedLocationId: string | null;
-    setSelectedLocationId: (id: string | null) => void;
-    selectedLocationType: 'public' | 'personal' | null;
-    setSelectedLocationType: (type: 'public' | 'personal' | null) => void;
-    isAtHome: boolean;
-    setIsAtHome: (v: boolean) => void;
     shareWith: 'private' | 'friends' | 'public';
     setShareWith: (v: 'private' | 'friends' | 'public') => void;
     isUploading: boolean;
@@ -69,17 +57,6 @@ const LogView: React.FC<LogViewProps> = ({
     setRating,
     caption,
     setCaption,
-    locationQuery,
-    setLocationQuery,
-    suggestionsVisible,
-    setSuggestionsVisible,
-    locations,
-    selectedLocationId,
-    setSelectedLocationId,
-    selectedLocationType,
-    setSelectedLocationType,
-    isAtHome,
-    setIsAtHome,
     shareWith,
     setShareWith,
     isUploading,
@@ -177,17 +154,6 @@ const LogView: React.FC<LogViewProps> = ({
                 }}
             />
 
-            {/* Location */}
-            <LocationSelector
-                selectedLocation={locationQuery}
-                selectedLocationId={selectedLocationId}
-                onLocationChange={(location, locationId, locationType) => {
-                    setLocationQuery(location);
-                    setSelectedLocationId(locationId);
-                    setSelectedLocationType(locationType || null);
-                }}
-            />
-
             {/* Tag Friends Button */}
             <TouchableOpacity
                 className="flex-row items-center justify-center space-x-2 bg-gray-100 py-3 rounded-xl border border-gray-200"
@@ -244,7 +210,7 @@ const LogView: React.FC<LogViewProps> = ({
                 disabled={!canSubmit || isUploading} 
             />
             {!canSubmit && hasInteracted && (
-                <Text className="text-sm text-red-500 mt-2">Please complete all required fields: cocktail, rating, review, and location or At Home.</Text>
+                <Text className="text-sm text-red-500 mt-2">Please complete all required fields: cocktail, rating, and review.</Text>
             )}
 
             {/* Friend Selector Modal */}

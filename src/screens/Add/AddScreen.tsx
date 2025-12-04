@@ -13,7 +13,6 @@ import RecipeView from './RecipeView';
 import { createCameraHandlers } from '@/src/utils/camera';
 import uploadImageUri from '@/src/utils/storage';
 import { supabase } from '@/src/lib/supabase';
-import fetchLocations from '@/src/api/location';
 import { fetchPublicCocktails, fetchPrivatePersonalRecipes } from '@/src/api/cocktail';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { colors } from '@/src/theme/colors';
@@ -38,21 +37,11 @@ export const AddScreen = () => {
     // Track if user has interacted with form (to show validation errors)
     const [hasLogInteracted, setHasLogInteracted] = useState(false);
     const [hasRecipeInteracted, setHasRecipeInteracted] = useState(false);
-    const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
-    const [locationQuery, setLocationQuery] = useState('');
-    const [suggestionsVisible, setSuggestionsVisible] = useState(false);
-    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
-    const [selectedLocationType, setSelectedLocationType] = useState<'public' | 'personal' | null>(null);
 
     const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
 
     React.useEffect(() => {
         let mounted = true;
-        (async () => {
-            const data = await fetchLocations();
-            if (!mounted) return;
-            setLocations(data.map(l => ({ id: l.id, name: l.name })));
-        })();
         (async () => {
             // Fetch both public cocktails and user's private personal recipes
             const [publicCocktails, personalRecipes] = await Promise.all([
@@ -113,7 +102,6 @@ export const AddScreen = () => {
             if (!selectedCocktailId) missing.push('cocktail');
             if (!rating || rating <= 0) missing.push('rating');
             if (!caption || caption.trim().length === 0) missing.push('review');
-            if (!isAtHome && !selectedLocationId) missing.push('location');
 
             if (missing.length > 0) {
                 alert(`Please fill required fields: ${missing.join(', ')}`);
@@ -131,7 +119,6 @@ export const AddScreen = () => {
             const storedRating = rating;
 
             // save a DrinkLog for this user including the uploaded image URL
-            // Note: DrinkLog only has location_id for public locations, no user_location_id field
             const { data: insertData, error: insertError } = await supabase
                 .from('DrinkLog')
                 .insert([
@@ -140,7 +127,7 @@ export const AddScreen = () => {
                         cocktail_id: selectedCocktailId,
                         rating: storedRating,
                         caption: caption.trim(),
-                        location_id: (isAtHome || selectedLocationType === 'personal') ? null : selectedLocationId,
+                        location_id: null,
                         visibility: shareWith,
                         image_url: uploadedUrl,
                         created_at: new Date().toISOString(),
@@ -194,7 +181,6 @@ export const AddScreen = () => {
                     has_photo: !!uploadedUrl,
                     rating: rating,
                     visibility: shareWith,
-                    location_type: isAtHome ? 'home' : 'bar',
                 });
             } else {
                 posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
@@ -203,7 +189,6 @@ export const AddScreen = () => {
                     has_photo: !!uploadedUrl,
                     rating: rating,
                     visibility: shareWith,
-                    location_type: isAtHome ? 'home' : 'bar',
                 });
             }
 
@@ -213,12 +198,8 @@ export const AddScreen = () => {
             setCaption('');
             setRating(0);
             setPhotoUri(null);
-            setLocationQuery('');
-            setSelectedLocationId(null);
-            setIsAtHome(false);
             setShareWith('private');
             setCocktailSuggestionsVisible(false);
-            setSuggestionsVisible(false);
             setTaggedFriendIds([]);
 
             // Reset interaction state so errors won't show on fresh form
@@ -277,7 +258,7 @@ export const AddScreen = () => {
         navigation.navigate('Home' as never);
     };
 
-    const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0 && (isAtHome || !!selectedLocationId);
+    const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0;
 
     return (
         <Box className="flex-1 bg-neutral-50">
@@ -317,17 +298,6 @@ export const AddScreen = () => {
                         setRating={setRating}
                         caption={caption}
                         setCaption={setCaption}
-                        locationQuery={locationQuery}
-                        setLocationQuery={setLocationQuery}
-                        suggestionsVisible={suggestionsVisible}
-                        setSuggestionsVisible={setSuggestionsVisible}
-                        locations={locations}
-                        selectedLocationId={selectedLocationId}
-                        setSelectedLocationId={setSelectedLocationId}
-                        selectedLocationType={selectedLocationType}
-                        setSelectedLocationType={setSelectedLocationType}
-                        isAtHome={isAtHome}
-                        setIsAtHome={setIsAtHome}
                         shareWith={shareWith}
                         setShareWith={setShareWith}
                         isUploading={isUploading}
