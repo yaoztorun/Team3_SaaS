@@ -785,6 +785,8 @@ export const Constants = {
         "outdoor event",
         "bar meetup",
         "themed party",
+        "workshop",
+        "tasting",
       ],
       registration_status: ["registered", "cancelled", "waitlisted"],
     },
