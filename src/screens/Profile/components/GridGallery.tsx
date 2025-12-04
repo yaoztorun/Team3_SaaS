@@ -34,11 +34,6 @@ export const GridGallery: React.FC<GridGalleryProps> = ({ items, onPress }) => {
     return `${month} ${day}`;
   };
 
-  const truncateTitle = (title: string, maxLength: number = 16): string => {
-    if (title.length <= maxLength) return title;
-    return title.substring(0, maxLength - 3) + '...';
-  };
-
   return (
     <Box>
       <Box className="flex-row flex-wrap" style={{ marginRight: -gap }}>
@@ -71,11 +66,17 @@ export const GridGallery: React.FC<GridGalleryProps> = ({ items, onPress }) => {
 
               <Box style={{ height: 1, backgroundColor: '#e5e7eb' }} />
 
-              <Box style={{ paddingLeft: 8, paddingRight: 8, paddingTop: 8, paddingBottom: 10, height: 48 }}>
-                <Text className="text-xs font-medium text-neutral-900">
-                  {truncateTitle(it.name)}
+              <Box style={{ paddingLeft: 8, paddingRight: 8, paddingTop: 6, paddingBottom: 6 }}>
+                <Text 
+                  className="text-xs font-medium text-neutral-900"
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                  isTruncated
+                  style={{ flexShrink: 1, height: 18 }}
+                >
+                  {it.name}
                 </Text>
-                <Text className="text-[10px] text-neutral-400" style={{ marginTop: 3 }}>
+                <Text className="text-[10px] text-neutral-400" style={{ marginTop: 2, height: 14 }} numberOfLines={1}>
                   {formatDate(it.createdAt)}
                 </Text>
               </Box>
