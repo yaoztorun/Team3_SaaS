@@ -59,7 +59,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                     <Text className="text-base text-neutral-900 mb-3">
                         Top 3 Most Popular
                     </Text>
-                    {userStats.topCocktails.map((cocktail: any, index: number) => (
+                    {userStats.topCocktails.map((cocktail, index) => (
                         <Box
                             key={index}
                             className="flex-row items-center justify-between py-3 border-b border-neutral-100 last:border-b-0"
@@ -89,7 +89,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                 <Text className="text-base text-neutral-900 mb-4">
                     Rating Trend
                 </Text>
-                {userStats?.ratingTrend && userStats.ratingTrend.some((item: any) => item.count > 0) ? (
+                {userStats?.ratingTrend && userStats.ratingTrend.some(item => item.count > 0) ? (
                     <Box className="items-center justify-center -ml-8">
                         <LineChart
                             data={{
@@ -146,7 +146,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                     <>
                         <Box className="items-center justify-center mb-4">
                             <PieChart
-                                data={userStats.cocktailBreakdown.map((item: any) => ({
+                                data={userStats.cocktailBreakdown.map(item => ({
                                     name: item.name,
                                     population: item.count,
                                     color: item.color,
@@ -165,7 +165,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                             />
                         </Box>
                         <Box>
-                            {userStats.cocktailBreakdown.map((item: any, idx: number) => (
+                            {userStats.cocktailBreakdown.map((item, idx) => (
                                 <HStack key={idx} className="items-center justify-between py-2">
                                     <HStack className="items-center">
                                         <Box
