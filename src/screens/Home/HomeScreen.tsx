@@ -33,7 +33,7 @@ import {
   deleteComment,
 } from '@/src/api/comments';
 import { Swipeable } from 'react-native-gesture-handler';
-import { Trash2, ArrowLeft } from 'lucide-react-native';
+import { Trash2, ArrowLeft, GlassWater, Sparkles, Search } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -127,42 +127,6 @@ const COCKTAILS: CarouselItem[] = [
   { id: 'whiskey-sour', name: 'Whiskey Sour', image: require('../../../assets/cocktails/whiskey_sour.png') },
   { id: 'hemingway', name: 'Hemingway', image: require('../../../assets/cocktails/hemingway.png') },
   { id: 'jungle-bird', name: 'Jungle Bird', image: require('../../../assets/cocktails/jungle_bird.png') },
-];
-
-// ---------- dummy data (when DB is empty / no user) ----------
-
-const DUMMY_POSTS_FRIENDS: FeedPost[] = [
-  {
-    id: 'dummy-1',
-    cocktailId: '',
-    userName: 'Your Friend',
-    userInitials: 'YF',
-    timeAgo: '5 min ago',
-    cocktailName: 'Margarita',
-    rating: 4.5,
-    imageUrl: '',
-    likes: 3,
-    comments: 1,
-    caption: 'First drink of the night! 🍸',
-    isLiked: false,
-  },
-];
-
-const DUMMY_POSTS_FOR_YOU: FeedPost[] = [
-  {
-    id: 'dummy-2',
-    cocktailId: '',
-    userName: 'Community Member',
-    userInitials: 'CM',
-    timeAgo: '10 min ago',
-    cocktailName: 'Negroni',
-    rating: 5,
-    imageUrl: '',
-    likes: 12,
-    comments: 4,
-    caption: 'Perfect Negroni, perfectly bitter.',
-    isLiked: false,
-  },
 ];
 
 // ---------- component ----------
@@ -442,41 +406,44 @@ export const HomeScreen: React.FC = () => {
     });
     return () => gestureX.removeListener(id);
   }, [gestureX]);
-  useEffect(() => {
-    const loadFeed = async () => {
-      try {
-        setLoading(true);
-        setError(null);
 
-        if (!user) {
-          setFeedPosts(
-            feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
-          );
-          return;
-        }
+  // Reload feed when screen comes into focus (e.g., after creating a post)
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadFeed = async () => {
+        try {
+          setLoading(true);
+          setError(null);
 
-        let rawLogs: any[] = [];
-        if (feedFilter === 'friends') {
-          const { data: friendships, error: friendsError } = await supabase
-            .from('Friendship')
-            .select('user_id, friend_id')
-            .eq('status', 'accepted')
-            .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
-          if (friendsError) throw friendsError;
-          const friendIds = new Set<string>();
-          friendships?.forEach((row) => {
-            if (row.user_id === user.id) friendIds.add(row.friend_id);
-            else if (row.friend_id === user.id) friendIds.add(row.user_id);
-          });
-          friendIds.add(user.id);
-          const idsArray = Array.from(friendIds);
-          if (idsArray.length === 0) {
-            setFeedPosts(DUMMY_POSTS_FRIENDS);
+          if (!user) {
+            setFeedPosts([]);
+            setLoading(false);
             return;
           }
-          const { data, error } = await supabase
-            .from('DrinkLog')
-            .select(`
+
+          let rawLogs: any[] = [];
+          if (feedFilter === 'friends') {
+            const { data: friendships, error: friendsError } = await supabase
+              .from('Friendship')
+              .select('user_id, friend_id')
+              .eq('status', 'accepted')
+              .or(`user_id.eq.${user.id},friend_id.eq.${user.id}`);
+            if (friendsError) throw friendsError;
+            const friendIds = new Set<string>();
+            friendships?.forEach((row) => {
+              if (row.user_id === user.id) friendIds.add(row.friend_id);
+              else if (row.friend_id === user.id) friendIds.add(row.user_id);
+            });
+            friendIds.add(user.id);
+            const idsArray = Array.from(friendIds);
+            if (idsArray.length === 0) {
+              setFeedPosts([]);
+              setLoading(false);
+              return;
+            }
+            const { data, error } = await supabase
+              .from('DrinkLog')
+              .select(`
               id,
               created_at,
               caption,
@@ -487,16 +454,16 @@ export const HomeScreen: React.FC = () => {
               Cocktail ( id, name, image_url ),
               Profile ( id, full_name, avatar_url )
             `)
-            .in('user_id', idsArray)
-            .in('visibility', ['public', 'friends'])
-            .order('created_at', { ascending: false })
-            .limit(50);
-          if (error) throw error;
-          rawLogs = (data ?? []) as any[];
-        } else {
-          const { data, error } = await supabase
-            .from('DrinkLog')
-            .select(`
+              .in('user_id', idsArray)
+              .in('visibility', ['public', 'friends'])
+              .order('created_at', { ascending: false })
+              .limit(50);
+            if (error) throw error;
+            rawLogs = (data ?? []) as any[];
+          } else {
+            const { data, error } = await supabase
+              .from('DrinkLog')
+              .select(`
               id,
               created_at,
               caption,
@@ -507,67 +474,65 @@ export const HomeScreen: React.FC = () => {
               Cocktail ( id, name, image_url ),
               Profile ( id, full_name, avatar_url )
             `)
-            .eq('visibility', 'public')
-            .order('created_at', { ascending: false })
-            .limit(50);
-          if (error) throw error;
-          rawLogs = (data ?? []) as any[];
+              .eq('visibility', 'public')
+              .order('created_at', { ascending: false })
+              .limit(50);
+            if (error) throw error;
+            rawLogs = (data ?? []) as any[];
+          }
+
+          if (rawLogs.length === 0) {
+            setFeedPosts([]);
+            setLoading(false);
+            return;
+          }
+
+          const logIds = rawLogs.map((r) => r.id as string);
+          const { counts: likeCounts, likedByMe } = await getLikesForLogs(logIds, user.id);
+          const commentCounts = await getCommentCountsForLogs(logIds);
+          const tagsMap = await getTagsForLogs(logIds);
+
+          const mapped: FeedPost[] = rawLogs.map((raw) => {
+            const log = raw as DbDrinkLog;
+            const fullName = log.Profile?.full_name ?? 'Unknown user';
+            const initials = getInitials(fullName);
+            const cocktailName = log.Cocktail?.name ?? 'Unknown cocktail';
+            const cocktailId = log.Cocktail?.id ?? '';
+            const imageUrl = log.image_url ?? log.Cocktail?.image_url ?? '';
+            const likes = likeCounts.get(log.id) ?? 0;
+            const comments = commentCounts.get(log.id) ?? 0;
+            const isLiked = likedByMe.has(log.id);
+            const taggedFriends = tagsMap.get(log.id) ?? [];
+            return {
+              id: log.id,
+              cocktailId,
+              userName: fullName,
+              userInitials: initials,
+              userId: log.Profile?.id ?? log.user_id,
+              avatarUrl: log.Profile?.avatar_url ?? undefined,
+              timeAgo: formatTimeAgo(log.created_at),
+              cocktailName,
+              rating: log.rating ?? 0,
+              imageUrl,
+              likes,
+              comments,
+              caption: log.caption ?? '',
+              isLiked,
+              taggedFriends,
+            };
+          });
+          setFeedPosts(mapped);
+        } catch (err: any) {
+          console.error('Error loading feed:', err);
+          setError(err.message ?? 'Something went wrong loading the feed.');
+          setFeedPosts([]);
+        } finally {
+          setLoading(false);
         }
-
-        if (rawLogs.length === 0) {
-          setFeedPosts(
-            feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
-          );
-          return;
-        }
-
-        const logIds = rawLogs.map((r) => r.id as string);
-        const { counts: likeCounts, likedByMe } = await getLikesForLogs(logIds, user.id);
-        const commentCounts = await getCommentCountsForLogs(logIds);
-        const tagsMap = await getTagsForLogs(logIds);
-
-        const mapped: FeedPost[] = rawLogs.map((raw) => {
-          const log = raw as DbDrinkLog;
-          const fullName = log.Profile?.full_name ?? 'Unknown user';
-          const initials = getInitials(fullName);
-          const cocktailName = log.Cocktail?.name ?? 'Unknown cocktail';
-          const cocktailId = log.Cocktail?.id ?? '';
-          const imageUrl = log.image_url ?? log.Cocktail?.image_url ?? '';
-          const likes = likeCounts.get(log.id) ?? 0;
-          const comments = commentCounts.get(log.id) ?? 0;
-          const isLiked = likedByMe.has(log.id);
-          const taggedFriends = tagsMap.get(log.id) ?? [];
-          return {
-            id: log.id,
-            cocktailId,
-            userName: fullName,
-            userInitials: initials,
-            userId: log.Profile?.id ?? log.user_id,
-            avatarUrl: log.Profile?.avatar_url ?? undefined,
-            timeAgo: formatTimeAgo(log.created_at),
-            cocktailName,
-            rating: log.rating ?? 0,
-            imageUrl,
-            likes,
-            comments,
-            caption: log.caption ?? '',
-            isLiked,
-            taggedFriends,
-          };
-        });
-        setFeedPosts(mapped);
-      } catch (err: any) {
-        console.error('Error loading feed:', err);
-        setError(err.message ?? 'Something went wrong loading the feed.');
-        setFeedPosts(
-          feedFilter === 'friends' ? DUMMY_POSTS_FRIENDS : DUMMY_POSTS_FOR_YOU,
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadFeed();
-  }, [feedFilter, user]);
+      };
+      loadFeed();
+    }, [feedFilter, user])
+  );
 
   // Handle deep-link param from navigation to open a specific post
   useEffect(() => {
@@ -1073,7 +1038,56 @@ export const HomeScreen: React.FC = () => {
           </Box>
         )}
 
-        {/* Feed list */}
+        {/* Empty state */}
+        {!loading && feedPosts.length === 0 && !error && (
+          <Box className="py-12 items-center">
+            <Box className="mb-4 bg-teal-50 rounded-full p-4">
+              <GlassWater size={48} color="#009689" strokeWidth={1.5} />
+            </Box>
+            <Heading level="h3" className="mb-2 text-center">
+              {!user
+                ? 'Welcome to Sippin\''
+                : feedFilter === 'friends'
+                  ? 'Your friends\' cocktails will appear here'
+                  : 'The community feed is empty'}
+            </Heading>
+            <Text className="text-sm text-neutral-500 text-center px-8 mb-6">
+              {!user
+                ? 'Sign in to see posts from friends and the community'
+                : feedFilter === 'friends'
+                  ? 'Discover cool people in the community or find your friends to see what they\'re mixing'
+                  : 'Be the first to shake things up and share a cocktail'}
+            </Text>
+            {user && feedFilter === 'friends' && (
+              <Box className="flex-col items-center gap-3 w-full px-8">
+                <Pressable
+                  className="bg-[#009689] px-6 py-3 rounded-full w-full flex-row items-center justify-center gap-2"
+                  onPress={() => setFeedFilter('for-you')}
+                >
+                  <Sparkles size={18} color="#fff" />
+                  <Text className="text-white font-medium text-center">Explore the community</Text>
+                </Pressable>
+                <Pressable
+                  className="border-2 border-[#009689] px-6 py-3 rounded-full w-full flex-row items-center justify-center gap-2"
+                  onPress={() => navigation.navigate('Social')}
+                >
+                  <Search size={18} color="#009689" />
+                  <Text className="text-[#009689] font-medium text-center">Find your friends</Text>
+                </Pressable>
+              </Box>
+            )}
+            {user && feedFilter === 'for-you' && (
+              <Pressable
+                className="bg-[#009689] px-6 py-3 rounded-full flex-row items-center justify-center gap-2"
+                onPress={() => navigation.navigate('Add')}
+              >
+                <GlassWater size={18} color="#fff" />
+                <Text className="text-white font-medium">Mix & share your first cocktail</Text>
+              </Pressable>
+            )}
+          </Box>
+        )}
+
         {feedPosts.map((post) => (
           <Box key={post.id} className="mb-4">
             <FeedPostCard

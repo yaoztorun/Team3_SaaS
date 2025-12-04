@@ -6,7 +6,7 @@ import { spacing } from '@/src/theme/spacing';
 import { Heading } from '@/src/components/global';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
 import { PreviewCard, EventCard } from '@/src/components/global';
@@ -42,91 +42,89 @@ export const ExploreScreen = () => {
     const [topCocktails, setTopCocktails] = useState<any[]>([]);
     const [loadingCocktails, setLoadingCocktails] = useState(true);
 
-    useEffect(() => {
-        const loadTopCocktails = async () => {
-            setLoadingCocktails(true);
-            try {
-                // Use the existing cocktail API
-                const { fetchAllCocktails } = await import('@/src/api/cocktail');
-                const cocktails = await fetchAllCocktails();
-                
-                // Get first 5 cocktails that have images
-                const cocktailsWithImages = cocktails
-                    .filter(c => c.image_url)
-                    .slice(0, 5);
-                
-                if (cocktailsWithImages.length > 0) {
-                    setTopCocktails(cocktailsWithImages);
-                } else {
-                    // If no cocktails with images, just get first 5
-                    setTopCocktails(cocktails.slice(0, 5));
+    // Reload data when screen comes into focus (e.g., after creating recipe or event)
+    useFocusEffect(
+        React.useCallback(() => {
+            const loadTopCocktails = async () => {
+                setLoadingCocktails(true);
+                try {
+                    // Use the existing cocktail API
+                    const { fetchAllCocktails } = await import('@/src/api/cocktail');
+                    const cocktails = await fetchAllCocktails();
+
+                    // Get first 5 cocktails that have images
+                    const cocktailsWithImages = cocktails
+                        .filter(c => c.image_url)
+                        .slice(0, 5);
+
+                    if (cocktailsWithImages.length > 0) {
+                        setTopCocktails(cocktailsWithImages);
+                    } else {
+                        // If no cocktails with images, just get first 5
+                        setTopCocktails(cocktails.slice(0, 5));
+                    }
+                } catch (err) {
+                    console.error('Error loading cocktails:', err);
                 }
-            } catch (err) {
-                console.error('Error loading cocktails:', err);
-            }
-            setLoadingCocktails(false);
-        };
-        loadTopCocktails();
-    }, []);
+                setLoadingCocktails(false);
+            };
 
-    useEffect(() => {
-        const loadBars = async () => {
-            setLoadingBars(true);
-            const data = await fetchLocations();
-            if (data && data.length > 0) {
-                // Show top 3 rated bars (where rating is a number), or fill with unrated ones
-                const ratedBars = data.filter((bar: DBLocation) => {
-                    const r = (bar as any).rating;
-                    return typeof r === 'number';
-                });
-                const sortedBars = ratedBars
-                    .sort((a: DBLocation, b: DBLocation) => (((b as any).rating ?? 0) - ((a as any).rating ?? 0)))
-                    .slice(0, 5);
-
-                if (sortedBars.length < 5) {
-                    const unratedBars = data.filter((bar: DBLocation) => {
+            const loadBars = async () => {
+                setLoadingBars(true);
+                const data = await fetchLocations();
+                if (data && data.length > 0) {
+                    // Show top 3 rated bars (where rating is a number), or fill with unrated ones
+                    const ratedBars = data.filter((bar: DBLocation) => {
                         const r = (bar as any).rating;
-                        return typeof r !== 'number';
-                    }).slice(0, 5 - sortedBars.length);
-                    setBars([...sortedBars, ...unratedBars]);
-                } else {
-                    setBars(sortedBars);
+                        return typeof r === 'number';
+                    });
+                    const sortedBars = ratedBars
+                        .sort((a: DBLocation, b: DBLocation) => (((b as any).rating ?? 0) - ((a as any).rating ?? 0)))
+                        .slice(0, 5);
+
+                    if (sortedBars.length < 5) {
+                        const unratedBars = data.filter((bar: DBLocation) => {
+                            const r = (bar as any).rating;
+                            return typeof r !== 'number';
+                        }).slice(0, 5 - sortedBars.length);
+                        setBars([...sortedBars, ...unratedBars]);
+                    } else {
+                        setBars(sortedBars);
+                    }
                 }
-            }
-            setLoadingBars(false);
-        };
-        loadBars();
-    }, []);
+                setLoadingBars(false);
+            };
 
-    useEffect(() => {
-        const loadShopItems = async () => {
-            setLoadingShop(true);
-            const data = await fetchShopItems();
-            // Show first 5 shop items
-            setShopItems(data.slice(0, 5));
-            setLoadingShop(false);
-        };
-        loadShopItems();
-    }, []);
+            const loadShopItems = async () => {
+                setLoadingShop(true);
+                const data = await fetchShopItems();
+                // Show first 5 shop items
+                setShopItems(data.slice(0, 5));
+                setLoadingShop(false);
+            };
 
-    useEffect(() => {
-        const loadPublicEvents = async () => {
-            setLoadingEvents(true);
-            const events = await fetchPublicEventsWithDetails();
-            
-            // Filter out past events
-            const now = new Date();
-            const upcomingEvents = events.filter(event => {
-                const eventDate = event.start_time ? new Date(event.start_time) : null;
-                return !eventDate || eventDate >= now;
-            });
-            
-            // Show first 5 for preview
-            setPublicEvents(upcomingEvents.slice(0, 5));
-            setLoadingEvents(false);
-        };
-        loadPublicEvents();
-    }, []);
+            const loadPublicEvents = async () => {
+                setLoadingEvents(true);
+                const events = await fetchPublicEventsWithDetails();
+
+                // Filter out past events
+                const now = new Date();
+                const upcomingEvents = events.filter(event => {
+                    const eventDate = event.start_time ? new Date(event.start_time) : null;
+                    return !eventDate || eventDate >= now;
+                });
+
+                // Show first 5 for preview
+                setPublicEvents(upcomingEvents.slice(0, 5));
+                setLoadingEvents(false);
+            };
+
+            loadTopCocktails();
+            loadBars();
+            loadShopItems();
+            loadPublicEvents();
+        }, [])
+    );
 
     const navigateToSection = (route: keyof RootStackParamList) => {
         navigation.navigate(route as any);
