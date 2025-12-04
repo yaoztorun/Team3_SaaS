@@ -674,6 +674,9 @@ export const HomeScreen: React.FC = () => {
       return;
     }
 
+    // Close comments modal first
+    closeComments();
+
     // Fetch the full cocktail data (RLS ensures we only get public or own cocktails)
     const cocktail = await fetchCocktailById(cocktailId);
 
@@ -687,6 +690,16 @@ export const HomeScreen: React.FC = () => {
       screen: 'CocktailDetail',
       params: { cocktail }
     } as never);
+  };
+
+  const handlePressUser = (userId: string) => {
+    if (!userId || userId === user?.id) return;
+    
+    // Close comments modal first
+    closeComments();
+    
+    // Navigate to user profile
+    navigation.navigate('UserProfile', { userId });
   };
 
   const handleSendComment = async () => {
@@ -1148,6 +1161,7 @@ export const HomeScreen: React.FC = () => {
                       onToggleLike={() => handleToggleLike(focusedPost.id)}
                       // comments button does nothing here (we're already in detail)
                       onPressComments={() => { }}
+                      onPressUser={() => handlePressUser(focusedPost.userId)}
                       onPressTags={() => {
                         if (focusedPost.taggedFriends && focusedPost.taggedFriends.length > 0) {
                           setCurrentTaggedFriends(focusedPost.taggedFriends);
