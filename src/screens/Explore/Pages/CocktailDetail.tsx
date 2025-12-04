@@ -294,41 +294,41 @@ Rules:
                 <View style={{ height: 24 }} />
                 {/* Title and Metadata */}
                 <Box className="mb-6">
-                    {/* Title with Difficulty Badge */}
-                    <HStack className="items-center justify-between mb-3">
-                        <Heading level="h3" className="flex-1">
-                            {cocktail.name ?? 'Unnamed Cocktail'}
-                        </Heading>
-                        {/* Difficulty Badge */}
-                        <View
-                            style={{
-                                backgroundColor: difficultyColors.bg,
-                                borderWidth: 1,
-                                borderColor: difficultyColors.border,
-                                paddingHorizontal: 10,
-                                paddingVertical: 4,
-                                borderRadius: 8,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 4,
-                            }}
-                        >
-                            <Clock size={12} color={difficultyColors.text} />
-                            <Text style={{ fontSize: 12, color: difficultyColors.text, fontWeight: '600' }}>
-                                {difficulty}
-                            </Text>
-                        </View>
-                    </HStack>
+                    {/* Title */}
+                    <Heading level="h3" className="mb-2">
+                        {cocktail.name ?? 'Unnamed Cocktail'}
+                    </Heading>
 
                     {/* Creator Info - Show if it's a user-created cocktail */}
                     {cocktail.origin_type === 'user' && (cocktail as any).Profile && (
-                        <HStack className="items-center gap-2">
+                        <HStack className="items-center gap-2 mb-2">
                             <Text className="text-sm text-neutral-600">Created by</Text>
                             <Text className="text-sm font-semibold text-primary-500">
                                 {((cocktail as any).Profile.full_name) || 'Unknown User'}
                             </Text>
                         </HStack>
                     )}
+                    
+                    {/* Difficulty Badge */}
+                    <View
+                        style={{
+                            backgroundColor: difficultyColors.bg,
+                            borderWidth: 1,
+                            borderColor: difficultyColors.border,
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 8,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4,
+                            alignSelf: 'flex-start',
+                        }}
+                    >
+                        <Clock size={12} color={difficultyColors.text} />
+                        <Text style={{ fontSize: 12, color: difficultyColors.text, fontWeight: '600' }}>
+                            {difficulty}
+                        </Text>
+                    </View>
                 </Box>
 
                 {/* Servings Control */}
