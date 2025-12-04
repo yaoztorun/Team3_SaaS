@@ -49,7 +49,7 @@ export const CocktailCard: React.FC<CocktailCardProps> = ({
           >
             <Star size={14} fill="#14b8a6" color="#14b8a6" />
             <Text className="text-sm font-semibold text-neutral-900 ml-1">
-              {Math.round(rating / 2)}
+              {rating ?? 0}
             </Text>
           </Box>
         </Box>

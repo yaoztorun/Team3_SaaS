@@ -127,8 +127,8 @@ export const AddScreen = () => {
                 console.log('Uploaded image URL:', uploadedUrl);
             }
 
-            // convert rating with half-stars into an integer smallint representation (store halves as *2)
-            const storedRating = Math.round(rating * 2);
+            // Rating is already on 0-5 scale from RatingStars component
+            const storedRating = rating;
 
             // save a DrinkLog for this user including the uploaded image URL
             // Note: DrinkLog only has location_id for public locations, no user_location_id field

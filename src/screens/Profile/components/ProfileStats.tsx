@@ -1,10 +1,11 @@
 import React from 'react';
 import { Dimensions } from 'react-native';
-import { LineChart, PieChart } from 'react-native-chart-kit';
+import { BarChart, PieChart } from 'react-native-chart-kit';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
 import { Heading } from '@/src/components/global';
+import { colors } from '@/src/theme/colors';
 import type { UserStats } from '@/src/api/stats';
 
 interface ProfileStatsProps {
@@ -18,6 +19,8 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
     avgRatingOutOf5,
     ratingTrendCounts5,
 }) => {
+    const barChartColor = colors.primary[500];
+
     return (
         <>
             {/* Stats Overview */}
@@ -86,16 +89,16 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
 
             {/* Rating Trend */}
             <Box className="bg-white rounded-2xl p-4 mb-4">
-                <Text className="text-base text-neutral-900 mb-4">
+                <Text className="text-base text-neutral-900 mb-2">
                     Rating Trend
                 </Text>
                 {userStats?.ratingTrend && userStats.ratingTrend.some(item => item.count > 0) ? (
                     <Box className="items-center justify-center -ml-8">
-                        <LineChart
+                        <BarChart
                             data={{
-                                labels: ['0', '1', '2', '3', '4', '5'],
+                                labels: ['1⭐', '2⭐', '3⭐', '4⭐', '5⭐'],
                                 datasets: [{
-                                    data: ratingTrendCounts5,
+                                    data: ratingTrendCounts5.slice(1, 6),
                                 }],
                             }}
                             width={360}
@@ -107,26 +110,25 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                                 backgroundGradientFrom: '#ffffff',
                                 backgroundGradientTo: '#ffffff',
                                 decimalPlaces: 0,
-                                color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
-                                labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                                propsForDots: {
-                                    r: '3',
-                                    strokeWidth: '2',
-                                    stroke: '#60A5FA',
-                                },
+                                color: () => barChartColor,
+                                labelColor: () => barChartColor,
+                                fillShadowGradientFrom: barChartColor,
+                                fillShadowGradientFromOpacity: 1,
+                                fillShadowGradientTo: barChartColor,
+                                fillShadowGradientToOpacity: 1,
+                                barPercentage: 0.7,
                             }}
-                            bezier
                             style={{
                                 marginVertical: 8,
                                 borderRadius: 16,
                                 marginLeft: -40,
                             }}
-                            withDots={true}
                             withInnerLines={false}
-                            withOuterLines={false}
-                            withVerticalLines={false}
-                            withHorizontalLines={false}
-                            withShadow={false}
+                            withVerticalLabels={true}
+                            withHorizontalLabels={false}
+                            fromZero={true}
+                            showBarTops={false}
+                            showValuesOnTopOfBars={true}
                             segments={4}
                         />
                     </Box>
@@ -150,18 +152,17 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                                     name: item.name,
                                     population: item.count,
                                     color: item.color,
-                                    legendFontColor: '#374151',
-                                    legendFontSize: 12,
                                 }))}
-                                width={260}
-                                height={200}
+                                width={280}
+                                height={220}
                                 chartConfig={{
                                     color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                                 }}
                                 accessor="population"
                                 backgroundColor="transparent"
-                                paddingLeft="15"
+                                paddingLeft="60"
                                 absolute
+                                hasLegend={false}
                             />
                         </Box>
                         <Box>

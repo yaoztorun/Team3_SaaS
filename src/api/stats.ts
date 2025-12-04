@@ -85,35 +85,50 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
             }
         });
 
-        const topCocktails = Array.from(cocktailMap.entries())
+        const allCocktailsSorted = Array.from(cocktailMap.entries())
             .map(([id, data]) => ({ id, name: data.name, count: data.count }))
-            .sort((a, b) => b.count - a.count)
-            .slice(0, 3);
+            .sort((a, b) => b.count - a.count);
+
+        const topCocktails = allCocktailsSorted.slice(0, 3);
 
         const popularCocktail = topCocktails.length > 0
             ? { name: topCocktails[0].name, count: topCocktails[0].count }
             : null;
 
-        // 5. Rating Trend - distribution of ratings (0-10)
-        const ratingTrend = Array.from({ length: 11 }, (_, i) => ({
+        // 5. Rating Trend - distribution of ratings (0-5)
+        const ratingTrend = Array.from({ length: 6 }, (_, i) => ({
             rating: i,
             count: ratings.filter(r => Math.round(r) === i).length,
         }));
 
         // 6. Cocktail Breakdown - for pie chart
-        const cocktailBreakdown = topCocktails.slice(0, 7).map((cocktail, index) => ({
-            name: cocktail.name,
-            count: cocktail.count,
-            color: CHART_COLORS[index % CHART_COLORS.length],
-        }));
-
-        // Add "Others" if there are more than 7 different cocktails
-        const topCount = cocktailBreakdown.reduce((sum, c) => sum + c.count, 0);
+        // Include cocktails until smallest slice would be < 8.33% (1/12) of total
         const totalCocktailsCount = Array.from(cocktailMap.values()).reduce((sum, c) => sum + c.count, 0);
-        if (totalCocktailsCount > topCount && cocktailMap.size > 7) {
+        const minSliceSize = totalCocktailsCount * 0.0833; // 1/12 of total (~8.3%)
+        
+        const cocktailBreakdown: Array<{ name: string; count: number; color: string }> = [];
+        let othersCount = 0;
+        
+        for (let i = 0; i < allCocktailsSorted.length; i++) {
+            const cocktail = allCocktailsSorted[i];
+            
+            // If this cocktail is too small for its own slice, add to "Others"
+            if (cocktail.count < minSliceSize) {
+                othersCount += cocktail.count;
+            } else {
+                cocktailBreakdown.push({
+                    name: cocktail.name,
+                    count: cocktail.count,
+                    color: CHART_COLORS[cocktailBreakdown.length % CHART_COLORS.length],
+                });
+            }
+        }
+        
+        // Add "Others" category if we grouped any cocktails
+        if (othersCount > 0) {
             cocktailBreakdown.push({
                 name: 'Others',
-                count: totalCocktailsCount - topCount,
+                count: othersCount,
                 color: CHART_COLORS[cocktailBreakdown.length % CHART_COLORS.length],
             });
         }
@@ -135,7 +150,7 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
             barsVisited: 0,
             popularCocktail: null,
             topCocktails: [],
-            ratingTrend: Array.from({ length: 11 }, (_, i) => ({ rating: i, count: 0 })),
+            ratingTrend: Array.from({ length: 6 }, (_, i) => ({ rating: i, count: 0 })),
             cocktailBreakdown: [],
         };
     }
