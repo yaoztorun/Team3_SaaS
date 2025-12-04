@@ -59,6 +59,7 @@ type RecentDrink = {
   subtitle: string; // caption / location
   rating: number;
   time: string;
+  createdAt: string; // ISO timestamp for sorting
   creatorId: string | null;
   imageUrl: string;
   type: 'log' | 'recipe';
@@ -273,6 +274,7 @@ export const ProfileScreen = () => {
           subtitle: raw.caption ?? '',
           rating: raw.rating ?? 0,
           time: formatTimeAgo(raw.created_at),
+          createdAt: raw.created_at,
           creatorId: raw.Cocktail?.creator_id ?? null,
           imageUrl: preview,
           type: 'log',
@@ -303,6 +305,7 @@ export const ProfileScreen = () => {
         subtitle: '',
         rating: 0,
         time: c.created_at ? formatTimeAgo(c.created_at) : '',
+        createdAt: c.created_at ?? new Date().toISOString(),
         creatorId: c.creator_id ?? user.id,
         imageUrl: c.image_url ?? '',
         type: 'recipe',
@@ -335,6 +338,7 @@ export const ProfileScreen = () => {
             subtitle: raw.caption ?? '',
             rating: raw.rating ?? 0,
             time: formatTimeAgo(raw.created_at),
+            createdAt: raw.created_at,
             creatorId: raw.Cocktail?.creator_id ?? null,
             imageUrl: raw.image_url || raw.Cocktail?.image_url || '',
             type: 'log',
@@ -378,7 +382,16 @@ export const ProfileScreen = () => {
   // Recompute grid when tab changes or datasets refresh
   React.useEffect(() => {
     if (gridTab === 'feed') setRecentDrinks(publicLogs);
-    else if (gridTab === 'private') setRecentDrinks([...privateLogs, ...createdRecipes]);
+    else if (gridTab === 'private') {
+      // Merge and sort private logs with created recipes chronologically by actual timestamp
+      const combined = [...privateLogs, ...createdRecipes];
+      combined.sort((a, b) => {
+        const dateA = new Date(a.createdAt).getTime();
+        const dateB = new Date(b.createdAt).getTime();
+        return dateB - dateA; // newest first
+      });
+      setRecentDrinks(combined);
+    }
     else if (gridTab === 'liked') setRecentDrinks(likedItems);
   }, [gridTab, publicLogs, privateLogs, createdRecipes, likedItems]);
 
@@ -1014,30 +1027,68 @@ export const ProfileScreen = () => {
 
 // Simple Instagram-like grid gallery for recent drinks
 const GridGallery = ({ items, onPress }: { items: RecentDrink[]; onPress: (item: RecentDrink) => void }) => {
-  const gap = 4; // small modern spacing
+  const gap = 12; // spacing between cards
+
+  // Helper to format date like "Nov 28"
+  const formatDate = (isoDate: string) => {
+    const date = new Date(isoDate);
+    const month = date.toLocaleDateString('en-US', { month: 'short' });
+    const day = date.getDate();
+    return `${month} ${day}`;
+  };
+
+  // Helper to truncate title to fit on one line with ellipsis
+  const truncateTitle = (title: string, maxLength: number = 16): string => {
+    if (title.length <= maxLength) return title;
+    return title.substring(0, maxLength - 3) + '...';
+  };
+
   return (
     <Box>
-      <Box className="flex-row flex-wrap">
+      <Box className="flex-row flex-wrap" style={{ marginRight: -gap }}>
         {items.map((it, idx) => (
           <Pressable
             key={`${it.id}-${idx}`}
             onPress={() => onPress(it)}
-            style={{ width: '33.333%', paddingRight: ((idx + 1) % 3 === 0) ? 0 : gap, paddingBottom: gap }}
+            style={{ width: '33.333%', paddingRight: gap, paddingBottom: gap }}
           >
-            {it.imageUrl ? (
-              <Image
-                source={{ uri: it.imageUrl }}
-                style={{ width: '100%', aspectRatio: 1, borderRadius: 5 }}
-                resizeMode="cover"
-              />
-            ) : (
-              <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 5 }}>
-                <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
-              </Center>
-            )}
-            {/* Centered name below image */}
-            <Box className="mt-1 px-2 items-center">
-              <Text className="text-[12px] font-medium text-neutral-900 text-center" numberOfLines={1}>{it.name}</Text>
+            {/* White card container with border */}
+            <Box
+              className="bg-white rounded-xl overflow-hidden"
+              style={{
+                borderWidth: 1,
+                borderColor: '#e5e7eb',
+              }}
+            >
+              {/* Image container with rounded corners */}
+              <Box style={{ padding: 8 }}>
+                {it.imageUrl ? (
+                  <Image
+                    source={{ uri: it.imageUrl }}
+                    style={{ width: '100%', aspectRatio: 1, borderRadius: 8 }}
+                    resizeMode="cover"
+                  />
+                ) : (
+                  <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 8 }}>
+                    <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
+                  </Center>
+                )}
+              </Box>
+
+              {/* Gray divider line */}
+              <Box style={{ height: 1, backgroundColor: '#e5e7eb' }} />
+
+              {/* Text content area with fixed height for consistency */}
+              <Box style={{ paddingLeft: 8, paddingRight: 8, paddingTop: 8, paddingBottom: 10, height: 48 }}>
+                <Text
+                  className="text-xs font-medium text-neutral-900"
+                >
+                  {truncateTitle(it.name)}
+                </Text>
+                <Text className="text-[10px] text-neutral-400" style={{ marginTop: 3 }}>
+                  {formatDate(it.createdAt)}
+                </Text>
+              </Box>
             </Box>
           </Pressable>
         ))}
