@@ -82,6 +82,13 @@ export const CocktailDetail = () => {
 
     // Fetch the latest cocktail data from database to get updated fun_fact
     useEffect(() => {
+        // Skip fetching fun fact for user-created recipes
+        if (cocktail.origin_type === 'user') {
+            console.log('User-created recipe, skipping fun fact fetch');
+            setHasFetchedFromDB(true);
+            return;
+        }
+
         const fetchLatestCocktail = async () => {
             console.log('------------ DB FETCH START ------------');
             console.log(`Fetching cocktail: ${cocktail.name} (${cocktail.id})`);
@@ -120,6 +127,12 @@ export const CocktailDetail = () => {
 
     // Generate fun fact if not already in database
     useEffect(() => {
+        // Skip generation for user-created recipes
+        if (cocktail.origin_type === 'user') {
+            console.log('User-created recipe, skipping fun fact generation');
+            return;
+        }
+
         // Wait for DB fetch to complete before deciding to generate
         if (!hasFetchedFromDB) {
             console.log('Waiting for DB fetch...');
