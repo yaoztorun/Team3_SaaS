@@ -7,7 +7,7 @@ import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useRoute, useNavigation, CommonActions } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Profile } from '@/src/types/profile';
 import { Button } from '@/src/components/ui/button';
@@ -397,12 +397,22 @@ export const UserProfile = () => {
             return;
         }
         
+        console.log('UserProfile: Closing modal and navigating to cocktail:', cocktail.name);
         closePostModal();
         
-        (navigation as any).navigate('Explore', { 
-            screen: 'CocktailDetail',
-            params: { cocktail }
-        });
+        // Navigate to Main (BottomTabs), then to Explore tab, then to CocktailDetail
+        navigation.dispatch(
+            CommonActions.navigate({
+                name: 'Main',
+                params: {
+                    screen: 'Explore',
+                    params: {
+                        screen: 'CocktailDetail',
+                        params: { cocktail }
+                    }
+                }
+            })
+        );
     };
 
     const handleSendRequest = async () => {
