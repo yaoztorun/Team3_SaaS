@@ -12,7 +12,13 @@ export const RootStack = () => {
     return (
         <Stack.Navigator screenOptions={globalScreenOptions}>
             <Stack.Screen name="Main" component={BottomTabs} />
-            <Stack.Screen name="UserProfile" component={UserProfile} />
+            <Stack.Screen 
+                name="UserProfile" 
+                component={UserProfile}
+                options={{
+                    cardStyle: { flex: 1 },
+                }}
+            />
         </Stack.Navigator>
     );
 };

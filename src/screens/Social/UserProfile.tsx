@@ -501,11 +501,11 @@ export const UserProfile = () => {
     }
 
     return (
-        <Box className="flex-1 bg-neutral-50">
+        <Box className="flex-1 bg-neutral-50" style={{ height: '100vh', maxHeight: '100vh' } as any}>
             <TopBar title="Profile" showBack onBackPress={() => navigation.goBack()} />
             
             <ScrollView
-                className="flex-1"
+                style={{ flex: 1 }}
                 contentContainerStyle={{
                     paddingHorizontal: spacing.screenHorizontal,
                     paddingTop: spacing.screenVertical,
