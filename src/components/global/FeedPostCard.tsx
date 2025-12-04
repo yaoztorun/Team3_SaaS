@@ -8,6 +8,7 @@ import { shareSystemSheet, shareToWhatsApp, copyLinkForLog } from '@/src/utils/s
 import { posthogCapture, trackFirstTime, ANALYTICS_EVENTS } from '@/src/analytics';
 import { useAuth } from '@/src/hooks/useAuth';
 import { TaggedUser } from '@/src/api/tags';
+import { Avatar } from './Avatar';
 
 interface FeedPostCardProps {
   id: string;
@@ -140,19 +141,14 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         className="flex-row items-center px-4 pt-4 pb-3"
         onPress={onPressUser}
       >
-        {avatarUrl ? (
-          <Box className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 mr-3">
-            <Image
-              source={{ uri: avatarUrl }}
-              style={{ width: 40, height: 40 }}
-              resizeMode="cover"
-            />
-          </Box>
-        ) : (
-          <Box className="w-10 h-10 rounded-full bg-[#009689] items-center justify-center mr-3">
-            <Text className="text-white font-medium">{userInitials}</Text>
-          </Box>
-        )}
+        <Box className="mr-3">
+          <Avatar
+            avatarUrl={avatarUrl}
+            initials={userInitials}
+            size={40}
+            fallbackColor="#009689"
+          />
+        </Box>
         <Box className="flex-1">
           <Text className="text-base font-medium text-neutral-900">
             {userName}
@@ -226,36 +222,18 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
                   style={{
                     marginLeft: index > 0 ? -8 : 0,
                     zIndex: 3 - index,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    borderRadius: 12,
+                    overflow: 'hidden',
                   }}
                 >
-                  {friend.avatar_url ? (
-                    <Image
-                      source={{ uri: friend.avatar_url }}
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        borderWidth: 2,
-                        borderColor: '#fff',
-                      }}
-                    />
-                  ) : (
-                    <Box
-                      className="items-center justify-center"
-                      style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 12,
-                        backgroundColor: '#14b8a6',
-                        borderWidth: 2,
-                        borderColor: '#fff',
-                      }}
-                    >
-                      <Text className="text-white text-xs font-medium">
-                        {friend.full_name?.charAt(0)?.toUpperCase() || '?'}
-                      </Text>
-                    </Box>
-                  )}
+                  <Avatar
+                    avatarUrl={friend.avatar_url}
+                    initials={friend.full_name?.charAt(0)?.toUpperCase() || '?'}
+                    size={24}
+                    fallbackColor="#14b8a6"
+                  />
                 </Box>
               ))}
               {taggedFriends.length > 3 && (

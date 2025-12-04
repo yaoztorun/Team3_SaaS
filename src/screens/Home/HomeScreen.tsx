@@ -19,7 +19,7 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard, TextInputField, Heading, TaggedFriendsModal, ToggleSwitch } from '@/src/components/global';
+import { FeedPostCard, TextInputField, Heading, TaggedFriendsModal, ToggleSwitch, Avatar } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
@@ -1209,19 +1209,14 @@ export const HomeScreen: React.FC = () => {
                       >
                         <Box className="mb-4 bg-white">
                           <Box className="flex-row items-start">
-                            {avatarUrl ? (
-                              <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
-                                <Image
-                                  source={{ uri: avatarUrl }}
-                                  style={{ width: 32, height: 32 }}
-                                  resizeMode="cover"
-                                />
-                              </Box>
-                            ) : (
-                              <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
-                                <Text className="text-white text-xs font-medium">{initials}</Text>
-                              </Box>
-                            )}
+                            <Box className="mr-3">
+                              <Avatar
+                                avatarUrl={avatarUrl}
+                                initials={initials}
+                                size={32}
+                                fallbackColor="#009689"
+                              />
+                            </Box>
                             <Box className="flex-1">
                               <Text className="text-sm font-semibold text-neutral-900 mb-1">
                                 {userName}
@@ -1291,6 +1286,8 @@ export const HomeScreen: React.FC = () => {
         onClose={() => setTagsModalVisible(false)}
         taggedFriends={currentTaggedFriends}
         onPressFriend={(friendId) => {
+          setTagsModalVisible(false);
+          closeComments();
           navigation.navigate('UserProfile', { userId: friendId });
         }}
       />

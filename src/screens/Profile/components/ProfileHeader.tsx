@@ -5,7 +5,7 @@ import { Text } from '@/src/components/ui/text';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
-import { Heading } from '@/src/components/global';
+import { Heading, Avatar } from '@/src/components/global';
 import type { Profile } from '@/src/types/profile';
 import { Badge } from '@/src/api/badges';
 
@@ -31,23 +31,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   return (
     <Box className="mb-4 p-6 bg-white rounded-2xl">
       <HStack className="mb-4">
-        {profile?.avatar_url ? (
-          <Box className="w-20 h-20 rounded-full overflow-hidden bg-gray-200">
-            <Image
-              source={{ uri: profile.avatar_url }}
-              style={{ width: 80, height: 80 }}
-              resizeMode="cover"
-            />
-          </Box>
-        ) : (
-          <Center className="h-20 w-20 rounded-full bg-teal-500">
-            <Text className="text-2xl text-white">
-              {profile?.full_name?.charAt(0)?.toUpperCase() ||
-                userEmail?.charAt(0)?.toUpperCase() ||
-                '?'}
-            </Text>
-          </Center>
-        )}
+        <Avatar
+          avatarUrl={profile?.avatar_url}
+          initials={profile?.full_name?.charAt(0)?.toUpperCase() || userEmail?.charAt(0)?.toUpperCase() || '?'}
+          size={80}
+          fallbackColor="#14b8a6"
+        />
         <Box className="ml-4 flex-1">
           <Heading level="h4">
             {loadingProfile

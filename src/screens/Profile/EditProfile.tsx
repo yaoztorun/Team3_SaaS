@@ -6,7 +6,7 @@ import { spacing } from '@/src/theme/spacing';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
-import { PrimaryButton, TextInputField, ImagePickerModal, Heading } from '@/src/components/global';
+import { PrimaryButton, TextInputField, ImagePickerModal, Heading, Avatar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile, updateProfile } from '@/src/api/profile';
 import { uploadProfileImage, deleteProfileImage } from '@/src/api/storage';
@@ -118,21 +118,12 @@ const EditProfile: React.FC = () => {
                 ) : (
                     <Box className="mb-6 items-center">
                         <Box className="relative">
-                            {(tempImageUri || avatarUrl) ? (
-                                <Box className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
-                                    <Image 
-                                        source={{ uri: tempImageUri || avatarUrl }} 
-                                        style={{ width: 96, height: 96 }}
-                                        resizeMode="cover"
-                                    />
-                                </Box>
-                            ) : (
-                                <Center className="h-24 w-24 rounded-full bg-teal-600">
-                                    <Text className="text-2xl text-white">
-                                        {fullName?.charAt(0)?.toUpperCase() || email?.charAt(0)?.toUpperCase() || '?'}
-                                    </Text>
-                                </Center>
-                            )}
+                            <Avatar
+                                avatarUrl={tempImageUri || avatarUrl}
+                                initials={fullName?.charAt(0)?.toUpperCase() || email?.charAt(0)?.toUpperCase() || '?'}
+                                size={96}
+                                fallbackColor="#14b8a6"
+                            />
                             <Pressable 
                                 className="absolute bottom-0 right-0 bg-teal-500 rounded-full p-2"
                                 onPress={() => setShowImagePicker(true)}

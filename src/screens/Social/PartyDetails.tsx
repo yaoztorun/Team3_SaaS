@@ -12,7 +12,7 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { colors } from '@/src/theme/colors';
 import { Pressable } from '@/src/components/ui/pressable';
-import { PrimaryButton, Heading } from '@/src/components/global';
+import { PrimaryButton, Heading, Avatar } from '@/src/components/global';
 import { Calendar, MapPin, Users, Shirt, DollarSign, Edit } from 'lucide-react-native';
 import type { EventWithDetails } from '@/src/api/event';
 import { fetchEventAttendees, updateRegistrationStatus, getUserEventRegistration, registerForEvent, cancelEventRegistration } from '@/src/api/event';
@@ -243,16 +243,12 @@ export const PartyDetails: React.FC = () => {
 
                         {/* Host Info */}
                         <HStack className="items-center mb-4">
-                            {party.organizer_profile?.avatar_url ? (
-                                <Image
-                                    source={{ uri: party.organizer_profile.avatar_url }}
-                                    style={{ width: 32, height: 32, borderRadius: 16 }}
-                                />
-                            ) : (
-                                <Center className="w-8 h-8 rounded-full bg-[#cbfbf1]">
-                                    <Text className="text-[#00786f] text-sm font-medium">{organizerInitials}</Text>
-                                </Center>
-                            )}
+                            <Avatar
+                                avatarUrl={party.organizer_profile?.avatar_url}
+                                initials={organizerInitials}
+                                size={32}
+                                fallbackColor="#cbfbf1"
+                            />
                             <Box className="ml-2">
                                 <Text className="text-sm text-neutral-600">Hosted by</Text>
                                 <Text className="text-sm text-neutral-950 font-medium">{organizerName}</Text>
@@ -330,18 +326,12 @@ export const PartyDetails: React.FC = () => {
                                 <Box className="space-y-3">
                                     {registeredAttendees.map((attendee) => (
                                         <HStack key={attendee.id} className="items-center">
-                                            {attendee.avatar_url ? (
-                                                <Image
-                                                    source={{ uri: attendee.avatar_url }}
-                                                    style={{ width: 40, height: 40, borderRadius: 20 }}
-                                                />
-                                            ) : (
-                                                <Center className="w-10 h-10 rounded-full bg-[#cbfbf1]">
-                                                    <Text className="text-[#00786f] text-base font-medium">
-                                                        {getInitials(attendee.full_name)}
-                                                    </Text>
-                                                </Center>
-                                            )}
+                                            <Avatar
+                                                avatarUrl={attendee.avatar_url}
+                                                initials={getInitials(attendee.full_name)}
+                                                size={40}
+                                                fallbackColor="#cbfbf1"
+                                            />
                                             <Text className="text-base text-neutral-950 ml-3">
                                                 {attendee.full_name || 'Unknown User'}
                                             </Text>
@@ -362,18 +352,12 @@ export const PartyDetails: React.FC = () => {
                                         <Box key={attendee.id} className="bg-gray-50 rounded-xl p-3">
                                             <HStack className="items-center justify-between">
                                                 <HStack className="items-center flex-1">
-                                                    {attendee.avatar_url ? (
-                                                        <Image
-                                                            source={{ uri: attendee.avatar_url }}
-                                                            style={{ width: 40, height: 40, borderRadius: 20 }}
-                                                        />
-                                                    ) : (
-                                                        <Center className="w-10 h-10 rounded-full bg-gray-200">
-                                                            <Text className="text-gray-600 text-base font-medium">
-                                                                {getInitials(attendee.full_name)}
-                                                            </Text>
-                                                        </Center>
-                                                    )}
+                                                    <Avatar
+                                                        avatarUrl={attendee.avatar_url}
+                                                        initials={getInitials(attendee.full_name)}
+                                                        size={40}
+                                                        fallbackColor="#d1d5db"
+                                                    />
                                                     <Text className="text-base text-neutral-950 ml-3 flex-1">
                                                         {attendee.full_name || 'Unknown User'}
                                                     </Text>

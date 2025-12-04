@@ -4,13 +4,14 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
+import { Pressable } from '@/src/components/ui/pressable';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Profile } from '@/src/types/profile';
 import { Button } from '@/src/components/ui/button';
-import { Pressable } from '@/src/components/ui/pressable';
+import { Avatar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useUserStats } from '@/src/hooks/useUserStats';
 import { 
@@ -515,21 +516,12 @@ export const UserProfile = () => {
                 {/* User Profile Card */}
                 <Box className="p-6 bg-white rounded-2xl mb-4">
                     <Center className="mb-4">
-                        {profile.avatar_url ? (
-                            <Box className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
-                                <Image 
-                                    source={{ uri: profile.avatar_url }} 
-                                    style={{ width: 96, height: 96 }}
-                                    resizeMode="cover"
-                                />
-                            </Box>
-                        ) : (
-                            <Center className="h-24 w-24 rounded-full bg-teal-500">
-                                <Text className="text-3xl text-white">
-                                    {profile.full_name?.charAt(0)?.toUpperCase() || profile.email?.charAt(0)?.toUpperCase() || '?'}
-                                </Text>
-                            </Center>
-                        )}
+                        <Avatar
+                            avatarUrl={profile.avatar_url}
+                            initials={profile.full_name?.charAt(0)?.toUpperCase() || profile.email?.charAt(0)?.toUpperCase() || '?'}
+                            size={96}
+                            fallbackColor="#14b8a6"
+                        />
                     </Center>
 
                     <Center className="mb-4">
@@ -758,19 +750,14 @@ export const UserProfile = () => {
                                         return (
                                             <Box key={comment.id} className="mb-4 bg-white">
                                                 <Box className="flex-row items-start">
-                                                    {avatarUrl ? (
-                                                        <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
-                                                            <Image
-                                                                source={{ uri: avatarUrl }}
-                                                                style={{ width: 32, height: 32 }}
-                                                                resizeMode="cover"
-                                                            />
-                                                        </Box>
-                                                    ) : (
-                                                        <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
-                                                            <Text className="text-white text-xs font-medium">{initials}</Text>
-                                                        </Box>
-                                                    )}
+                                                    <Box className="mr-3">
+                                                        <Avatar
+                                                            avatarUrl={avatarUrl}
+                                                            initials={initials}
+                                                            size={32}
+                                                            fallbackColor="#009689"
+                                                        />
+                                                    </Box>
                                                     <Box className="flex-1">
                                                         <Text className="text-sm font-semibold text-neutral-900">
                                                             {userName}

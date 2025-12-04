@@ -10,6 +10,7 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { X } from 'lucide-react-native';
 import { TaggedUser } from '@/src/api/tags';
+import { Avatar } from './Avatar';
 
 interface TaggedFriendsModalProps {
   visible: boolean;
@@ -55,18 +56,12 @@ export const TaggedFriendsModal: React.FC<TaggedFriendsModalProps> = ({
                 className="flex-row items-center py-3 border-b border-gray-100"
               >
                 {/* Avatar */}
-                {friend.avatar_url ? (
-                  <Image
-                    source={{ uri: friend.avatar_url }}
-                    style={{ width: 48, height: 48, borderRadius: 24 }}
-                  />
-                ) : (
-                  <Box className="w-12 h-12 rounded-full bg-teal-500 items-center justify-center">
-                    <Text className="text-white text-lg font-medium">
-                      {friend.full_name?.charAt(0)?.toUpperCase() || '?'}
-                    </Text>
-                  </Box>
-                )}
+                <Avatar
+                  avatarUrl={friend.avatar_url}
+                  initials={friend.full_name?.charAt(0)?.toUpperCase() || '?'}
+                  size={48}
+                  fallbackColor="#14b8a6"
+                />
 
                 {/* Name */}
                 <Text className="flex-1 ml-3 text-base text-neutral-900">

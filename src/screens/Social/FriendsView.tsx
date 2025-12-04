@@ -8,7 +8,7 @@ import { Button } from '@/src/components/ui/button';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
-import { SearchBar, Heading } from '@/src/components/global';
+import { SearchBar, Heading, Avatar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import {
         searchUsers,
@@ -176,21 +176,12 @@ export const FriendsView = () => {
                                                                 onPress={() => navigation.navigate('UserProfile', { userId: userResult.id })}
                                                         >
                                                                 <HStack space="md" className="items-center">
-                                                                        {userResult.avatar_url ? (
-                                                                                <Box className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                                                                                        <Image
-                                                                                                source={{ uri: userResult.avatar_url }}
-                                                                                                style={{ width: 48, height: 48 }}
-                                                                                                resizeMode="cover"
-                                                                                        />
-                                                                                </Box>
-                                                                        ) : (
-                                                                                <Center className="w-12 h-12 rounded-full bg-[#00a294]">
-                                                                                        <Text className="text-white">
-                                                                                                {userResult.full_name?.charAt(0)?.toUpperCase() || userResult.email?.charAt(0)?.toUpperCase() || '?'}
-                                                                                        </Text>
-                                                                                </Center>
-                                                                        )}
+                                                                        <Avatar
+                                                                                avatarUrl={userResult.avatar_url}
+                                                                                initials={userResult.full_name?.charAt(0)?.toUpperCase() || userResult.email?.charAt(0)?.toUpperCase() || '?'}
+                                                                                size={48}
+                                                                                fallbackColor="#00a294"
+                                                                        />
                                                                         <Box className="flex-1">
                                                                                 <Heading level="h6">{userResult.full_name || 'User'}</Heading>
                                                                         </Box>
@@ -254,21 +245,12 @@ export const FriendsView = () => {
                                                                         onPress={() => navigation.navigate('UserProfile', { userId: request.user_id })}
                                                                 >
                                                                         <HStack space="md" className="items-center">
-                                                                                {request.sender_profile.avatar_url ? (
-                                                                                        <Box className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                                                                                                <Image
-                                                                                                        source={{ uri: request.sender_profile.avatar_url }}
-                                                                                                        style={{ width: 48, height: 48 }}
-                                                                                                        resizeMode="cover"
-                                                                                                />
-                                                                                        </Box>
-                                                                                ) : (
-                                                                                        <Center className="w-12 h-12 rounded-full bg-[#00a294]">
-                                                                                                <Text className="text-white">
-                                                                                                        {request.sender_profile.full_name?.charAt(0)?.toUpperCase() || '?'}
-                                                                                                </Text>
-                                                                                        </Center>
-                                                                                )}
+                                                                                <Avatar
+                                                                                        avatarUrl={request.sender_profile.avatar_url}
+                                                                                        initials={request.sender_profile.full_name?.charAt(0)?.toUpperCase() || '?'}
+                                                                                        size={48}
+                                                                                        fallbackColor="#00a294"
+                                                                                />
                                                                                 <Box className="flex-1">
                                                                                         <Heading level="h6">
                                                                                                 {request.sender_profile.full_name || 'User'}
@@ -339,23 +321,12 @@ export const FriendsView = () => {
                                                                                 }
                                                                         >
                                                                                 <HStack space="md" className="items-center">
-                                                                                        {targetProfile?.avatar_url ? (
-                                                                                                <Box className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                                                                                                        <Image
-                                                                                                                source={{ uri: targetProfile.avatar_url }}
-                                                                                                                style={{ width: 48, height: 48 }}
-                                                                                                                resizeMode="cover"
-                                                                                                        />
-                                                                                                </Box>
-                                                                                        ) : (
-                                                                                                <Center className="w-12 h-12 rounded-full bg-gray-400">
-                                                                                                        <Text className="text-white">
-                                                                                                                {targetProfile?.full_name?.charAt(0)?.toUpperCase() ??
-                                                                                                                        targetProfile?.email?.charAt(0)?.toUpperCase() ??
-                                                                                                                        '?'}
-                                                                                                        </Text>
-                                                                                                </Center>
-                                                                                        )}
+                                                                                        <Avatar
+                                                                                                avatarUrl={targetProfile?.avatar_url}
+                                                                                                initials={targetProfile?.full_name?.charAt(0)?.toUpperCase() || targetProfile?.email?.charAt(0)?.toUpperCase() || '?'}
+                                                                                                size={48}
+                                                                                                fallbackColor="#9ca3af"
+                                                                                        />
 
                                                                                         <Box className="flex-1">
                                                                                                 <Heading level="h6">
@@ -401,21 +372,12 @@ export const FriendsView = () => {
                                                                         onPress={() => navigation.navigate('UserProfile', { userId: friend.id })}
                                                                 >
                                                                         <HStack space="md" className="items-center">
-                                                                                {friend.profile.avatar_url ? (
-                                                                                        <Box className="w-12 h-12 rounded-full overflow-hidden bg-gray-200">
-                                                                                                <Image
-                                                                                                        source={{ uri: friend.profile.avatar_url }}
-                                                                                                        style={{ width: 48, height: 48 }}
-                                                                                                        resizeMode="cover"
-                                                                                                />
-                                                                                        </Box>
-                                                                                ) : (
-                                                                                        <Center className="w-12 h-12 rounded-full bg-[#00a294]">
-                                                                                                <Text className="text-white">
-                                                                                                        {friend.profile.full_name?.charAt(0)?.toUpperCase() || '?'}
-                                                                                                </Text>
-                                                                                        </Center>
-                                                                                )}
+                                                                                <Avatar
+                                                                                        avatarUrl={friend.profile.avatar_url}
+                                                                                        initials={friend.profile.full_name?.charAt(0)?.toUpperCase() || '?'}
+                                                                                        size={48}
+                                                                                        fallbackColor="#00a294"
+                                                                                />
                                                                                 <Box className="flex-1">
                                                                                         <Heading level="h6">
                                                                                                 {friend.profile.full_name || 'User'}

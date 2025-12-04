@@ -10,7 +10,7 @@ import {
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard, TextInputField } from '@/src/components/global';
+import { FeedPostCard, TextInputField, Avatar } from '@/src/components/global';
 import { ArrowLeft } from 'lucide-react-native';
 import type { CommentRow } from '@/src/api/comments';
 
@@ -102,19 +102,14 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                         return (
                                                                                 <Box key={comment.id} className="mb-4 bg-white">
                                                                                         <Box className="flex-row items-start">
-                                                                                                {avatarUrl ? (
-                                                                                                        <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
-                                                                                                                <Image
-                                                                                                                        source={{ uri: avatarUrl }}
-                                                                                                                        style={{ width: 32, height: 32 }}
-                                                                                                                        resizeMode="cover"
-                                                                                                                />
-                                                                                                        </Box>
-                                                                                                ) : (
-                                                                                                        <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
-                                                                                                                <Text className="text-white text-xs font-medium">{initials}</Text>
-                                                                                                        </Box>
-                                                                                                )}
+                                                                                                <Box className="mr-3">
+                                                                                                        <Avatar
+                                                                                                                avatarUrl={avatarUrl}
+                                                                                                                initials={initials}
+                                                                                                                size={32}
+                                                                                                                fallbackColor="#009689"
+                                                                                                        />
+                                                                                                </Box>
                                                                                                 <Box className="flex-1">
                                                                                                         <Text className="text-sm font-semibold text-neutral-900">
                                                                                                                 {userName}
