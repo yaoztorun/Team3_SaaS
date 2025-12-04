@@ -1,9 +1,10 @@
 import React from 'react';
-import { Dimensions } from 'react-native';
+import { ActivityIndicator } from 'react-native';
 import { BarChart, PieChart } from 'react-native-chart-kit';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
+import { Center } from '@/src/components/ui/center';
 import { Heading } from '@/src/components/global';
 import { colors } from '@/src/theme/colors';
 import type { UserStats } from '@/src/api/stats';
@@ -12,21 +13,35 @@ interface ProfileStatsProps {
     userStats: UserStats | null;
     avgRatingOutOf5: string | number;
     ratingTrendCounts5: number[];
+    loading?: boolean;
+    title?: string;
 }
 
 export const ProfileStats: React.FC<ProfileStatsProps> = ({
     userStats,
     avgRatingOutOf5,
     ratingTrendCounts5,
+    loading = false,
+    title = 'Your Stats',
 }) => {
     const barChartColor = colors.primary[500];
+
+    if (loading) {
+        return (
+            <Box className="bg-white rounded-2xl p-4 mb-4">
+                <Center className="py-4">
+                    <ActivityIndicator size="large" color="#00BBA7" />
+                </Center>
+            </Box>
+        );
+    }
 
     return (
         <>
             {/* Stats Overview */}
             <Box className="bg-white rounded-2xl p-4 mb-4">
                 <Text className="text-base text-neutral-900 mb-4">
-                    Your Stats
+                    {title}
                 </Text>
                 <HStack className="justify-between">
                     <Box className="items-center">
