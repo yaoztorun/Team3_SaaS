@@ -91,23 +91,22 @@ export const ProfileScreen = () => {
   const [streakCount, setStreakCount] = useState(0);
   const [totalDrinks, setTotalDrinks] = useState(0);
 
-  // Derived stats display (out of 5)
+  // Derived stats display (0-5 scale)
   const avgRatingOutOf5 = useMemo(() => {
     const raw = userStats?.avgRating ?? 0;
-    return Math.round(raw / 2);
+    return Math.round(raw);
   }, [userStats?.avgRating]);
 
   const ratingTrendCounts5 = useMemo(() => {
     const arr = userStats?.ratingTrend?.map((it: any) => it.count) ?? [];
-    const c = (i: number) => (arr[i] ?? 0);
-    // Collapse 0..10 into 0..5 buckets
+    // Ratings are already on 0-5 scale, map them directly
     return [
-      c(0) + c(1),
-      c(2) + c(3),
-      c(4) + c(5),
-      c(6) + c(7),
-      c(8) + c(9),
-      c(10),
+      arr[0] ?? 0,  // 0 stars
+      arr[1] ?? 0,  // 1 star
+      arr[2] ?? 0,  // 2 stars
+      arr[3] ?? 0,  // 3 stars
+      arr[4] ?? 0,  // 4 stars
+      arr[5] ?? 0,  // 5 stars
     ];
   }, [userStats?.ratingTrend]);
 
