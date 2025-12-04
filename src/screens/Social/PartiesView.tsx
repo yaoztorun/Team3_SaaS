@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ActivityIndicator, TouchableOpacity, Image, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
@@ -22,10 +22,12 @@ export const PartiesView = () => {
     const [myEventsCollapsed, setMyEventsCollapsed] = useState(false);
     const [friendsEventsCollapsed, setFriendsEventsCollapsed] = useState(false);
 
-    // Load events on mount
-    useEffect(() => {
-        loadEvents();
-    }, []);
+    // Load events when screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            loadEvents();
+        }, [])
+    );
 
     const loadEvents = async () => {
         setLoading(true);
