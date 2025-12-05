@@ -179,10 +179,10 @@ This document provides:
 ### DIMENSION 3: SOCIAL INFLUENCE (SI)
 *"The degree to which an individual perceives that important others believe they should use Sippin"*
 
-1. People who are important to me would think using Sippin is a good idea.
-2. My friends would encourage me to use Sippin to track cocktails.
-3. People whose opinions I value would support me using Sippin.
-4. My friends would understand and appreciate my use of Sippin.
+1. My friends would enjoy seeing my cocktail posts and experiences in the feed.
+2. I would be motivated to use Sippin if my friends were also using it to share their cocktails.
+3. Organizing or attending cocktail parties through Sippin would be appealing to my social circle.
+4. My friends would appreciate being tagged in my cocktail posts and event experiences.
 
 ---
 
@@ -192,7 +192,7 @@ This document provides:
 1. I have the resources necessary to use Sippin (smartphone, internet).
 2. Sippin is compatible with the way I currently discover and try cocktails.
 3. In my area, there are enough cocktail bars/venues to make Sippin useful.
-4. I would be able to get help if I had difficulties using Sippin.
+4. I can easily figure out how to use Sippin's features without needing instructions.
 
 ---
 
