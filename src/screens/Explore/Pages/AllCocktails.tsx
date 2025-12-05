@@ -5,7 +5,7 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView, Animated } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
 import { fetchAllCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip, SearchBar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
@@ -135,31 +135,33 @@ export const AllCocktails = () => {
         };
     }, []);
 
-    // Fetch user's bookmarked cocktails
-    useEffect(() => {
-        const fetchBookmarks = async () => {
-            if (!user) {
-                setBookmarkedCocktailIds(new Set());
-                return;
-            }
-
-            try {
-                const { data, error } = await supabase
-                    .from('bookmarks')
-                    .select('cocktail_id')
-                    .eq('user_id', user.id);
-
-                if (!error && data) {
-                    const ids = new Set(data.map(b => b.cocktail_id));
-                    setBookmarkedCocktailIds(ids);
+    // Fetch user's bookmarked cocktails when screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            const fetchBookmarks = async () => {
+                if (!user) {
+                    setBookmarkedCocktailIds(new Set());
+                    return;
                 }
-            } catch (err) {
-                console.error('Error fetching bookmarks:', err);
-            }
-        };
 
-        fetchBookmarks();
-    }, [user]);
+                try {
+                    const { data, error } = await supabase
+                        .from('bookmarks')
+                        .select('cocktail_id')
+                        .eq('user_id', user.id);
+
+                    if (!error && data) {
+                        const ids = new Set(data.map(b => b.cocktail_id));
+                        setBookmarkedCocktailIds(ids);
+                    }
+                } catch (err) {
+                    console.error('Error fetching bookmarks:', err);
+                }
+            };
+
+            fetchBookmarks();
+        }, [user])
+    );
 
     const filtered = useMemo(() => {
         const q = debouncedQuery.trim().toLowerCase();

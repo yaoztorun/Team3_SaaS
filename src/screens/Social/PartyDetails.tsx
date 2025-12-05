@@ -363,12 +363,11 @@ export const PartyDetails: React.FC = () => {
                                 <Box className="space-y-3">
                                     {waitlistedAttendees.map((attendee) => (
                                         <Box key={attendee.id} className="bg-gray-50 rounded-xl p-3">
-                                            <HStack className="items-center justify-between">
+                                            <Box className="space-y-3">
                                                 <Pressable
                                                     onPress={() => navigation.navigate('UserProfile', { userId: attendee.id })}
-                                                    className="flex-1"
                                                 >
-                                                    <HStack className="items-center flex-1">
+                                                    <HStack className="items-center">
                                                         <Avatar
                                                             avatarUrl={attendee.avatar_url}
                                                             initials={getInitials(attendee.full_name)}
@@ -381,9 +380,9 @@ export const PartyDetails: React.FC = () => {
                                                     </HStack>
                                                 </Pressable>
                                                 {isHost && (
-                                                    <HStack className="gap-2">
+                                                    <Box className="gap-2">
                                                         <Pressable
-                                                            className="rounded-lg px-4 py-2"
+                                                            className="rounded-lg px-4 py-2 w-full"
                                                             onPress={() => handleApproval(attendee.id, true)}
                                                             disabled={processingRequests.has(attendee.id) || isMaxAttendeesReached}
                                                             style={{
@@ -391,12 +390,12 @@ export const PartyDetails: React.FC = () => {
                                                                 opacity: (processingRequests.has(attendee.id) || isMaxAttendeesReached) ? 0.5 : 1
                                                             }}
                                                         >
-                                                            <Text className="text-sm font-semibold" style={{ color: '#ffffff' }}>
+                                                            <Text className="text-sm font-semibold text-center" style={{ color: '#ffffff' }}>
                                                                 {isMaxAttendeesReached ? 'Full' : 'Accept'}
                                                             </Text>
                                                         </Pressable>
                                                         <Pressable
-                                                            className="rounded-lg px-4 py-2"
+                                                            className="rounded-lg px-4 py-2 w-full"
                                                             onPress={() => handleApproval(attendee.id, false)}
                                                             disabled={processingRequests.has(attendee.id)}
                                                             style={{
@@ -406,11 +405,11 @@ export const PartyDetails: React.FC = () => {
                                                                 opacity: processingRequests.has(attendee.id) ? 0.5 : 1
                                                             }}
                                                         >
-                                                            <Text className="text-sm font-semibold" style={{ color: '#000000' }}>Decline</Text>
+                                                            <Text className="text-sm font-semibold text-center" style={{ color: '#000000' }}>Decline</Text>
                                                         </Pressable>
-                                                    </HStack>
+                                                    </Box>
                                                 )}
-                                            </HStack>
+                                            </Box>
                                         </Box>
                                     ))}
                                 </Box>
