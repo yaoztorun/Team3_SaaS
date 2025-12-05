@@ -13,4 +13,10 @@ config.resolver = {
   },
 };
 
+// Configure asset plugins for proper web bundling
+config.transformer = {
+  ...config.transformer,
+  assetPlugins: ['expo-asset/tools/hashAssetFiles'],
+};
+
 module.exports = withNativeWind(config, { input: './global.css' });
