@@ -1161,7 +1161,11 @@ export const HomeScreen: React.FC = () => {
                       onToggleLike={() => handleToggleLike(focusedPost.id)}
                       // comments button does nothing here (we're already in detail)
                       onPressComments={() => { }}
-                      onPressUser={() => handlePressUser(focusedPost.userId)}
+                      onPressUser={() => {
+                        if (focusedPost.userId) {
+                          handlePressUser(focusedPost.userId);
+                        }
+                      }}
                       onPressTags={() => {
                         if (focusedPost.taggedFriends && focusedPost.taggedFriends.length > 0) {
                           setCurrentTaggedFriends(focusedPost.taggedFriends);
