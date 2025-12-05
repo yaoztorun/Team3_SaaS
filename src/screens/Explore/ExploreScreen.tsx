@@ -16,6 +16,7 @@ import { fetchShopItems } from '@/src/api/shop';
 import type { DBShopItem } from '@/src/api/shop';
 import { fetchPublicEventsWithDetails } from '@/src/api/event';
 import type { EventWithDetails } from '@/src/api/event';
+import { supabase } from '@/src/lib/supabase';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -105,13 +106,19 @@ export const ExploreScreen = () => {
 
             const loadPublicEvents = async () => {
                 setLoadingEvents(true);
+                
+                // Get current user
+                const { data: { user } } = await supabase.auth.getUser();
+                
                 const events = await fetchPublicEventsWithDetails();
 
-                // Filter out past events
+                // Filter out past events and events created by current user
                 const now = new Date();
                 const upcomingEvents = events.filter(event => {
                     const eventDate = event.start_time ? new Date(event.start_time) : null;
-                    return !eventDate || eventDate >= now;
+                    const isUpcoming = !eventDate || eventDate >= now;
+                    const isNotOwnEvent = event.organiser_id !== user?.id;
+                    return isUpcoming && isNotOwnEvent;
                 });
 
                 // Show first 5 for preview
