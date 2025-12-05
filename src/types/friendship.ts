@@ -1,14 +1,13 @@
+import { Tables } from './supabase';
 import { Profile } from './profile';
 
-export type FriendshipStatus = 'pending' | 'accepted';
+// Base Friendship type from database
+export type FriendshipRow = Tables<'Friendship'>;
 
-export type Friendship = {
-    id: string;
-    created_at: string;
-    user_id: string;
-    friend_id: string;
-    status: FriendshipStatus;
-};
+// Application types
+export type FriendshipStatus = 'pending' | 'accepted' | 'declined' | 'blocked';
+
+export type Friendship = FriendshipRow;
 
 export type FriendshipWithProfile = Friendship & {
     user_profile?: Profile;

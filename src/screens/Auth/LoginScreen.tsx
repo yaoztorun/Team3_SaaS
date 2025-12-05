@@ -4,10 +4,11 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
 import { spacing } from '@/src/theme/spacing';
@@ -23,14 +24,19 @@ const LoginScreen: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSignUpHovered, setIsSignUpHovered] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
 
     const handleLogin = async () => {
+        setIsLoading(true);
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
+        setIsLoading(false);
+        
         if (error) {
             setMessage(error.message);
             posthogCapture(ANALYTICS_EVENTS.LOGIN_COMPLETED, {
@@ -104,9 +110,9 @@ const LoginScreen: React.FC = () => {
                             resizeMode: 'contain',
                         }}
                     />
-                    <Text className="text-2xl font-bold text-neutral-900 mt-6 mb-2">
-                        Welcome Back!
-                    </Text>
+                    <Heading level="h2" className="mt-6 mb-2">
+                        Welcome Back
+                    </Heading>
                     <Text className="text-neutral-500 text-center">
                         Sign in to access your cocktail recipes and personalized recommendations
                     </Text>
@@ -121,6 +127,7 @@ const LoginScreen: React.FC = () => {
                         onChangeText={setEmail}
                         autoCapitalize="none"
                         keyboardType="email-address"
+                        onSubmitEditing={handleLogin}
                     />
 
                     <Box className="mt-6 mb-8">
@@ -129,8 +136,17 @@ const LoginScreen: React.FC = () => {
                             placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry
+                            secureTextEntry={!showPassword}
                             onSubmitEditing={handleLogin}
+                            icon={
+                                <Pressable onPress={() => setShowPassword(!showPassword)}>
+                                    {showPassword ? (
+                                        <EyeOff size={20} color="#717182" />
+                                    ) : (
+                                        <Eye size={20} color="#717182" />
+                                    )}
+                                </Pressable>
+                            }
                         />
                     </Box>
 
@@ -146,6 +162,8 @@ const LoginScreen: React.FC = () => {
                     <PrimaryButton 
                         title="Sign In" 
                         onPress={handleLogin}
+                        loading={isLoading}
+                        disabled={isLoading}
                     />
 
                     {/* Forgot Password */}

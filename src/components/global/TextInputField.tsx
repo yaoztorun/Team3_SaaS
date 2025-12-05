@@ -7,15 +7,17 @@ interface TextInputFieldProps extends TextInputProps {
     label?: string;
     required?: boolean;
     icon?: React.ReactNode;
+    iconPosition?: 'left' | 'right';
     error?: string;
 }
 
-export const TextInputField: React.FC<TextInputFieldProps> = ({ 
-    label, 
+export const TextInputField: React.FC<TextInputFieldProps> = ({
+    label,
     required = false,
     icon,
+    iconPosition = 'right',
     error,
-    ...props 
+    ...props
 }) => {
     const [isFocused, setIsFocused] = useState(false);
 
@@ -26,30 +28,30 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
                     {label} {required && '*'}
                 </Text>
             )}
-            <View 
-                className="bg-white rounded-lg border flex-row items-center" 
+            <View
+                className="bg-white rounded-lg border flex-row items-center"
                 style={{
-                    shadowColor: '#000', 
-                    shadowOffset: { width: 0, height: 1 }, 
-                    shadowOpacity: 0.05, 
-                    shadowRadius: 2, 
-                    elevation: 1,
-                    borderColor: error ? '#EF4444' : (isFocused ? '#9CA3AF' : '#E5E7EB'),
+                    borderColor: error ? '#EF4444' : (isFocused ? '#9CA3AF' : '#D1D5DB'),
                 }}
             >
-                {icon && (
+                {icon && iconPosition === 'left' && (
                     <Box className="pl-3">
                         {icon}
                     </Box>
                 )}
-                <RNTextInput 
-                    className={`flex-1 p-3 ${icon ? 'pl-2' : ''}`}
+                <RNTextInput
+                    className={`flex-1 p-3 ${icon && iconPosition === 'left' ? 'pl-2' : ''} ${icon && iconPosition === 'right' ? 'pr-2' : ''}`}
                     placeholderTextColor="#717182"
                     style={{ outlineStyle: 'none' } as any}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     {...props}
                 />
+                {icon && iconPosition === 'right' && (
+                    <Box className="pr-3">
+                        {icon}
+                    </Box>
+                )}
             </View>
             {error && (
                 <Text className="text-sm text-red-500">{error}</Text>

@@ -1,14 +1,21 @@
-// src/components/global/FeedPostCard.tsx
-import React from 'react';
-import { Image } from 'react-native';
+import React, { useState } from 'react';
+import { Image, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Heart, MessageCircle, Share2 } from 'lucide-react-native';
+import { shareSystemSheet, shareToWhatsApp, copyLinkForLog } from '@/src/utils/share';
+import { posthogCapture, trackFirstTime, ANALYTICS_EVENTS } from '@/src/analytics';
+import { useAuth } from '@/src/hooks/useAuth';
+import { TaggedUser } from '@/src/api/tags';
+import { Avatar } from './Avatar';
 
 interface FeedPostCardProps {
+  id: string;
+  cocktailId: string;
   userName: string;
   userInitials: string;
+  userId?: string;
   timeAgo: string;
   cocktailName: string;
   rating: number;
@@ -17,6 +24,8 @@ interface FeedPostCardProps {
   comments: number;
   caption: string;
   isLiked?: boolean;
+  taggedFriends?: TaggedUser[];
+  avatarUrl?: string;
 
   // highlight glow
   isHighlighted?: boolean;
@@ -24,12 +33,17 @@ interface FeedPostCardProps {
   // callbacks
   onToggleLike?: () => void;
   onPressComments?: () => void;
-  onPressUser?: () => void;   // 👈 NEW
+  onPressUser?: () => void;
+  onPressTags?: () => void;
+  onPressCocktail?: (cocktailId: string) => void;
 }
 
 export const FeedPostCard: React.FC<FeedPostCardProps> = ({
+  id,
+  cocktailId,
   userName,
   userInitials,
+  userId: postUserId,
   timeAgo,
   cocktailName,
   rating,
@@ -38,11 +52,77 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
   comments,
   caption,
   isLiked = false,
+  taggedFriends = [],
+  avatarUrl,
   isHighlighted = false,
   onToggleLike,
   onPressComments,
   onPressUser,
+  onPressTags,
+  onPressCocktail,
 }) => {
+  const [shareOpen, setShareOpen] = useState(false);
+  const { user } = useAuth();
+  const userId = user?.id;
+
+  const handleWhatsApp = async () => {
+    // Track first share with TTFA if it's user's first time
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'whatsapp',
+    });
+    
+    // Also track regular share event (for all shares)
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'whatsapp',
+      });
+    }
+    
+    await shareToWhatsApp(id, cocktailName, userId);
+    setShareOpen(false);
+  };
+  
+  const handleCopyLink = async () => {
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'copy_link',
+    });
+    
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'copy_link',
+      });
+    }
+    
+    await copyLinkForLog(id, userId);
+    setShareOpen(false);
+  };
+  
+  const handleSystemShare = async () => {
+    const isFirstShare = trackFirstTime(ANALYTICS_EVENTS.SHARE_CLICKED, {
+      post_id: id,
+      cocktail_name: cocktailName,
+      share_method: 'system',
+    });
+    
+    if (!isFirstShare) {
+      posthogCapture(ANALYTICS_EVENTS.SHARE_CLICKED, {
+        post_id: id,
+        cocktail_name: cocktailName,
+        share_method: 'system',
+      });
+    }
+    
+    await shareSystemSheet(id, cocktailName, userId, 'system');
+    setShareOpen(false);
+  };
   return (
     <Box
       className="rounded-2xl bg-white overflow-hidden"
@@ -61,8 +141,13 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         className="flex-row items-center px-4 pt-4 pb-3"
         onPress={onPressUser}
       >
-        <Box className="w-10 h-10 rounded-full bg-[#009689] items-center justify-center mr-3">
-          <Text className="text-white font-medium">{userInitials}</Text>
+        <Box className="mr-3">
+          <Avatar
+            avatarUrl={avatarUrl}
+            initials={userInitials}
+            size={40}
+            fallbackColor="#009689"
+          />
         </Box>
         <Box className="flex-1">
           <Text className="text-base font-medium text-neutral-900">
@@ -73,7 +158,16 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
       </Pressable>
 
       {/* Cocktail Image */}
-      <Box className="w-full h-[414px] relative">
+      <Box 
+        className="w-full h-[414px] relative"
+        style={{
+          borderTopWidth: 1,
+          borderBottomWidth: 1,
+          borderColor: '#e5e7eb',
+          borderRadius: 8,
+          overflow: 'hidden',
+        }}
+      >
         <Image
           source={{ uri: imageUrl }}
           style={{ width: '100%', height: '100%' }}
@@ -81,12 +175,28 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         />
         {/* Cocktail name and rating badge */}
         <Box className="absolute bottom-4 left-4 right-4 flex-row items-center justify-between">
-          <Box className="bg-white/90 rounded-xl px-3 py-2">
+          <Pressable 
+            className="rounded-xl px-3 py-2 flex-row items-center"
+            style={{
+              borderWidth: 2,
+              borderColor: '#14b8a6',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            }}
+            onPress={() => onPressCocktail?.(cocktailId)}
+          >
+            <Text className="text-base mr-1">🍸</Text>
             <Text className="text-sm text-neutral-900">{cocktailName}</Text>
-          </Box>
-          <Box className="bg-white/90 rounded-xl px-3 py-2 flex-row items-center">
+          </Pressable>
+          <Box 
+            className="rounded-xl px-3 py-2 flex-row items-center"
+            style={{
+              borderWidth: 2,
+              borderColor: '#14b8a6',
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            }}
+          >
             <Text className="text-yellow-500 mr-1">⭐</Text>
-            <Text className="text-sm text-neutral-900">{rating}</Text>
+            <Text className="text-sm text-neutral-900">{rating ?? 0}</Text>
           </Box>
         </Box>
       </Box>
@@ -97,6 +207,62 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
         {caption ? (
           <Text className="text-sm text-neutral-900 mb-3">{caption}</Text>
         ) : null}
+
+        {/* Tagged Friends */}
+        {taggedFriends.length > 0 && (
+          <Pressable
+            className="flex-row items-center mb-3"
+            onPress={onPressTags}
+          >
+            <Text className="text-sm text-neutral-600 mr-2">with</Text>
+            <Box className="flex-row items-center">
+              {taggedFriends.slice(0, 3).map((friend, index) => (
+                <Box
+                  key={friend.id}
+                  style={{
+                    marginLeft: index > 0 ? -8 : 0,
+                    zIndex: 3 - index,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <Avatar
+                    avatarUrl={friend.avatar_url}
+                    initials={friend.full_name?.charAt(0)?.toUpperCase() || '?'}
+                    size={24}
+                    fallbackColor="#14b8a6"
+                  />
+                </Box>
+              ))}
+              {taggedFriends.length > 3 && (
+                <Box
+                  className="items-center justify-center bg-gray-300"
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 12,
+                    marginLeft: -8,
+                    borderWidth: 2,
+                    borderColor: '#fff',
+                  }}
+                >
+                  <Text className="text-xs font-medium text-gray-700">
+                    +{taggedFriends.length - 3}
+                  </Text>
+                </Box>
+              )}
+            </Box>
+            <Text className="text-sm text-neutral-600 ml-2">
+              {taggedFriends.length === 1
+                ? taggedFriends[0].full_name
+                : taggedFriends.length === 2
+                ? `${taggedFriends[0].full_name} and ${taggedFriends[1].full_name}`
+                : `${taggedFriends[0].full_name} and ${taggedFriends.length - 1} others`}
+            </Text>
+          </Pressable>
+        )}
 
         {/* Action buttons */}
         <Box className="flex-row items-center">
@@ -123,11 +289,59 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
           </Pressable>
 
           {/* Share (no handler yet) */}
-          <Pressable>
+          <Pressable onPress={() => setShareOpen(true)}>
             <Share2 size={20} color="#4a5565" />
           </Pressable>
         </Box>
       </Box>
+
+      {/* Share Bottom Modal */}
+      <Modal
+        visible={shareOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShareOpen(false)}
+      >
+        <Pressable className="flex-1 bg-black/40" onPress={() => setShareOpen(false)}>
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+            <Pressable onPress={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 480 }}>
+              <Box
+                className="bg-white rounded-t-3xl border-t border-neutral-200"
+                style={{
+                  paddingHorizontal: 16,
+                  paddingTop: 12,
+                  paddingBottom: 24,
+                  maxHeight: 260,
+                }}
+              >
+                <Text className="text-center text-base font-semibold mb-3">Share</Text>
+                <Box className="flex-row items-center justify-around py-2">
+                  <Pressable onPress={handleWhatsApp} className="items-center">
+                    <Box className="w-12 h-12 rounded-full bg-[#25D366] items-center justify-center">
+                      <Text className="text-white font-bold">WA</Text>
+                    </Box>
+                    <Text className="mt-2 text-xs text-neutral-900">WhatsApp</Text>
+                  </Pressable>
+
+                  <Pressable onPress={handleCopyLink} className="items-center">
+                    <Box className="w-12 h-12 rounded-full bg-neutral-900 items-center justify-center">
+                      <Text className="text-white font-bold">⎘</Text>
+                    </Box>
+                    <Text className="mt-2 text-xs text-neutral-900">Copy link</Text>
+                  </Pressable>
+
+                  <Pressable onPress={handleSystemShare} className="items-center">
+                    <Box className="w-12 h-12 rounded-full bg-neutral-200 items-center justify-center">
+                      <Text className="text-neutral-900 font-bold">…</Text>
+                    </Box>
+                    <Text className="mt-2 text-xs text-neutral-900">More…</Text>
+                  </Pressable>
+                </Box>
+              </Box>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Modal>
     </Box>
   );
 };

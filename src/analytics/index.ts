@@ -9,15 +9,16 @@ export const ANALYTICS_EVENTS = {
   
   // Activation
   FIRST_COCKTAIL_LOGGED: 'first_cocktail_logged',
-  FIRST_SHARE_CLICKED: 'first_share_clicked',
   FEATURE_USED: 'feature_used',
   
-  // Revenue
-  PREMIUM_UPGRADED: 'premium_upgraded',
+  // Revenue - Partnership tracking
+  SHOP_ITEM_VIEWED: 'shop_item_viewed',
+  SHOP_ITEM_CLICKED: 'shop_item_clicked',
   
   // Referral
-  INVITE_SENT: 'invite_sent',
   SHARE_CLICKED: 'share_clicked',
+  SHARE_LINK_OPENED: 'share_link_opened',
+  SHARE_CONVERTED: 'share_converted',
 } as const;
 
 export function initAnalytics() {
@@ -52,8 +53,25 @@ export function trackWithTTFA(eventName: string, properties?: Record<string, any
   posthogCapture(eventName, props);
 }
 
+// Helper to track first-time events (prevents double counting)
+export function trackFirstTime(eventName: string, properties?: Record<string, any>) {
+  const key = `first_time_${eventName}`;
+  const hasTracked = localStorage.getItem(key);
+  
+  if (!hasTracked) {
+    localStorage.setItem(key, 'true');
+    trackWithTTFA(eventName, { ...properties, is_first_time: true });
+    return true;
+  }
+  return false;
+}
+
 // Reset user identity on logout
 export function resetUser() {
   posthog.reset();
   sessionStartTime = null;
+  // Clear first-time event tracking on logout
+  Object.keys(localStorage)
+    .filter(key => key.startsWith('first_time_'))
+    .forEach(key => localStorage.removeItem(key));
 }

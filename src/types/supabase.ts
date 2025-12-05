@@ -16,9 +16,11 @@ export type Database = {
     Tables: {
       Cocktail: {
         Row: {
+          cocktail_type: Database["public"]["Enums"]["cocktail_type"] | null
           created_at: string
           creator_id: string | null
           difficulty: Database["public"]["Enums"]["difficulty"]
+          fun_fact: string | null
           id: string
           image_url: string | null
           ingredients: Json | null
@@ -28,9 +30,11 @@ export type Database = {
           origin_type: Database["public"]["Enums"]["cocktail_origin"] | null
         }
         Insert: {
+          cocktail_type?: Database["public"]["Enums"]["cocktail_type"] | null
           created_at?: string
           creator_id?: string | null
           difficulty?: Database["public"]["Enums"]["difficulty"]
+          fun_fact?: string | null
           id?: string
           image_url?: string | null
           ingredients?: Json | null
@@ -40,9 +44,11 @@ export type Database = {
           origin_type?: Database["public"]["Enums"]["cocktail_origin"] | null
         }
         Update: {
+          cocktail_type?: Database["public"]["Enums"]["cocktail_type"] | null
           created_at?: string
           creator_id?: string | null
           difficulty?: Database["public"]["Enums"]["difficulty"]
+          fun_fact?: string | null
           id?: string
           image_url?: string | null
           ingredients?: Json | null
@@ -194,42 +200,96 @@ export type Database = {
           },
         ]
       }
+      DrinkLogTag: {
+        Row: {
+          created_at: string | null
+          drink_log_id: string
+          id: string
+          tagged_user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          drink_log_id: string
+          id?: string
+          tagged_user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          drink_log_id?: string
+          id?: string
+          tagged_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "DrinkLogTag_drink_log_id_fkey"
+            columns: ["drink_log_id"]
+            isOneToOne: false
+            referencedRelation: "DrinkLog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "DrinkLogTag_tagged_user_id_fkey"
+            columns: ["tagged_user_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Event: {
         Row: {
+          cover_image: string | null
           created_at: string
           description: string | null
           end_time: string | null
           id: string
+          isApprovalRequired: boolean
+          isPublic: boolean
           location_id: string | null
           max_attendees: number | null
           name: string | null
           organiser_id: string | null
+          party_type: Database["public"]["Enums"]["party_type"]
           price: number | null
           start_time: string | null
+          type: Database["public"]["Enums"]["event_type"]
+          user_location_id: string | null
         }
         Insert: {
+          cover_image?: string | null
           created_at?: string
           description?: string | null
           end_time?: string | null
           id?: string
+          isApprovalRequired: boolean
+          isPublic: boolean
           location_id?: string | null
           max_attendees?: number | null
           name?: string | null
           organiser_id?: string | null
+          party_type: Database["public"]["Enums"]["party_type"]
           price?: number | null
           start_time?: string | null
+          type?: Database["public"]["Enums"]["event_type"]
+          user_location_id?: string | null
         }
         Update: {
+          cover_image?: string | null
           created_at?: string
           description?: string | null
           end_time?: string | null
           id?: string
+          isApprovalRequired?: boolean
+          isPublic?: boolean
           location_id?: string | null
           max_attendees?: number | null
           name?: string | null
           organiser_id?: string | null
+          party_type?: Database["public"]["Enums"]["party_type"]
           price?: number | null
           start_time?: string | null
+          type?: Database["public"]["Enums"]["event_type"]
+          user_location_id?: string | null
         }
         Relationships: [
           {
@@ -244,6 +304,13 @@ export type Database = {
             columns: ["organiser_id"]
             isOneToOne: false
             referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Event_user_location_id_fkey"
+            columns: ["user_location_id"]
+            isOneToOne: false
+            referencedRelation: "UserLocations"
             referencedColumns: ["id"]
           },
         ]
@@ -423,6 +490,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          settings: Json | null
         }
         Insert: {
           avatar_url?: string | null
@@ -430,6 +498,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          settings?: Json | null
         }
         Update: {
           avatar_url?: string | null
@@ -437,6 +506,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          settings?: Json | null
         }
         Relationships: []
       }
@@ -473,6 +543,44 @@ export type Database = {
         }
         Relationships: []
       }
+      UserLocations: {
+        Row: {
+          city: string | null
+          created_at: string
+          creator_id: string | null
+          house_nr: number | null
+          id: string
+          label: string | null
+          street: string | null
+        }
+        Insert: {
+          city?: string | null
+          created_at?: string
+          creator_id?: string | null
+          house_nr?: number | null
+          id?: string
+          label?: string | null
+          street?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string
+          creator_id?: string | null
+          house_nr?: number | null
+          id?: string
+          label?: string | null
+          street?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "UserLocations_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -488,7 +596,21 @@ export type Database = {
     }
     Enums: {
       cocktail_origin: "system" | "user"
+      cocktail_type:
+        | "vodka"
+        | "gin"
+        | "rum"
+        | "whiskey"
+        | "tequila"
+        | "brandy"
+        | "liqueur"
+        | "wine"
+        | "beer"
+        | "other_spirits"
+        | "non_alcoholic"
+        | "mixed_spirits"
       difficulty: "easy" | "medium" | "hard"
+      event_type: "party" | "event"
       friendship_status: "pending" | "accepted" | "declined" | "blocked"
       log_permissions: "private" | "public" | "friends" | "only_me"
       notification_type:
@@ -497,6 +619,13 @@ export type Database = {
         | "friend_request"
         | "friend_accepted"
         | "close_friend_post"
+      party_type:
+        | "house party"
+        | "outdoor event"
+        | "bar meetup"
+        | "themed party"
+        | "workshop"
+        | "tasting"
       registration_status: "registered" | "cancelled" | "waitlisted"
     }
     CompositeTypes: {
@@ -626,7 +755,22 @@ export const Constants = {
   public: {
     Enums: {
       cocktail_origin: ["system", "user"],
+      cocktail_type: [
+        "vodka",
+        "gin",
+        "rum",
+        "whiskey",
+        "tequila",
+        "brandy",
+        "liqueur",
+        "wine",
+        "beer",
+        "other_spirits",
+        "non_alcoholic",
+        "mixed_spirits",
+      ],
       difficulty: ["easy", "medium", "hard"],
+      event_type: ["party", "event"],
       friendship_status: ["pending", "accepted", "declined", "blocked"],
       log_permissions: ["private", "public", "friends", "only_me"],
       notification_type: [
@@ -635,6 +779,14 @@ export const Constants = {
         "friend_request",
         "friend_accepted",
         "close_friend_post",
+      ],
+      party_type: [
+        "house party",
+        "outdoor event",
+        "bar meetup",
+        "themed party",
+        "workshop",
+        "tasting",
       ],
       registration_status: ["registered", "cancelled", "waitlisted"],
     },

@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Image, ActivityIndicator, Modal, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Image, ActivityIndicator } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { useNavigation } from '@react-navigation/native';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, ImagePickerModal, Heading, Avatar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { fetchProfile, updateProfile } from '@/src/api/profile';
-import { uploadProfileImage } from '@/src/api/storage';
+import { uploadProfileImage, deleteProfileImage } from '@/src/api/storage';
 import type { Profile } from '@/src/types/profile';
 import { Center } from '@/src/components/ui/center';
 import { createCameraHandlers } from '@/src/utils/camera';
-import { Pencil, Camera, Image as ImageIcon, X, ArrowLeft } from 'lucide-react-native';
+import { Pencil, ArrowLeft } from 'lucide-react-native';
 
 const EditProfile: React.FC = () => {
     const navigation = useNavigation();
@@ -64,6 +64,16 @@ const EditProfile: React.FC = () => {
         // If user selected a new image, upload it to Storage first
         if (tempImageUri) {
             setUploading(true);
+            
+            // Delete old avatar if it exists and is stored in our bucket
+            if (avatarUrl && avatarUrl.includes('/storage/v1/object/public/avatars/')) {
+                const { error: deleteError } = await deleteProfileImage(avatarUrl);
+                if (deleteError) {
+                    console.warn('Failed to delete old avatar:', deleteError);
+                    // Continue anyway - don't block the update
+                }
+            }
+            
             const uploadResult = await uploadProfileImage(user.id, tempImageUri);
             setUploading(false);
             
@@ -95,7 +105,7 @@ const EditProfile: React.FC = () => {
                 <Pressable onPress={() => navigation.goBack()} className="mr-4">
                     <ArrowLeft size={24} color="#000" />
                 </Pressable>
-                <Text className="text-xl font-semibold">Edit Profile</Text>
+                <Heading level="h4">Edit Profile</Heading>
             </Box>
             <ScrollView
                 className="flex-1 px-4 pt-6"
@@ -103,26 +113,17 @@ const EditProfile: React.FC = () => {
             >
                 {loading ? (
                     <Box className="mb-6 items-center py-8">
-                        <ActivityIndicator size="large" color="#14b8a6" />
+                        <ActivityIndicator size="large" color="#00BBA7" />
                     </Box>
                 ) : (
                     <Box className="mb-6 items-center">
                         <Box className="relative">
-                            {(tempImageUri || avatarUrl) ? (
-                                <Box className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
-                                    <Image 
-                                        source={{ uri: tempImageUri || avatarUrl }} 
-                                        style={{ width: 96, height: 96 }}
-                                        resizeMode="cover"
-                                    />
-                                </Box>
-                            ) : (
-                                <Center className="h-24 w-24 rounded-full bg-teal-600">
-                                    <Text className="text-2xl text-white">
-                                        {fullName?.charAt(0)?.toUpperCase() || email?.charAt(0)?.toUpperCase() || '?'}
-                                    </Text>
-                                </Center>
-                            )}
+                            <Avatar
+                                avatarUrl={tempImageUri || avatarUrl}
+                                initials={fullName?.charAt(0)?.toUpperCase() || email?.charAt(0)?.toUpperCase() || '?'}
+                                size={96}
+                                fallbackColor="#14b8a6"
+                            />
                             <Pressable 
                                 className="absolute bottom-0 right-0 bg-teal-500 rounded-full p-2"
                                 onPress={() => setShowImagePicker(true)}
@@ -142,6 +143,7 @@ const EditProfile: React.FC = () => {
                                     value={fullName}
                                     onChangeText={setFullName}
                                     placeholder="Enter your full name"
+                                    onSubmitEditing={handleSave}
                                 />
                             </Box>
 
@@ -155,8 +157,9 @@ const EditProfile: React.FC = () => {
                         </Box>
 
                         <PrimaryButton
-                            title={uploading ? "Uploading image..." : saving ? "Saving..." : "Save Changes"}
+                            title="Save Changes"
                             onPress={handleSave}
+                            loading={saving || uploading}
                             disabled={saving || uploading}
                         />
                     </>
@@ -164,58 +167,13 @@ const EditProfile: React.FC = () => {
             </ScrollView>
 
             {/* Image Picker Modal */}
-            <Modal
+            <ImagePickerModal
                 visible={showImagePicker}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setShowImagePicker(false)}
-            >
-                <TouchableOpacity 
-                    className="flex-1 bg-black/50 justify-end"
-                    activeOpacity={1}
-                    onPress={() => setShowImagePicker(false)}
-                >
-                    <TouchableOpacity 
-                        activeOpacity={1} 
-                        onPress={(e) => e.stopPropagation()}
-                    >
-                        <Box className="bg-white rounded-t-3xl p-6">
-                            <Box className="flex-row justify-between items-center mb-4">
-                                <Text className="text-xl font-semibold">Change Profile Picture</Text>
-                                <Pressable onPress={() => setShowImagePicker(false)}>
-                                    <X size={24} color="#666" />
-                                </Pressable>
-                            </Box>
-
-                            <TouchableOpacity
-                                className="bg-gray-50 rounded-xl p-4 mb-3 flex-row items-center"
-                                onPress={handleCameraPress}
-                            >
-                                <Box className="bg-teal-500 rounded-full p-3 mr-4">
-                                    <Camera size={24} color="white" />
-                                </Box>
-                                <Box>
-                                    <Text className="text-base font-medium text-neutral-900">Take Photo</Text>
-                                    <Text className="text-sm text-gray-600">Use your camera</Text>
-                                </Box>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                className="bg-gray-50 rounded-xl p-4 flex-row items-center"
-                                onPress={handleGalleryPress}
-                            >
-                                <Box className="bg-teal-500 rounded-full p-3 mr-4">
-                                    <ImageIcon size={24} color="white" />
-                                </Box>
-                                <Box>
-                                    <Text className="text-base font-medium text-neutral-900">Choose from Library</Text>
-                                    <Text className="text-sm text-gray-600">Select an existing photo</Text>
-                                </Box>
-                            </TouchableOpacity>
-                        </Box>
-                    </TouchableOpacity>
-                </TouchableOpacity>
-            </Modal>
+                onClose={() => setShowImagePicker(false)}
+                onCameraPress={handleCameraPress}
+                onGalleryPress={handleGalleryPress}
+                title="Change Profile Picture"
+            />
         </Box>
     );
 };

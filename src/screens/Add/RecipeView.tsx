@@ -7,10 +7,13 @@ import {
     TextInputField,
     ImageUploadBox,
     DifficultySelector,
+    IngredientInput,
+    UnitSelectorModal,
 } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import uploadImageUri from '@/src/utils/storage';
 import { fetchIngredientUsage } from '@/src/api/cocktail';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 interface RecipeViewProps {
     handleCameraPress: () => void;
@@ -18,7 +21,9 @@ interface RecipeViewProps {
     photoUri: string | null;
     selectedDifficulty: 'Easy' | 'Medium' | 'Hard';
     setSelectedDifficulty: (v: 'Easy' | 'Medium' | 'Hard') => void;
-    onRecipeCreated: () => void;
+    onRecipeCreated: (created: { id: string; name: string; image_url: string | null }) => void;
+    hasInteracted: boolean;
+    setHasInteracted: (v: boolean) => void;
 }
 
 const RecipeView: React.FC<RecipeViewProps> = ({
@@ -28,17 +33,29 @@ const RecipeView: React.FC<RecipeViewProps> = ({
     selectedDifficulty,
     setSelectedDifficulty,
     onRecipeCreated,
+    hasInteracted,
+    setHasInteracted,
 }) => {
     // Ingredient row shape
     type Ingredient = { id: string; name: string; amount: string; unit: string };
     type InstructionStep = { id: string; text: string };
 
     const MAX_STEPS = 20;
+    const MAX_INGREDIENT_NAME_LENGTH = 25;
 
     const UNITS = ['ml', 'oz', 'tsp', 'tbsp', 'dash', 'slice', 'piece', 'to taste'];
 
+    // Mark form as interacted when user starts filling fields
+    const handleFieldInteraction = () => {
+        if (!hasInteracted) {
+            setHasInteracted(true);
+        }
+    };
+
     // Ingredient suggestions loaded from database
     const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
+    const [unitModalVisible, setUnitModalVisible] = useState<string | null>(null);
+    const [customIngredientIds, setCustomIngredientIds] = useState<Set<string>>(new Set());
 
     const [recipeName, setRecipeName] = useState('');
     const [isCheckingName, setIsCheckingName] = useState(false);
@@ -76,6 +93,11 @@ const RecipeView: React.FC<RecipeViewProps> = ({
         setIngredients(prev => prev.filter(i => i.id !== id));
         setNameQueryByIndex(q => { const copy = { ...q }; delete copy[id]; return copy; });
         setSuggestionsVisibleByIndex(s => { const copy = { ...s }; delete copy[id]; return copy; });
+        setCustomIngredientIds(prev => {
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+        });
     };
 
     const filteredSuggestions = (query: string) => {
@@ -115,7 +137,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
     // Check if recipe name already exists in DB (debounced)
     useEffect(() => {
-        if (!recipeName || recipeName.trim().length < 2) {
+        if (!recipeName || recipeName.trim().length < 1) {
             setNameExists(false);
             return;
         }
@@ -154,10 +176,11 @@ const RecipeView: React.FC<RecipeViewProps> = ({
         step.text.trim()
     );
     const canSubmit =
-        recipeName.trim() &&
+        recipeName.trim().length >= 2 &&
         !nameExists &&
         !isCheckingName &&
         photoUri &&
+        selectedDifficulty &&
         hasValidIngredients &&
         hasValidInstructions;
 
@@ -174,6 +197,28 @@ const RecipeView: React.FC<RecipeViewProps> = ({
             if (userErr || !user) {
                 console.error('Error fetching user', userErr);
                 alert('Authentication error. Please sign in and try again.');
+                setIsUploading(false);
+                return;
+            }
+
+            // Final server-side check for duplicate name
+            const { data: existingRecipe, error: checkError } = await supabase
+                .from('Cocktail')
+                .select('id')
+                .ilike('name', recipeName.trim())
+                .limit(1);
+
+            if (checkError) {
+                console.error('Error checking recipe name:', checkError);
+                alert('Error validating recipe name. Please try again.');
+                setIsUploading(false);
+                return;
+            }
+
+            if (existingRecipe && existingRecipe.length > 0) {
+                alert('A recipe with this name already exists. Please choose a different name.');
+                setNameExists(true);
+                setIsUploading(false);
                 return;
             }
 
@@ -212,7 +257,9 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                         instructions: formattedInstructions as any,
                         created_at: new Date().toISOString(),
                     },
-                ]);
+                ])
+                .select()
+                .single();
 
             if (insertError) {
                 console.error('Insert error', insertError);
@@ -220,8 +267,21 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                 return;
             }
 
-            // Success - notify parent to show modal and clear form
-            onRecipeCreated();
+            // Success - notify parent with created recipe info
+            if (insertData) {
+                // Track recipe creation
+                posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                    feature: 'recipe_created',
+                    difficulty: selectedDifficulty.toLowerCase(),
+                    ingredient_count: ingredients.length,
+                    instruction_count: instructions.length,
+                    has_photo: !!uploadedUrl,
+                });
+                
+                onRecipeCreated({ id: insertData.id, name: insertData.name, image_url: insertData.image_url });
+            } else {
+                onRecipeCreated({ id: '', name: recipeName.trim(), image_url: uploadedUrl });
+            }
 
             // Clear all form fields
             setRecipeName('');
@@ -249,7 +309,10 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                     required
                     placeholder="Name your cocktail recipe"
                     value={recipeName}
-                    onChangeText={setRecipeName}
+                    onChangeText={(text) => {
+                        handleFieldInteraction();
+                        setRecipeName(text);
+                    }}
                 />
                 {isCheckingName && (
                     <Text className="text-sm text-neutral-400">Checking availability...</Text>
@@ -268,12 +331,8 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                 <ImageUploadBox
                     onCameraPress={handleCameraPress}
                     onGalleryPress={handleGalleryPress}
+                    imageUri={photoUri}
                 />
-                {photoUri && (
-                    <Box className="mt-3 rounded-xl overflow-hidden">
-                        <RNImage source={{ uri: photoUri }} style={{ width: '100%', height: 200 }} resizeMode="cover" />
-                    </Box>
-                )}
             </Box>
 
             {/* Ingredients */}
@@ -287,59 +346,33 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                     )}
 
                     {ingredients.map((ing) => (
-                        <Box key={ing.id} className="mb-2">
-                            <Box className="flex-row space-x-2 items-center">
-                                <Box className="flex-1">
-                                    <TextInputField
-                                        placeholder="Ingredient"
-                                        value={ing.name}
-                                        onChangeText={(t) => handleIngredientNameChange(ing.id, t)}
-                                        onFocus={() => setSuggestionsVisibleByIndex(s => ({ ...s, [ing.id]: true }))}
-                                    />
-                                    {suggestionsVisibleByIndex[ing.id] && (
-                                        <Box className="bg-white border border-gray-100 rounded-lg mt-1">
-                                            {filteredSuggestions(nameQueryByIndex[ing.id] || '').map(s => (
-                                                <TouchableOpacity key={s} className="px-3 py-2 border-b border-gray-100" onPress={() => {
-                                                    updateIngredient(ing.id, { name: s });
-                                                    setSuggestionsVisibleByIndex(sv => ({ ...sv, [ing.id]: false }));
-                                                    setNameQueryByIndex(q => ({ ...q, [ing.id]: s }));
-                                                }}>
-                                                    <Text>{s}</Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                            <TouchableOpacity className="px-3 py-2" onPress={() => {
-                                                setSuggestionsVisibleByIndex(sv => ({ ...sv, [ing.id]: false }));
-                                            }}>
-                                                <Text className="text-sm text-neutral-400">Use custom entry</Text>
-                                            </TouchableOpacity>
-                                        </Box>
-                                    )}
-                                </Box>
-
-                                <Box style={{ width: 80 }}>
-                                    <TextInputField
-                                        placeholder="Amt"
-                                        value={ing.amount}
-                                        onChangeText={(t) => handleIngredientAmountChange(ing.id, t)}
-                                        keyboardType="numeric"
-                                    />
-                                </Box>
-
-                                <Box style={{ width: 100 }}>
-                                    <TouchableOpacity className="p-3 rounded-lg border border-gray-200 bg-white flex-row justify-between items-center" onPress={() => {
-                                        const nextIndex = (UNITS.indexOf(ing.unit) + 1) % UNITS.length;
-                                        updateIngredient(ing.id, { unit: UNITS[nextIndex] });
-                                    }}>
-                                        <Text className="text-neutral-600">{ing.unit}</Text>
-                                        <Text>▼</Text>
-                                    </TouchableOpacity>
-                                </Box>
-
-                                <TouchableOpacity onPress={() => removeIngredient(ing.id)} className="ml-2 p-2">
-                                    <Text className="text-red-500">✕</Text>
-                                </TouchableOpacity>
-                            </Box>
-                        </Box>
+                        <IngredientInput
+                            key={ing.id}
+                            ingredient={ing}
+                            maxNameLength={MAX_INGREDIENT_NAME_LENGTH}
+                            onNameChange={(name) => handleIngredientNameChange(ing.id, name)}
+                            onAmountChange={(amount) => handleIngredientAmountChange(ing.id, amount)}
+                            onUnitPress={() => setUnitModalVisible(ing.id)}
+                            onRemove={() => removeIngredient(ing.id)}
+                            onNameFocus={() => setSuggestionsVisibleByIndex(s => ({ ...s, [ing.id]: true }))}
+                            showSuggestions={!!suggestionsVisibleByIndex[ing.id]}
+                            suggestions={filteredSuggestions(nameQueryByIndex[ing.id] || '')}
+                            onSuggestionSelect={(s) => {
+                                updateIngredient(ing.id, { name: s });
+                                setSuggestionsVisibleByIndex(sv => ({ ...sv, [ing.id]: false }));
+                                setNameQueryByIndex(q => ({ ...q, [ing.id]: s }));
+                                setCustomIngredientIds(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(ing.id);
+                                    return next;
+                                });
+                            }}
+                            onCloseSuggestions={() => {
+                                setSuggestionsVisibleByIndex(sv => ({ ...sv, [ing.id]: false }));
+                                setCustomIngredientIds(prev => new Set(prev).add(ing.id));
+                            }}
+                            isCustomIngredient={customIngredientIds.has(ing.id)}
+                        />
                     ))}
 
                     <TouchableOpacity
@@ -350,6 +383,20 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                     </TouchableOpacity>
                 </Box>
             </Box>
+
+            {/* Unit Selection Modal */}
+            <UnitSelectorModal
+                visible={unitModalVisible !== null}
+                units={UNITS}
+                selectedUnit={unitModalVisible ? ingredients.find(i => i.id === unitModalVisible)?.unit || null : null}
+                onSelect={(unit) => {
+                    if (unitModalVisible) {
+                        updateIngredient(unitModalVisible, { unit });
+                        setUnitModalVisible(null);
+                    }
+                }}
+                onClose={() => setUnitModalVisible(null)}
+            />
 
             {/* Instructions */}
             <Box className="space-y-2">
@@ -393,7 +440,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
             {/* Difficulty */}
             <Box className="space-y-2">
-                <Text className="text-sm text-neutral-950">Difficulty</Text>
+                <Text className="text-sm text-neutral-950">Difficulty *</Text>
                 <Box className="bg-white p-4 rounded-xl border border-gray-200">
                     <DifficultySelector
                         selected={selectedDifficulty}
@@ -404,13 +451,14 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
             {/* Submit Button */}
             <PrimaryButton
-                title={isUploading ? 'Creating Recipe...' : 'Create Recipe'}
+                title="Create Recipe"
                 onPress={handleCreateRecipe}
+                loading={isUploading}
                 disabled={!canSubmit || isUploading}
             />
-            {!canSubmit && !isUploading && (
+            {!canSubmit && !isUploading && hasInteracted && (
                 <Text className="text-sm text-red-500 mt-2">
-                    Please complete all required fields: unique name, photo, at least one ingredient with amount, and at least one instruction step.
+                    Please complete all required fields: unique name (min 2 characters), photo, difficulty, at least one ingredient with amount, and at least one instruction step.
                 </Text>
             )}
         </Box>

@@ -4,14 +4,15 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
+import { getStoredReferralInfo, clearReferralInfo } from '@/src/utils/referral';
 
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -23,6 +24,9 @@ const RegisterScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isSignInHovered, setIsSignInHovered] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
 
@@ -32,6 +36,7 @@ const RegisterScreen: React.FC = () => {
             return;
         }
 
+        setIsLoading(true);
         // Track signup started
         posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
             method: 'email',
@@ -49,8 +54,15 @@ const RegisterScreen: React.FC = () => {
             }
         });
 
+        setIsLoading(false);
+
         if(error) {
-            setMessage(error.message);
+            // Better error handling for password requirements
+            let errorMessage = error.message;
+            if (error.message.toLowerCase().includes('password')) {
+                errorMessage = 'Password does not meet requirements';
+            }
+            setMessage(errorMessage);
             // Track failed signup
             posthogCapture(ANALYTICS_EVENTS.SIGNUP_STARTED, {
                 method: 'email',
@@ -62,16 +74,35 @@ const RegisterScreen: React.FC = () => {
 
         // Track successful signup
         if (data.user) {
+            // Get referral info if user came from a shared link
+            const referralInfo = getStoredReferralInfo();
+            
             identifyUser(data.user.id, {
                 email: data.user.email,
                 name: name || undefined,
                 created_at: new Date().toISOString(),
+                referred_by: referralInfo?.referredBy,
+                utm_source: referralInfo?.utmSource,
+                utm_medium: referralInfo?.utmMedium,
             });
             
             trackWithTTFA(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
                 method: 'email',
                 has_name: !!name,
+                referred_by: referralInfo?.referredBy,
+                utm_source: referralInfo?.utmSource,
             });
+            
+            // If user came from a share link, track conversion
+            if (referralInfo?.utmSource === 'share') {
+                posthogCapture(ANALYTICS_EVENTS.SHARE_CONVERTED, {
+                    referred_by: referralInfo.referredBy,
+                    utm_medium: referralInfo.utmMedium,
+                });
+            }
+            
+            // Clear referral info after use
+            clearReferralInfo();
         }
 
         setMessage('Registration successful! Please check your email to verify your account.');
@@ -101,9 +132,9 @@ const RegisterScreen: React.FC = () => {
                 </Box>
 
                 <Box className="items-center mt-2">
-                    <Text className="text-2xl font-bold text-neutral-900 mb-2">
+                    <Heading level="h2" className="mb-2">
                         Create Account
-                    </Text>
+                    </Heading>
                     <Text className="text-neutral-500 text-center">
                         Create your account to discover cocktails and get personalized recommendations
                     </Text>
@@ -117,6 +148,7 @@ const RegisterScreen: React.FC = () => {
                         value={name}
                         onChangeText={setName}
                         autoCapitalize="words"
+                        onSubmitEditing={handleRegister}
                     />
 
                     <Box className="mt-6">
@@ -127,6 +159,7 @@ const RegisterScreen: React.FC = () => {
                             onChangeText={setEmail}
                             autoCapitalize="none"
                             keyboardType="email-address"
+                            onSubmitEditing={handleRegister}
                         />
                     </Box>
 
@@ -136,8 +169,26 @@ const RegisterScreen: React.FC = () => {
                             placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry
+                            secureTextEntry={!showPassword}
+                            onSubmitEditing={handleRegister}
+                            icon={
+                                <Pressable onPress={() => setShowPassword(!showPassword)}>
+                                    {showPassword ? (
+                                        <EyeOff size={20} color="#717182" />
+                                    ) : (
+                                        <Eye size={20} color="#717182" />
+                                    )}
+                                </Pressable>
+                            }
                         />
+                        <Box className="mt-2">
+                            <Text className="text-xs text-neutral-500">
+                                Requirements:
+                            </Text>
+                            <Text className="text-xs text-neutral-500">• At least 8 characters</Text>
+                            <Text className="text-xs text-neutral-500">• Lowercase letters (a-z)</Text>
+                            <Text className="text-xs text-neutral-500">• Numbers (0-9)</Text>
+                        </Box>
                     </Box>
 
                     <Box className="mt-6 mb-8">
@@ -146,7 +197,17 @@ const RegisterScreen: React.FC = () => {
                             placeholder="Confirm your password"
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
-                            secureTextEntry 
+                            secureTextEntry={!showConfirmPassword}
+                            onSubmitEditing={handleRegister}
+                            icon={
+                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
+                                    {showConfirmPassword ? (
+                                        <EyeOff size={20} color="#717182" />
+                                    ) : (
+                                        <Eye size={20} color="#717182" />
+                                    )}
+                                </Pressable>
+                            }
                         />
                     </Box>
                     {message && (
@@ -161,6 +222,8 @@ const RegisterScreen: React.FC = () => {
                     <PrimaryButton 
                         title="Create Account" 
                         onPress={handleRegister}
+                        loading={isLoading}
+                        disabled={isLoading}
                     />
 
                     {/* Sign In Link */}

@@ -1,5 +1,5 @@
 {
-  "name": "mobile-app",
+  "name": "sippin",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -7,7 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "pwa": "npx expo export -p web && npx workbox-cli generateSW workbox-config.js && serve dist"
+    "pwa": "npx expo export -p web && npx workbox-cli generateSW workbox-config.js && serve dist",
+    "types:generate": "supabase gen types typescript --project-id jyoevzczpuipvnfqmfud > src/types/supabase.ts"
   },
   "dependencies": {
     "@expo/html-elements": "^0.10.1",
@@ -15,17 +16,18 @@
     "@gluestack-ui/core": "^3.0.10",
     "@gluestack-ui/themed": "^1.1.73",
     "@gluestack-ui/utils": "^3.0.11",
-    "@google/generative-ai": "^0.24.1",
     "@legendapp/motion": "^2.3.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "^8.5.0",
     "@react-navigation/bottom-tabs": "^7.7.3",
     "@react-navigation/native": "^7.1.19",
     "@react-navigation/native-stack": "^7.6.2",
-    "@react-navigation/stack": "^7.6.3",
+    "@react-navigation/stack": "^7.6.8",
     "@supabase/supabase-js": "^2.76.1",
     "expo": "~54.0.13",
     "expo-blur": "^15.0.7",
+    "expo-clipboard": "~6.0.1",
+    "expo-haptics": "~13.0.0",
     "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
     "expo-media-library": "~18.2.0",
@@ -39,6 +41,7 @@
     "react-dom": "19.1.0",
     "react-ga4": "^2.1.0",
     "react-native": "0.81.4",
+    "react-native-calendars": "^1.1313.0",
     "react-native-chart-kit": "^6.12.0",
     "react-native-gesture-handler": "~2.28.0",
     "react-native-get-random-values": "~1.11.0",
@@ -62,7 +65,9 @@
     "@types/react-native": "^0.72.8",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-preset-expo": "^54.0.4",
+    "expo-module-scripts": "^5.0.7",
     "react-refresh": "^0.18.0",
+    "serve": "^14.2.5",
     "supabase": "^2.58.5",
     "typescript": "~5.9.2",
     "workbox-cli": "^7.3.0"

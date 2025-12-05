@@ -3,9 +3,10 @@ import { ScrollView, ActivityIndicator } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
+import { Heading } from '@/src/components/global';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ChevronRight, Bot, MessageCircle } from 'lucide-react-native';
 import { PreviewCard, EventCard } from '@/src/components/global';
@@ -13,6 +14,8 @@ import { fetchLocations } from '@/src/api/location';
 import type { DBLocation } from '@/src/api/location';
 import { fetchShopItems } from '@/src/api/shop';
 import type { DBShopItem } from '@/src/api/shop';
+import { fetchPublicEventsWithDetails } from '@/src/api/event';
+import type { EventWithDetails } from '@/src/api/event';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -22,6 +25,8 @@ type RootStackParamList = {
     UpcomingEvents: undefined;
     Shop: undefined;
     ItemDetail: { itemId: string };
+    BarDetail: { bar: DBLocation };
+    CocktailDetail: { cocktail: any };
 };
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
@@ -32,51 +37,94 @@ export const ExploreScreen = () => {
     const [loadingBars, setLoadingBars] = useState(true);
     const [shopItems, setShopItems] = useState<DBShopItem[]>([]);
     const [loadingShop, setLoadingShop] = useState(true);
+    const [publicEvents, setPublicEvents] = useState<EventWithDetails[]>([]);
+    const [loadingEvents, setLoadingEvents] = useState(true);
+    const [topCocktails, setTopCocktails] = useState<any[]>([]);
+    const [loadingCocktails, setLoadingCocktails] = useState(true);
 
-    useEffect(() => {
-        const loadBars = async () => {
-            setLoadingBars(true);
-            const data = await fetchLocations();
-            if (data && data.length > 0) {
-                // Show top 3 rated bars (where rating is a number), or fill with unrated ones
-                const ratedBars = data.filter((bar: DBLocation) => {
-                    const r = (bar as any).rating;
-                    return typeof r === 'number';
-                });
-                const sortedBars = ratedBars
-                    .sort((a: DBLocation, b: DBLocation) => (((b as any).rating ?? 0) - ((a as any).rating ?? 0)))
-                    .slice(0, 3);
+    // Reload data when screen comes into focus (e.g., after creating recipe or event)
+    useFocusEffect(
+        React.useCallback(() => {
+            const loadTopCocktails = async () => {
+                setLoadingCocktails(true);
+                try {
+                    // Use the existing cocktail API
+                    const { fetchAllCocktails } = await import('@/src/api/cocktail');
+                    const cocktails = await fetchAllCocktails();
 
-                if (sortedBars.length < 3) {
-                    const unratedBars = data.filter((bar: DBLocation) => {
-                        const r = (bar as any).rating;
-                        return typeof r !== 'number';
-                    }).slice(0, 3 - sortedBars.length);
-                    setBars([...sortedBars, ...unratedBars]);
-                } else {
-                    setBars(sortedBars);
+                    // Get first 5 cocktails that have images
+                    const cocktailsWithImages = cocktails
+                        .filter(c => c.image_url)
+                        .slice(0, 5);
+
+                    if (cocktailsWithImages.length > 0) {
+                        setTopCocktails(cocktailsWithImages);
+                    } else {
+                        // If no cocktails with images, just get first 5
+                        setTopCocktails(cocktails.slice(0, 5));
+                    }
+                } catch (err) {
+                    console.error('Error loading cocktails:', err);
                 }
-            }
-            setLoadingBars(false);
-        };
-        loadBars();
-    }, []);
+                setLoadingCocktails(false);
+            };
 
-    useEffect(() => {
-        const loadShopItems = async () => {
-            setLoadingShop(true);
-            const data = await fetchShopItems();
-            // Filter for specific items
-            const targetItems = ['Smoking Kit', 'Bar Mat', 'Pure Sugar Cane Syrup'];
-            const selectedItems = data.filter(item => 
-                targetItems.some(target => item.name?.includes(target))
-            );
-            // If we found the items, use them, otherwise fall back to first 3
-            setShopItems(selectedItems.length > 0 ? selectedItems : data.slice(0, 3));
-            setLoadingShop(false);
-        };
-        loadShopItems();
-    }, []);
+            const loadBars = async () => {
+                setLoadingBars(true);
+                const data = await fetchLocations();
+                if (data && data.length > 0) {
+                    // Show top 3 rated bars (where rating is a number), or fill with unrated ones
+                    const ratedBars = data.filter((bar: DBLocation) => {
+                        const r = (bar as any).rating;
+                        return typeof r === 'number';
+                    });
+                    const sortedBars = ratedBars
+                        .sort((a: DBLocation, b: DBLocation) => (((b as any).rating ?? 0) - ((a as any).rating ?? 0)))
+                        .slice(0, 5);
+
+                    if (sortedBars.length < 5) {
+                        const unratedBars = data.filter((bar: DBLocation) => {
+                            const r = (bar as any).rating;
+                            return typeof r !== 'number';
+                        }).slice(0, 5 - sortedBars.length);
+                        setBars([...sortedBars, ...unratedBars]);
+                    } else {
+                        setBars(sortedBars);
+                    }
+                }
+                setLoadingBars(false);
+            };
+
+            const loadShopItems = async () => {
+                setLoadingShop(true);
+                const data = await fetchShopItems();
+                // Show first 5 shop items
+                setShopItems(data.slice(0, 5));
+                setLoadingShop(false);
+            };
+
+            const loadPublicEvents = async () => {
+                setLoadingEvents(true);
+                const events = await fetchPublicEventsWithDetails();
+
+                // Filter out past events
+                const now = new Date();
+                const upcomingEvents = events.filter(event => {
+                    const eventDate = event.start_time ? new Date(event.start_time) : null;
+                    return !eventDate || eventDate >= now;
+                });
+
+                // Show first 5 for preview
+                setPublicEvents(upcomingEvents.slice(0, 5));
+                setLoadingEvents(false);
+            };
+
+            loadTopCocktails();
+            loadBars();
+            loadShopItems();
+            loadPublicEvents();
+        }, [])
+    );
 
     const navigateToSection = (route: keyof RootStackParamList) => {
         navigation.navigate(route as any);
@@ -84,7 +132,7 @@ export const ExploreScreen = () => {
 
     return (
         <Box className="flex-1 bg-gray-50">
-            <TopBar title="Explore" />
+            <TopBar title="Explore" showLogo />
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
@@ -98,43 +146,35 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('AllCocktails')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">🍸</Text>
-                            <Text className="text-xl font-medium text-neutral-900">All Cocktails</Text>
-                        </Box>
+                        <Heading level="h4">All Cocktails</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
-                    >
-                        <Box className="mr-3">
-                            <PreviewCard
-                                emoji="🥃"
-                                title="Whiskey Sour"
-                                rating={4.8}
-                                variant="cocktail"
-                                onPress={() => navigateToSection('AllCocktails')}
-                            />
+                    {loadingCocktails ? (
+                        <Box className="px-4 py-8 items-center">
+                            <ActivityIndicator size="large" color="#00BBA7" />
                         </Box>
-                        <Box className="mr-3">
-                            <PreviewCard
-                                emoji="🍃"
-                                title="Mojito"
-                                rating={4.7}
-                                variant="cocktail"
-                                onPress={() => navigateToSection('AllCocktails')}
-                            />
+                    ) : topCocktails.length > 0 ? (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
+                        >
+                            {topCocktails.map((cocktail, index) => (
+                                <Box key={cocktail.id} className={index < topCocktails.length - 1 ? "mr-3" : ""}>
+                                    <PreviewCard
+                                        imageUrl={cocktail.image_url}
+                                        title={cocktail.name}
+                                        variant="cocktail"
+                                        onPress={() => navigation.navigate('CocktailDetail' as any, { cocktail })}
+                                    />
+                                </Box>
+                            ))}
+                        </ScrollView>
+                    ) : (
+                        <Box className="px-4">
+                            <Text className="text-gray-500 text-center">No cocktails available</Text>
                         </Box>
-                        <PreviewCard
-                            emoji="🍋"
-                            title="Margarita"
-                            rating={4.9}
-                            variant="cocktail"
-                            onPress={() => navigateToSection('AllCocktails')}
-                        />
-                    </ScrollView>
+                    )}
                 </Box>
 
                 {/* Divider */}
@@ -142,13 +182,13 @@ export const ExploreScreen = () => {
 
                 {/* AI Assistant Section */}
                 <Box className="px-4 mb-6">
-                    <Box className="flex-row items-center justify-between mb-3">
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">🤖</Text>
-                            <Text className="text-xl font-medium text-neutral-900">AI Assistant</Text>
-                        </Box>
+                    <Pressable
+                        onPress={() => navigateToSection('AIAssistant')}
+                        className="flex-row items-center justify-between mb-3"
+                    >
+                        <Heading level="h4">AI Assistant</Heading>
                         <ChevronRight size={20} color="#000" />
-                    </Box>
+                    </Pressable>
                     <Pressable
                         onPress={() => navigateToSection('AIAssistant')}
                         className="bg-white border-2 border-[#00bba7] rounded-2xl p-6"
@@ -170,13 +210,10 @@ export const ExploreScreen = () => {
 
                 {/* What Can I Make Section */}
                 <Box className="px-4 mb-6">
-                    <Box className="flex-row items-center mb-3">
-                        <Text className="text-2xl mr-2">🔮</Text>
-                        <Text className="text-xl font-medium text-neutral-900">What Can I Make?</Text>
-                    </Box>
+                    <Heading level="h4" className="mb-3">What Can I Make?</Heading>
                     <Pressable
                         onPress={() => navigateToSection('WhatCanIMake')}
-                        className="border-2 border-[#00d5be] rounded-2xl p-8 items-center justify-center"
+                        className="border-2 border-[#00bba7] rounded-2xl p-8 items-center justify-center"
                     >
                         <Text className="text-3xl mb-1">+</Text>
                         <Text className="text-sm text-[#4a5565]">Add Ingredients</Text>
@@ -192,15 +229,12 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('BestBars')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">⭐</Text>
-                            <Text className="text-xl font-medium text-neutral-900">Best Bars</Text>
-                        </Box>
+                        <Heading level="h4">Best Bars</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
                     {loadingBars ? (
                         <Box className="px-4 py-8 items-center">
-                            <ActivityIndicator size="large" color="#14b8a6" />
+                            <ActivityIndicator size="large" color="#00BBA7" />
                         </Box>
                     ) : bars.length > 0 ? (
                         <ScrollView
@@ -211,11 +245,11 @@ export const ExploreScreen = () => {
                             {bars.map((bar, index) => (
                                 <Box key={bar.id} className={index < bars.length - 1 ? "mr-3" : ""}>
                                     <PreviewCard
-                                        emoji="🍸"
+                                        imageUrl={bar.image_url ?? undefined}
                                         title={bar.name ?? 'Unknown'}
                                         rating={(bar as any).rating ?? undefined}
                                         variant="bar"
-                                        onPress={() => navigateToSection('BestBars')}
+                                        onPress={() => navigation.navigate('BarDetail', { bar })}
                                     />
                                 </Box>
                             ))}
@@ -236,36 +270,45 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('UpcomingEvents')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">📍</Text>
-                            <Text className="text-xl font-medium text-neutral-900">
-                                Upcoming Events Nearby
-                            </Text>
-                        </Box>
+                        <Heading level="h4">Upcoming Events Nearby</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
-                    <ScrollView
-                        horizontal
-                        showsHorizontalScrollIndicator={false}
-                        contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
-                    >
-                        <Box className="mr-3">
-                            <EventCard
-                                title="Craft Cocktail Night"
-                                dateTime="Tomorrow 8pm"
-                                attending={23}
-                                price="$15"
-                                onPress={() => navigateToSection('UpcomingEvents')}
-                            />
+                    {loadingEvents ? (
+                        <Box className="px-4 py-8 items-center">
+                            <ActivityIndicator size="large" color="#00BBA7" />
                         </Box>
-                        <EventCard
-                            title="Mojito Happy Hour"
-                            dateTime="Saturday 7pm"
-                            attending={45}
-                            price="Free"
-                            onPress={() => navigateToSection('UpcomingEvents')}
-                        />
-                    </ScrollView>
+                    ) : publicEvents.length > 0 ? (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: spacing.screenHorizontal }}
+                        >
+                            {publicEvents.map((event, index) => {
+                                const startDate = event.start_time ? new Date(event.start_time) : null;
+                                const dateTimeStr = startDate
+                                    ? `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} ${startDate.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true })}`
+                                    : 'TBA';
+                                const priceStr = event.price === null || event.price === 0 ? 'Free' : `€${event.price}`;
+
+                                return (
+                                    <Box key={event.id} className={index < publicEvents.length - 1 ? "mr-3" : ""}>
+                                        <EventCard
+                                            title={event.name || 'Event'}
+                                            dateTime={dateTimeStr}
+                                            attending={event.attendee_count || 0}
+                                            price={priceStr}
+                                            imageUrl={event.cover_image ?? undefined}
+                                            onPress={() => navigation.navigate('PartyDetails' as any, { party: event })}
+                                        />
+                                    </Box>
+                                );
+                            })}
+                        </ScrollView>
+                    ) : (
+                        <Box className="px-4">
+                            <Text className="text-gray-500 text-center">No upcoming events</Text>
+                        </Box>
+                    )}
                 </Box>
 
                 {/* Divider */}
@@ -277,15 +320,12 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('Shop')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Box className="flex-row items-center">
-                            <Text className="text-2xl mr-2">🛍️</Text>
-                            <Text className="text-xl font-medium text-neutral-900">Our Shop</Text>
-                        </Box>
+                        <Heading level="h4">Our Shop</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
                     {loadingShop ? (
                         <Box className="px-4">
-                            <ActivityIndicator size="small" color="#8B5CF6" />
+                            <ActivityIndicator size="small" color="#00BBA7" />
                         </Box>
                     ) : shopItems.length === 0 ? (
                         <Box className="px-4">
@@ -300,7 +340,7 @@ export const ExploreScreen = () => {
                             {shopItems.map((item, index) => (
                                 <Box key={item.id} className={index < shopItems.length - 1 ? 'mr-3' : ''}>
                                     <PreviewCard
-                                        emoji="🛍️"
+                                        imageUrl={item.image ?? undefined}
                                         title={item.name || 'Shop Item'}
                                         price={`€${item.price?.toFixed(2) || '0.00'}`}
                                         variant="shop"

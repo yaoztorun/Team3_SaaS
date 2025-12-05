@@ -8,9 +8,9 @@ export type AuthStackParamList = {
 };
 
 export type MainTabParamList = {
-    Home: undefined;
+    Home: { openDrinkLogId?: string } | undefined;
     Explore: undefined;
-    Add: undefined;
+    Add: { prefilledCocktailId?: string; prefilledCocktailName?: string; prefilledCocktailImageUrl?: string } | undefined;
     Social: undefined;
     Profile: undefined;
 };
@@ -18,11 +18,12 @@ export type MainTabParamList = {
 export type RootStackParamList = {
     Auth: NavigatorScreenParams<AuthStackParamList>;
     Main: NavigatorScreenParams<MainTabParamList>;
+    UserProfile: { userId: string };
     Settings: undefined;
 };
 
 declare global {
     namespace ReactNavigation {
-        interface RootParamList extends RootStackParamList {}
+        interface RootParamList extends RootStackParamList { }
     }
 }

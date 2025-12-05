@@ -8,6 +8,7 @@ import { fetchCocktails, fetchIngredientUsage } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PrimaryButton, SearchBar, FilterChip } from '@/src/components/global';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -48,7 +49,7 @@ export const WhatCanIMake = () => {
                     // Fallback to fetching full cocktails and processing client-side
                     console.warn('RPC fetchIngredientUsage failed, falling back to client-side processing.', rpcErr);
 
-                    const data = await fetchCocktails();
+                    const data = await fetchPublicCocktails();
                     const countMap = new Map<string, number>();
                     const nameMap = new Map<string, string>();
 
@@ -97,16 +98,20 @@ export const WhatCanIMake = () => {
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="What Can I Make?" showBack onBackPress={() => navigation.goBack()} />
 
-            <ScrollView contentContainerStyle={{ padding: 16 }}>
-                {/* Search input */}
-                <Box className="mb-4">
-                    <SearchBar
-                        value={query}
-                        onChangeText={setQuery}
-                        placeholder="Search ingredients..."
-                    />
-                </Box>
+            {/* Search bar - stays at top */}
+            <Box className="px-4 pt-4 pb-2">
+                <SearchBar
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder="Search ingredients..."
+                />
+            </Box>
 
+            {/* Scrollable content - starts below search bar */}
+            <ScrollView
+                className="flex-1"
+                contentContainerStyle={{ padding: 16 }}
+            >
                 {/* Instructions */}
                 <Box className="mb-3">
                     <Text className="text-sm text-gray-600">Please select ingredients you have available:</Text>
@@ -139,7 +144,13 @@ export const WhatCanIMake = () => {
                 <Box>
                     <PrimaryButton
                         title="Find cocktails"
-                        onPress={() => navigation.navigate('MatchingCocktails', { selectedIngredients: selected })}
+                        onPress={() => {
+                            posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                                feature: 'what_can_i_make',
+                                ingredients_count: selected.length,
+                            });
+                            navigation.navigate('MatchingCocktails', { selectedIngredients: selected });
+                        }}
                     />
                 </Box>
             </ScrollView>

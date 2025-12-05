@@ -3,18 +3,149 @@ import type { Tables } from '../types/supabase'
 
 export type DBCocktail = Tables<'Cocktail'>;
 
-export async function fetchCocktails(): Promise<DBCocktail[]> {
+/**
+ * Fetch public cocktails (both system and user-created public recipes)
+ * Includes creator profile information for user-created cocktails
+ */
+export async function fetchPublicCocktails(): Promise<DBCocktail[]> {
         const { data, error } = await supabase
                 .from('Cocktail')
-                .select('*')
-                .order('created_at', { ascending: false }); // or 'name' if preferred
+                .select(`
+                        *,
+                        Profile (
+                                id,
+                                full_name,
+                                avatar_url
+                        )
+                `)
+                .eq('is_public', true) // Only show public cocktails
+                .order('created_at', { ascending: false });
 
         if (error) {
-                console.error('Error fetching cocktails:', error);
+                console.error('Error fetching public cocktails:', error);
                 return [];
         }
 
         return (data ?? []) as DBCocktail[];
+}
+
+/**
+ * Fetch the current user's private personal recipes only
+ */
+export async function fetchPrivatePersonalRecipes(): Promise<DBCocktail[]> {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+                return [];
+        }
+
+        const { data, error } = await supabase
+                .from('Cocktail')
+                .select(`
+                        *,
+                        Profile (
+                                id,
+                                full_name,
+                                avatar_url
+                        )
+                `)
+                .eq('creator_id', user.id) // Only user's own recipes
+                .eq('is_public', false) // Only private recipes (public ones are already in fetchPublicCocktails)
+                .order('created_at', { ascending: false });
+
+        if (error) {
+                console.error('Error fetching private personal recipes:', error);
+                return [];
+        }
+
+        return (data ?? []) as DBCocktail[];
+}
+
+/**
+ * Fetch cocktails for "All Cocktails" page:
+ * - System cocktails (creator_id IS NULL)
+ * - Public recipes from all users (is_public = true)
+ * - User's own private recipes (creator_id = user.id AND is_public = false)
+ * 
+ * Combines fetchPublicCocktails() and fetchPrivatePersonalRecipes()
+ */
+export async function fetchAllCocktails(): Promise<DBCocktail[]> {
+        // Fetch public cocktails (includes system + public user recipes with Profile data)
+        const [publicCocktails, privateRecipes] = await Promise.all([
+                fetchPublicCocktails(),
+                fetchPrivatePersonalRecipes()
+        ]);
+
+        // Combine and remove duplicates based on ID
+        const allCocktails = [...publicCocktails, ...privateRecipes];
+        const uniqueCocktails = Array.from(
+                new Map(allCocktails.map(c => [c.id, c])).values()
+        );
+
+        return uniqueCocktails as DBCocktail[];
+}
+
+/**
+ * Fetch a single cocktail by ID with creator profile
+ * Access control is handled by RLS policies:
+ * - Returns public cocktails (is_public = true)
+ * - Returns user's own cocktails (creator_id = auth.uid())
+ * - Returns null for private cocktails owned by others
+ */
+export async function fetchCocktailById(cocktailId: string): Promise<DBCocktail | null> {
+        const { data, error } = await supabase
+                .from('Cocktail')
+                .select(`
+                        *,
+                        Profile (
+                                id,
+                                full_name,
+                                avatar_url
+                        )
+                `)
+                .eq('id', cocktailId)
+                .single();
+
+        if (error) {
+                console.error('Error fetching cocktail:', error);
+                return null;
+        }
+
+        return data as DBCocktail;
+}
+
+/**
+ * Fetch distinct cocktail types from the database
+ * Formats types by replacing underscores with spaces (e.g., "mixed_drinks" -> "mixed drinks")
+ */
+export async function fetchCocktailTypes(): Promise<string[]> {
+        try {
+                const { data, error } = await supabase
+                        .from('Cocktail')
+                        .select('cocktail_type')
+                        .is('creator_id', null) // Only system cocktails
+                        .not('cocktail_type', 'is', null);
+
+                if (error) {
+                        console.error('Error fetching cocktail types:', error);
+                        return [];
+                }
+
+                // Get distinct values and format them
+                const types = [...new Set(data.map(item => item.cocktail_type).filter(Boolean))];
+                // Replace underscores with spaces and capitalize first letter of each word
+                const formattedTypes = types.map(type => {
+                        const withSpaces = type.replace(/_/g, ' ');
+                        // Capitalize first letter of each word
+                        return withSpaces.split(' ').map((word: string) => 
+                                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                        ).join(' ');
+                });
+                return formattedTypes as string[];
+        } catch (e) {
+                console.error('Unexpected error fetching cocktail types:', e);
+                return [];
+        }
 }
 
 /**

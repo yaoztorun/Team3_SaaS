@@ -1,0 +1,38 @@
+import React from 'react';
+import { Text } from '@/src/components/ui/text';
+import type { TextProps } from 'react-native';
+
+type HeadingLevel = 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+interface HeadingProps extends Omit<TextProps, 'className'> {
+  level?: HeadingLevel;
+  className?: string;
+  children: React.ReactNode;
+}
+
+const headingStyles: Record<HeadingLevel, string> = {
+  h1: 'text-3xl font-semibold text-neutral-950',
+  h2: 'text-2xl font-medium text-neutral-950',
+  h3: 'text-xl font-medium text-neutral-900',
+  h4: 'text-lg font-medium text-neutral-900',
+  h5: 'text-base font-normal text-neutral-900',
+  h6: 'text-sm font-normal text-neutral-900',
+};
+
+export const Heading: React.FC<HeadingProps> = ({ 
+  level = 'h3', 
+  className = '', 
+  children,
+  ...props 
+}) => {
+  const baseStyles = headingStyles[level];
+  
+  return (
+    <Text 
+      className={`font-heading ${baseStyles} ${className}`}
+      {...props}
+    >
+      {children}
+    </Text>
+  );
+};

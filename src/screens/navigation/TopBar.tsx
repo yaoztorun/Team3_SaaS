@@ -1,5 +1,6 @@
 // src/screens/navigation/TopBar.tsx
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigation } from '@react-navigation/native';
 import { View, Image } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/src/components/ui/box';
@@ -17,6 +18,7 @@ import { spacing } from '@/src/theme/spacing';
 import { NotificationModal, Notification } from './NotificationModal';
 import { useAuth } from '@/src/hooks/useAuth';
 import { supabase } from '@/src/lib/supabase';
+import { Heading } from '@/src/components/global';
 import {
   fetchNotifications,
   getUnreadNotificationCount,
@@ -25,6 +27,7 @@ import {
   formatTimeAgo,
   type NotificationRow,
 } from '@/src/api/notifications';
+import { calculateStreakFromDates } from '@/src/utils/streak';
 
 interface TopBarProps {
   streakCount?: number;
@@ -39,6 +42,7 @@ interface TopBarProps {
   onSettingsPress?: () => void;
   showBack?: boolean;
   onBackPress?: () => void;
+  showLogo?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -49,10 +53,12 @@ export const TopBar: React.FC<TopBarProps> = ({
   showSettingsIcon = false,
   onSettingsPress,
   showBack = false,
+  showLogo = false,
   onBackPress,
 }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const navigation = useNavigation<any>();
 
   // notifications state
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -62,34 +68,6 @@ export const TopBar: React.FC<TopBarProps> = ({
   // stats state (streak + total drinks)
   const [computedStreak, setComputedStreak] = useState<number | null>(null);
   const [computedDrinks, setComputedDrinks] = useState<number | null>(null);
-
-  // ---------- helpers ----------
-
-  const toDayString = (date: Date) => date.toISOString().slice(0, 10);
-
-  const computeStreakFromDates = (dates: string[]): number => {
-    if (dates.length === 0) return 0;
-
-    const daySet = new Set<string>(
-      dates.map((iso) => new Date(iso).toISOString().slice(0, 10)),
-    );
-
-    const today = new Date();
-    let current = new Date(today);
-    let streak = 0;
-
-    // Only count if user has logged *today*
-    if (!daySet.has(toDayString(today))) {
-      return 0;
-    }
-
-    while (daySet.has(toDayString(current))) {
-      streak += 1;
-      current.setDate(current.getDate() - 1);
-    }
-
-    return streak;
-  };
 
   // ---------- load stats from DrinkLog ----------
 
@@ -116,7 +94,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       }
 
       const dates = (data ?? []).map((row: any) => row.created_at as string);
-      const streak = computeStreakFromDates(dates);
+      const streak = calculateStreakFromDates(dates);
       setComputedStreak(streak);
       setComputedDrinks(count ?? 0);
     };
@@ -171,6 +149,17 @@ export const TopBar: React.FC<TopBarProps> = ({
         type: notification.type,
         drinkLogId: notification.drinkLogId,
       });
+    } else if (notification.drinkLogId) {
+      // Fallback: open Home tab and deep-link to the post
+      try {
+        navigation.navigate('Home' as never, { openDrinkLogId: notification.drinkLogId } as never);
+      } catch (e) {
+        // As a fallback, go via Main -> Home
+        navigation.navigate('Main' as never, {
+          screen: 'Home',
+          params: { openDrinkLogId: notification.drinkLogId },
+        } as never);
+      }
     }
 
     // close modal + mark all read in DB (doesn't block UI)
@@ -235,10 +224,10 @@ export const TopBar: React.FC<TopBarProps> = ({
     <Box
       className="bg-white"
       style={{
-        paddingTop: insets.top + spacing.screenVertical,
-        paddingBottom: spacing.screenVertical,
-        paddingLeft: spacing.screenHorizontal,
-        paddingRight: spacing.screenHorizontal,
+        paddingTop: insets.top + 16,
+        paddingBottom: 16,
+        paddingLeft: 12,
+        paddingRight: 12,
         borderBottomWidth: 1,
         borderBottomColor: '#e5e7eb',
       }}
@@ -251,41 +240,54 @@ export const TopBar: React.FC<TopBarProps> = ({
         }}
       >
         {/* Title on Left (optionally with back) */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
           {showBack && (
-            <Pressable onPress={onBackPress} style={{ padding: 6 }}>
+            <Pressable onPress={onBackPress}>
               <ArrowLeft size={20} color="#111827" />
             </Pressable>
           )}
 
-          {title === 'Feed' ? (
-            <Image
-              source={require('../../../assets/icon.png')}
-              style={{
-                width: 50,
-                height: 50,
-                resizeMode: 'contain',
-              }}
-            />
+          {/* Logo (shown only on main pages) */}
+          {showLogo ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+              <Pressable onPress={() => navigation.navigate('Home')}>
+                <Image
+                  source={require('../../../assets/icon.png')}
+                  style={{
+                    width: 40,
+                    height: 40,
+                    resizeMode: 'contain',
+                  }}
+                />
+              </Pressable>
+              <Heading
+                level="h2"
+                style={{
+                  letterSpacing: -0.5,
+                }}
+              >
+                {title}
+              </Heading>
+            </View>
           ) : (
-            <Text
+            <Heading
+              level="h2"
+              numberOfLines={1}
               style={{
-                fontSize: 26,
-                fontWeight: '700',
-                color: '#111827',
                 letterSpacing: -0.5,
+                flexShrink: 1,
               }}
             >
               {title}
-            </Text>
+            </Heading>
           )}
         </View>
 
         {/* Right side: either settings icon (for profile) or stats + bell */}
-        <View style={{ flexDirection: 'row', gap: 20, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           {showSettingsIcon ? (
-            <Pressable onPress={onSettingsPress}>
-              <SettingsIcon size={22} color="#6b7280" />
+            <Pressable onPress={onSettingsPress} style={{ marginRight: 4 }}>
+              <SettingsIcon size={24} color="#6b7280" />
             </Pressable>
           ) : (
             <>
@@ -294,13 +296,13 @@ export const TopBar: React.FC<TopBarProps> = ({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 4,
                 }}
               >
-                <Flame size={18} color="#f97316" fill="#f97316" />
+                <Flame size={20} color="#f97316" fill="#f97316" />
                 <Text
                   style={{
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: '700',
                     color: '#ea580c',
                   }}
@@ -314,13 +316,13 @@ export const TopBar: React.FC<TopBarProps> = ({
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 4,
                 }}
               >
-                <GlassWater size={18} color={colors.primary[500]} />
+                <GlassWater size={20} color={colors.primary[500]} />
                 <Text
                   style={{
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: '700',
                     color: colors.primary[600],
                   }}
@@ -331,7 +333,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
               {/* Notification Bell */}
               <Pressable onPress={handleBellPress} className="relative">
-                <Bell size={22} color="#6b7280" strokeWidth={2} />
+                <Bell size={24} color="#6b7280" strokeWidth={2} />
                 {unreadCount > 0 && (
                   <View className="absolute -top-1 -right-1 bg-[#00BBA7] rounded-full w-2 h-2" />
                 )}

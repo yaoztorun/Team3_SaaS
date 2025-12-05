@@ -1,13 +1,15 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
-import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView } from 'react-native';
+import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView, Animated } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
-import { fetchCocktails, DBCocktail } from '@/src/api/cocktail';
-import { useNavigation } from '@react-navigation/native';
+import { fetchAllCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { FilterChip } from '@/src/components/global';
+import { FilterChip, SearchBar } from '@/src/components/global';
+import { useAuth } from '@/src/hooks/useAuth';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -24,21 +26,87 @@ const LIST_TOP_SPACER = 24;
 
 export const AllCocktails = () => {
     const navigation = useNavigation<NavigationProp>();
+    const route = useRoute<any>();
+    const { user } = useAuth();
     const [query, setQuery] = useState('');
     const [debouncedQuery, setDebouncedQuery] = useState('');
-    const [activeCategory, setActiveCategory] = useState('All');
+    const [activeType, setActiveType] = useState('All');
+    const [activeDifficulty, setActiveDifficulty] = useState('All');
     const [cocktails, setCocktails] = useState<DBCocktail[]>([]);
+    const [cocktailTypes, setCocktailTypes] = useState<string[]>([]);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
-    const [overlayHeight, setOverlayHeight] = useState(0);
+    const [searchBarHeight, setSearchBarHeight] = useState(0);
+    const [filtersHeight, setFiltersHeight] = useState(0);
 
-    const categories = ['All', 'Tropical', 'Classic', 'Modern', 'Whiskey'];
+    const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
+
+    // Scroll-aware filter animation (not search bar)
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const lastScrollY = useRef(0);
+    const filtersTranslateY = useRef(new Animated.Value(0)).current;
+    const isAnimating = useRef(false);
+
+    const handleScroll = Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        {
+            useNativeDriver: true,
+            listener: (event: any) => {
+                const currentScrollY = event.nativeEvent.contentOffset.y;
+                const diff = currentScrollY - lastScrollY.current;
+
+                // Only hide/show filters after scrolling past the initial padding
+                if (currentScrollY > 50 && Math.abs(diff) > 2 && !isAnimating.current) {
+                    if (diff > 0) {
+                        // Scrolling down - hide filters immediately
+                        isAnimating.current = true;
+                        Animated.timing(filtersTranslateY, {
+                            toValue: -(filtersHeight || 0),
+                            duration: 150,
+                            useNativeDriver: true,
+                        }).start(() => {
+                            isAnimating.current = false;
+                        });
+                    } else if (diff < 0) {
+                        // Scrolling up - show filters immediately
+                        isAnimating.current = true;
+                        Animated.timing(filtersTranslateY, {
+                            toValue: 0,
+                            duration: 150,
+                            useNativeDriver: true,
+                        }).start(() => {
+                            isAnimating.current = false;
+                        });
+                    }
+                }
+
+                lastScrollY.current = currentScrollY;
+            },
+        }
+    );
 
     // Debounce the search input to reduce rapid re-renders that can cause perceived layout shifts
     useEffect(() => {
-        const handle = setTimeout(() => setDebouncedQuery(query), 200);
+        const handle = setTimeout(() => {
+            setDebouncedQuery(query);
+            // Track search if query is not empty
+            if (query.trim()) {
+                posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                    feature: 'cocktail_search',
+                    query_length: query.trim().length,
+                });
+            }
+        }, 200);
         return () => clearTimeout(handle);
     }, [query]);
+
+    // If navigated with an initialQuery param, set it into the search bar
+    useEffect(() => {
+        const initialQuery: string | undefined = route?.params?.initialQuery;
+        if (initialQuery) {
+            setQuery(initialQuery);
+        }
+    }, [route?.params?.initialQuery]);
 
     useEffect(() => {
         let isMounted = true;
@@ -46,9 +114,13 @@ export const AllCocktails = () => {
             setLoading(true);
             setError(null);
             try {
-                const data = await fetchCocktails();
+                const [cocktailsData, typesData] = await Promise.all([
+                    fetchAllCocktails(),
+                    fetchCocktailTypes()
+                ]);
                 if (isMounted) {
-                    setCocktails(data);
+                    setCocktails(cocktailsData);
+                    setCocktailTypes(typesData);
                 }
             } catch (e: any) {
                 if (isMounted) setError(e.message || 'Failed to load cocktails');
@@ -63,14 +135,40 @@ export const AllCocktails = () => {
 
     const filtered = useMemo(() => {
         const q = debouncedQuery.trim().toLowerCase();
-        return cocktails.filter(c => {
+        const results = cocktails.filter(c => {
             const name = (c.name ?? '')?.toString().toLowerCase();
             const matchesQuery = !q || name.includes(q);
-            // Category filtering placeholder (no origin_type semantics yet)
-            const matchesCategory = activeCategory === 'All' || (activeCategory === 'Whiskey' ? name.includes('whiskey') : true);
-            return matchesQuery && matchesCategory;
+            
+            // Type filtering
+            let matchesType = true;
+            if (activeType === 'Own Recipes') {
+                // Show only user's own recipes
+                matchesType = user ? c.creator_id === user.id : false;
+            } else if (activeType !== 'All') {
+                // Convert display name back to database value (lowercase with underscores)
+                const dbTypeValue = activeType.toLowerCase().replace(/ /g, '_'); // Convert "Mixed Drinks" back to "mixed_drinks"
+                matchesType = c.cocktail_type === dbTypeValue;
+            }
+            
+            // Difficulty filtering
+            const matchesDifficulty = activeDifficulty === 'All' || 
+                c.difficulty?.toLowerCase() === activeDifficulty.toLowerCase();
+            
+            return matchesQuery && matchesType && matchesDifficulty;
         });
-    }, [debouncedQuery, activeCategory, cocktails]);
+        
+        // Track filter usage when filters are applied
+        if (activeType !== 'All' || activeDifficulty !== 'All') {
+            posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                feature: 'cocktail_filter',
+                type_filter: activeType,
+                difficulty_filter: activeDifficulty,
+                results_count: results.length,
+            });
+        }
+        
+        return results;
+    }, [debouncedQuery, activeType, activeDifficulty, cocktails, user]);
 
     const renderCard = ({ item }: { item: DBCocktail }) => {
         const parseJsonArray = (v: any) => {
@@ -117,17 +215,17 @@ export const AllCocktails = () => {
         <Box className="flex-1 bg-neutral-50">
             <TopBar title="All Cocktails" showBack onBackPress={() => navigation.goBack()} />
             {/* Content area with overlay header above the list */}
-            <View style={{ flex: 1, position: 'relative' }}>
-                {/* Overlay Header: semi-transparent, on top of list */}
+            <View style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+                {/* Fixed Search Bar - always visible */}
                 <View
-                    onLayout={e => setOverlayHeight(e.nativeEvent.layout.height)}
+                    onLayout={e => setSearchBarHeight(e.nativeEvent.layout.height)}
                     style={{
                         position: 'absolute',
                         top: 0,
                         left: 0,
                         right: 0,
-                        zIndex: 10,
-                        elevation: 6,
+                        zIndex: 2,
+                        elevation: 2,
                         paddingHorizontal: 16,
                         paddingTop: 20,
                         paddingBottom: 12,
@@ -140,37 +238,51 @@ export const AllCocktails = () => {
                         shadowOffset: { width: 0, height: 4 },
                     }}
                 >
-                    <Box
-                        className="flex-row items-center rounded-lg px-4 py-3"
-                        style={{
-                            backgroundColor: '#F3F3F5',
-                        }}
-                    >
-                        <TextInput
-                            className="flex-1 text-sm text-neutral-900"
-                            placeholder="Search cocktails..."
-                            placeholderTextColor="#6A7282"
-                            value={query}
-                            onChangeText={setQuery}
-                            underlineColorAndroid="transparent"
-                            selectionColor="#00BBA7"
-                            // Remove default blue/brown outline on web when selecting the input
-                            style={
-                                Platform.OS === 'web'
-                                    ? ({
-                                        outlineStyle: 'none',
-                                        outlineWidth: 0,
-                                        outlineColor: 'transparent',
-                                        WebkitTapHighlightColor: 'transparent',
-                                    } as any)
-                                    : undefined
-                            }
+                    <SearchBar
+                        value={query}
+                        onChangeText={setQuery}
+                        placeholder="Search cocktails..."
+                    />
+                </View>
+
+                {/* Animated Filters - hide on scroll down */}
+                <Animated.View
+                    onLayout={e => setFiltersHeight(e.nativeEvent.layout.height)}
+                    style={{
+                        position: 'absolute',
+                        top: searchBarHeight,
+                        left: 0,
+                        right: 0,
+                        zIndex: 1,
+                        elevation: 1,
+                        paddingHorizontal: 16,
+                        paddingTop: 12,
+                        paddingBottom: 12,
+                        backgroundColor: 'rgba(255,255,255, 1)',
+                        borderBottomWidth: 1,
+                        borderBottomColor: 'rgba(0,0,0,0.06)',
+                        transform: [{ translateY: filtersTranslateY }],
+                    }}
+                >
+                    {/* Cocktail Type Filter */}
+                    <Box className="mb-3">
+                        <Text className="text-xs font-medium text-neutral-600 mb-2">Type</Text>
+                        <ScrollViewHorizontal 
+                            categories={['All', ...(user ? ['Own Recipes'] : []), ...cocktailTypes]} 
+                            active={activeType} 
+                            onChange={setActiveType} 
                         />
                     </Box>
-                    <Box className="mt-2">
-                        <ScrollViewHorizontal categories={categories} active={activeCategory} onChange={setActiveCategory} />
+                    {/* Difficulty Filter */}
+                    <Box>
+                        <Text className="text-xs font-medium text-neutral-600 mb-2">Difficulty</Text>
+                        <ScrollViewHorizontal 
+                            categories={difficulties} 
+                            active={activeDifficulty} 
+                            onChange={setActiveDifficulty} 
+                        />
                     </Box>
-                </View>
+                </Animated.View>
 
                 <FlatList
                     data={filtered}
@@ -178,10 +290,12 @@ export const AllCocktails = () => {
                     renderItem={renderCard}
                     numColumns={2}
                     keyboardShouldPersistTaps="handled"
+                    onScroll={handleScroll}
+                    scrollEventThrottle={16}
                     contentContainerStyle={{
                         paddingBottom: 56,
                         paddingHorizontal: 12,
-                        paddingTop: (overlayHeight || 4) + LIST_TOP_SPACER,
+                        paddingTop: (searchBarHeight + filtersHeight || 4) + LIST_TOP_SPACER,
                     }}
                     columnWrapperStyle={{ justifyContent: 'space-between' }}
                     ListHeaderComponent={(
@@ -203,24 +317,22 @@ export const AllCocktails = () => {
 // small horizontal scroll component implemented inline to reuse styling
 const ScrollViewHorizontal = ({ categories, active, onChange }: { categories: string[]; active: string; onChange: (v: string) => void }) => {
     return (
-        <View className="mt-3">
-            <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ flexGrow: 0 }}
-            >
-                <View style={{ flexDirection: 'row' }}>
-                    {categories.map(cat => (
-                        <View key={cat} className="mr-2">
-                            <FilterChip
-                                label={cat}
-                                selected={active === cat}
-                                onPress={() => onChange(cat)}
-                            />
-                        </View>
-                    ))}
-                </View>
-            </ScrollView>
-        </View>
+        <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 0 }}
+        >
+            <View style={{ flexDirection: 'row' }}>
+                {categories.map(cat => (
+                    <View key={cat} className="mr-2">
+                        <FilterChip
+                            label={cat}
+                            selected={active === cat}
+                            onPress={() => onChange(cat)}
+                        />
+                    </View>
+                ))}
+            </View>
+        </ScrollView>
     );
 };

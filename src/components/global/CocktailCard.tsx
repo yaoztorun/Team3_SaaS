@@ -2,6 +2,7 @@ import React from 'react';
 import { TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
+import { Heading } from '@/src/components/global';
 import { Star } from 'lucide-react-native';
 
 interface CocktailCardProps {
@@ -37,9 +38,9 @@ export const CocktailCard: React.FC<CocktailCardProps> = ({
             className="px-4 py-2 rounded-xl"
             style={styles.nameTag}
           >
-            <Text className="text-sm font-semibold text-neutral-900">
+            <Heading level="h6" className="text-sm">
               {name}
-            </Text>
+            </Heading>
           </Box>
 
           <Box 
@@ -48,7 +49,7 @@ export const CocktailCard: React.FC<CocktailCardProps> = ({
           >
             <Star size={14} fill="#14b8a6" color="#14b8a6" />
             <Text className="text-sm font-semibold text-neutral-900 ml-1">
-              {rating.toFixed(1)}
+              {rating ?? 0}
             </Text>
           </Box>
         </Box>
