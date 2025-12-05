@@ -69,7 +69,7 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
             style={{ flexDirection: 'row', borderWidth: 2, borderColor: '#e5e7eb' }}
         >
             <Pressable 
-                className="flex-1 py-2 px-4 justify-center rounded-lg"
+                className="flex-1 py-2 px-3 justify-center rounded-lg"
                 onPress={() => onChange('left')}
                 style={{ position: 'relative' }}
             >
@@ -87,18 +87,18 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
                     }}
                 />
                 <Animated.View style={{ zIndex: 1, opacity: textOpacityLeft }}>
-                    <Text className="text-center text-sm font-medium text-white">
+                    <Text className="text-center text-sm font-medium text-white" numberOfLines={1} adjustsFontSizeToFit>
                         {leftLabel}
                     </Text>
                 </Animated.View>
                 <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', opacity: textOpacityLeft.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
-                    <Text className="text-center text-sm font-medium text-neutral-900">
+                    <Text className="text-center text-sm font-medium text-neutral-900" numberOfLines={1} adjustsFontSizeToFit>
                         {leftLabel}
                     </Text>
                 </Animated.View>
             </Pressable>
             <Pressable 
-                className="flex-1 py-2 px-4 justify-center rounded-lg"
+                className="flex-1 py-2 px-3 justify-center rounded-lg"
                 onPress={() => onChange('right')}
                 style={{ position: 'relative' }}
             >
@@ -116,12 +116,12 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
                     }}
                 />
                 <Animated.View style={{ zIndex: 1, opacity: textOpacityRight }}>
-                    <Text className="text-center text-sm font-medium text-white">
+                    <Text className="text-center text-sm font-medium text-white" numberOfLines={1} adjustsFontSizeToFit>
                         {rightLabel}
                     </Text>
                 </Animated.View>
                 <Animated.View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', opacity: textOpacityRight.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
-                    <Text className="text-center text-sm font-medium text-neutral-900">
+                    <Text className="text-center text-sm font-medium text-neutral-900" numberOfLines={1} adjustsFontSizeToFit>
                         {rightLabel}
                     </Text>
                 </Animated.View>
