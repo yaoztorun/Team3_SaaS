@@ -825,11 +825,11 @@ export const HomeScreen: React.FC = () => {
           <Box className="mb-4">
             <Pressable
               onPress={() => {
-                // Navigate to Profile main with initial grid tab
+                // Navigate to Profile main with recipes tab to show created recipes
                 try {
                   (navigation as any).navigate('Profile', {
                     screen: 'ProfileMain',
-                    params: { initialGridTab: 'private' },
+                    params: { initialGridTab: 'recipes' },
                   });
                   // Clear the counter once user chooses to view
                   dismissTip();
