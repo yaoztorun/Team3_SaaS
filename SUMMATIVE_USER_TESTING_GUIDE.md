@@ -6,7 +6,7 @@
 ## 📋 Overview
 
 This document provides:
-1. **User tasks** mapped to PIRATE metrics (your "northstar" actions)
+1. **User tasks** mapped to PIRATE metrics
 2. **UTAUT questionnaire** for measuring acceptance and intention
 3. **Task-based usability questions** for each scenario
 4. **Analysis guidelines**
@@ -32,7 +32,7 @@ This document provides:
 
 **PIRATE Metric:** Acquisition (signup) → Activation (first cocktail logged)
 
-**Northstar Action:** First cocktail logged (key activation metric)
+**Key Action:** First cocktail logged (key activation metric)
 
 ---
 
@@ -47,7 +47,7 @@ This document provides:
 
 **PIRATE Metric:** Activation (meaningful engagement)
 
-**Northstar Action:** First social interaction (like/comment)
+**Key Action:** First social interaction (like/comment)
 
 ---
 
@@ -63,7 +63,7 @@ This document provides:
 
 **PIRATE Metric:** Activation (feature usage)
 
-**Northstar Action:** Ingredient matcher usage
+**Key Action:** Ingredient matcher usage
 
 ---
 
@@ -79,7 +79,7 @@ This document provides:
 
 **PIRATE Metric:** Activation (deep engagement)
 
-**Northstar Action:** First custom recipe created
+**Key Action:** First custom recipe created
 
 ---
 
@@ -93,7 +93,7 @@ This document provides:
 
 **PIRATE Metric:** Retention (stats engagement)
 
-**Northstar Action:** Profile/stats view (retention indicator)
+**Key Action:** Profile/stats view (retention indicator)
 
 ---
 
@@ -108,7 +108,7 @@ This document provides:
 
 **PIRATE Metric:** Referral (viral growth)
 
-**Northstar Action:** First share (referral trigger)
+**Key Action:** First share (referral trigger)
 
 ---
 
@@ -124,7 +124,7 @@ This document provides:
 
 **PIRATE Metric:** Activation + Retention (social network building)
 
-**Northstar Action:** Friend request sent + event exploration
+**Key Action:** Friend request sent + event exploration
 
 ---
 
@@ -139,7 +139,7 @@ This document provides:
 
 **PIRATE Metric:** Revenue (affiliate link engagement)
 
-**Northstar Action:** Shop item viewed/clicked
+**Key Action:** Shop item viewed/clicked
 
 ---
 
@@ -348,4 +348,3 @@ Your app has excellent analytics infrastructure. Now measure if users can actual
 - **Can they do it?** (Task success rates)
 - **Do they like it?** (UTAUT scores > 3.0)
 - **Will they use it?** (Behavioral Intention scores)
-## 📚 References
