@@ -28,7 +28,6 @@ export const CreateParty = () => {
     const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
     const [maxAttendees, setMaxAttendees] = useState('');
     const [entryFee, setEntryFee] = useState('');
-    const [cocktailTheme, setCocktailTheme] = useState('');
     const [isPublic, setIsPublic] = useState(true);
     const [requireApproval, setRequireApproval] = useState(false);
 
@@ -155,7 +154,6 @@ export const CreateParty = () => {
             setSelectedLocationId(null);
             setMaxAttendees('');
             setEntryFee('');
-            setCocktailTheme('');
             setIsPublic(true);
             setRequireApproval(false);
             setDate(new Date());
@@ -358,17 +356,6 @@ export const CreateParty = () => {
                                 />
                             </Pressable>
                         </Box>
-                    </Box>
-
-                    {/* Cocktail Theme */}
-                    <Box className="mb-6">
-                        <TextInputField
-                            label="Cocktail Theme (Optional)"
-                            value={cocktailTheme}
-                            onChangeText={setCocktailTheme}
-                            placeholder="e.g., Tropical, Classic, Whiskey Night"
-                            onSubmitEditing={handleCreateParty}
-                        />
                     </Box>
 
                     {/* Create Party Button */}
