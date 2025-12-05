@@ -10,6 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip, SearchBar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
+import { supabase } from '@/src/lib/supabase';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -38,6 +39,7 @@ export const AllCocktails = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchBarHeight, setSearchBarHeight] = useState(0);
     const [filtersHeight, setFiltersHeight] = useState(0);
+    const [bookmarkedCocktailIds, setBookmarkedCocktailIds] = useState<Set<string>>(new Set());
 
     const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
 
@@ -133,6 +135,32 @@ export const AllCocktails = () => {
         };
     }, []);
 
+    // Fetch user's bookmarked cocktails
+    useEffect(() => {
+        const fetchBookmarks = async () => {
+            if (!user) {
+                setBookmarkedCocktailIds(new Set());
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('bookmarks')
+                    .select('cocktail_id')
+                    .eq('user_id', user.id);
+
+                if (!error && data) {
+                    const ids = new Set(data.map(b => b.cocktail_id));
+                    setBookmarkedCocktailIds(ids);
+                }
+            } catch (err) {
+                console.error('Error fetching bookmarks:', err);
+            }
+        };
+
+        fetchBookmarks();
+    }, [user]);
+
     const filtered = useMemo(() => {
         const q = debouncedQuery.trim().toLowerCase();
         const results = cocktails.filter(c => {
@@ -141,7 +169,10 @@ export const AllCocktails = () => {
             
             // Type filtering
             let matchesType = true;
-            if (activeType === 'Own Recipes') {
+            if (activeType === 'Bookmarks') {
+                // Show only bookmarked cocktails
+                matchesType = bookmarkedCocktailIds.has(c.id);
+            } else if (activeType === 'Own Recipes') {
                 // Show only user's own recipes
                 matchesType = user ? c.creator_id === user.id : false;
             } else if (activeType !== 'All') {
@@ -168,7 +199,7 @@ export const AllCocktails = () => {
         }
         
         return results;
-    }, [debouncedQuery, activeType, activeDifficulty, cocktails, user]);
+    }, [debouncedQuery, activeType, activeDifficulty, cocktails, user, bookmarkedCocktailIds]);
 
     const renderCard = ({ item }: { item: DBCocktail }) => {
         const parseJsonArray = (v: any) => {
@@ -268,7 +299,7 @@ export const AllCocktails = () => {
                     <Box className="mb-3">
                         <Text className="text-xs font-medium text-neutral-600 mb-2">Type</Text>
                         <ScrollViewHorizontal 
-                            categories={['All', ...(user ? ['Own Recipes'] : []), ...cocktailTypes]} 
+                            categories={['All', ...(user ? ['Bookmarks', 'Own Recipes'] : []), ...cocktailTypes]} 
                             active={activeType} 
                             onChange={setActiveType} 
                         />
