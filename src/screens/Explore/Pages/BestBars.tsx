@@ -9,6 +9,7 @@ import { fetchLocations, DBLocation } from '@/src/api/location';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { SearchBar, Heading } from '@/src/components/global';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 type RootStackParamList = {
     BarDetail: { bar: DBLocation };
@@ -68,12 +69,21 @@ export const BestBars = () => {
     const filteredBars = useMemo(() => {
         if (!searchQuery.trim()) return bars;
         const query = searchQuery.toLowerCase();
-        return bars.filter(bar => 
+        const results = bars.filter(bar => 
             bar.name?.toLowerCase().includes(query) ||
             bar.city?.toLowerCase().includes(query) ||
             bar.country?.toLowerCase().includes(query) ||
             bar.street_name?.toLowerCase().includes(query)
         );
+        
+        // Track bar search
+        posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+            feature: 'bar_search',
+            query_length: query.length,
+            results_count: results.length,
+        });
+        
+        return results;
     }, [bars, searchQuery]);
 
     useEffect(() => {

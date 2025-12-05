@@ -9,6 +9,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip, SearchBar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -86,7 +87,16 @@ export const AllCocktails = () => {
 
     // Debounce the search input to reduce rapid re-renders that can cause perceived layout shifts
     useEffect(() => {
-        const handle = setTimeout(() => setDebouncedQuery(query), 200);
+        const handle = setTimeout(() => {
+            setDebouncedQuery(query);
+            // Track search if query is not empty
+            if (query.trim()) {
+                posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                    feature: 'cocktail_search',
+                    query_length: query.trim().length,
+                });
+            }
+        }, 200);
         return () => clearTimeout(handle);
     }, [query]);
 
@@ -125,7 +135,7 @@ export const AllCocktails = () => {
 
     const filtered = useMemo(() => {
         const q = debouncedQuery.trim().toLowerCase();
-        return cocktails.filter(c => {
+        const results = cocktails.filter(c => {
             const name = (c.name ?? '')?.toString().toLowerCase();
             const matchesQuery = !q || name.includes(q);
             
@@ -146,6 +156,18 @@ export const AllCocktails = () => {
             
             return matchesQuery && matchesType && matchesDifficulty;
         });
+        
+        // Track filter usage when filters are applied
+        if (activeType !== 'All' || activeDifficulty !== 'All') {
+            posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                feature: 'cocktail_filter',
+                type_filter: activeType,
+                difficulty_filter: activeDifficulty,
+                results_count: results.length,
+            });
+        }
+        
+        return results;
     }, [debouncedQuery, activeType, activeDifficulty, cocktails, user]);
 
     const renderCard = ({ item }: { item: DBCocktail }) => {

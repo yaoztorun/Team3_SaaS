@@ -4,10 +4,11 @@ import { Box } from '@/src/components/ui/box';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { HStack } from '@/src/components/ui/hstack';
 import { Text } from '@/src/components/ui/text';
-import { fetchPublicCocktails, fetchIngredientUsage } from '@/src/api/cocktail';
+import { fetchCocktails, fetchIngredientUsage } from '@/src/api/cocktail';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { PrimaryButton, SearchBar, FilterChip } from '@/src/components/global';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 type RootStackParamList = {
     AllCocktails: undefined;
@@ -143,7 +144,13 @@ export const WhatCanIMake = () => {
                 <Box>
                     <PrimaryButton
                         title="Find cocktails"
-                        onPress={() => navigation.navigate('MatchingCocktails', { selectedIngredients: selected })}
+                        onPress={() => {
+                            posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                                feature: 'what_can_i_make',
+                                ingredients_count: selected.length,
+                            });
+                            navigation.navigate('MatchingCocktails', { selectedIngredients: selected });
+                        }}
                     />
                 </Box>
             </ScrollView>

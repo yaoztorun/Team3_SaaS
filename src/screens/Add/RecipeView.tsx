@@ -13,6 +13,7 @@ import {
 import { supabase } from '@/src/lib/supabase';
 import uploadImageUri from '@/src/utils/storage';
 import { fetchIngredientUsage } from '@/src/api/cocktail';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 interface RecipeViewProps {
     handleCameraPress: () => void;
@@ -268,6 +269,15 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
             // Success - notify parent with created recipe info
             if (insertData) {
+                // Track recipe creation
+                posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                    feature: 'recipe_created',
+                    difficulty: selectedDifficulty.toLowerCase(),
+                    ingredient_count: ingredients.length,
+                    instruction_count: instructions.length,
+                    has_photo: !!uploadedUrl,
+                });
+                
                 onRecipeCreated({ id: insertData.id, name: insertData.name, image_url: insertData.image_url });
             } else {
                 onRecipeCreated({ id: '', name: recipeName.trim(), image_url: uploadedUrl });

@@ -23,6 +23,7 @@ import {
 import type { Profile } from '@/src/types/profile';
 import type { FriendRequest, Friend } from '@/src/types/friendship';
 import { SocialStackParamList } from './SocialStack';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 export const FriendsView = () => {
         const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
@@ -73,6 +74,13 @@ export const FriendsView = () => {
                         const results = await searchUsers(searchQuery, user.id);
                         setSearchResults(results);
                         setSearchingUsers(false);
+                        
+                        // Track friend search
+                        posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                                feature: 'friend_search',
+                                query_length: searchQuery.length,
+                                results_count: results.length,
+                        });
                 }, 300);
 
                 return () => clearTimeout(timeoutId);
@@ -85,6 +93,11 @@ export const FriendsView = () => {
                 const result = await sendFriendRequest(user.id, friendId);
 
                 if (result.success) {
+                        // Track friend request sent
+                        posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                                feature: 'friend_request_sent',
+                        });
+                        
                         await loadFriendData();
                         setSearchQuery('');
                         setSearchResults([]);
@@ -96,6 +109,12 @@ export const FriendsView = () => {
 
         const handleAcceptRequest = async (friendshipId: string) => {
                 setProcessingRequest(friendshipId);
+                
+                // Track friend request accepted
+                posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                        feature: 'friend_request_accepted',
+                });
+                
                 const result = await acceptFriendRequest(friendshipId);
 
                 if (result.success) {

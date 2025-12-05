@@ -11,6 +11,7 @@ import { ChevronDown } from 'lucide-react-native';
 import { PrimaryButton, SearchBar, FilterChip } from '@/src/components/global';
 import { fetchShopItems, DBShopItem } from '@/src/api/shop';
 import { Star } from 'lucide-react-native';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 type RootStackParamList = {
     ItemDetail: { itemId: string };
@@ -133,7 +134,7 @@ export const Shop = () => {
     }, [items]);
 
     const filteredItems = useMemo(() => {
-        return items.filter(item => {
+        const results = items.filter(item => {
             // Search filter
             if (searchQuery && !item.name?.toLowerCase().includes(searchQuery.toLowerCase())) {
                 return false;
@@ -152,6 +153,20 @@ export const Shop = () => {
 
             return true;
         });
+        
+        // Track shop search and filter usage
+        if (searchQuery || selectedCategories.length > 0 || priceRange !== 'all') {
+            posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                feature: 'shop_search_filter',
+                has_search: !!searchQuery,
+                search_length: searchQuery?.length || 0,
+                category_count: selectedCategories.length,
+                price_filter: priceRange,
+                results_count: results.length,
+            });
+        }
+        
+        return results;
     }, [items, searchQuery, selectedCategories, priceRange]);
 
     return (

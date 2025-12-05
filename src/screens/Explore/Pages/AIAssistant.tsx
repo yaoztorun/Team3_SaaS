@@ -9,6 +9,7 @@ import { colors } from '@/src/theme/colors';
 import { useNavigation } from '@react-navigation/native';
 import { sendGeminiMessage, ChatMessage, createInitialChatHistory } from '@/src/api/gemini';
 import { TopBar } from '../../navigation/TopBar';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 
 // Example suggested questions that appear below the welcome message
 const suggestedQuestions = [
@@ -107,6 +108,13 @@ export const AIAssistant = () => {
             
             setMessages(prev => [...prev, aiResponse]);
             setIsLoading(false);
+            
+            // Track AI assistant usage
+            posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+                feature: 'ai_assistant_used',
+                message_length: userMessage.length,
+                response_length: aiText.length,
+            });
             
         } catch (error: any) {
             console.error('AI Assistant Error:', error);

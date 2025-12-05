@@ -32,8 +32,14 @@ import {
   type CommentRow,
   deleteComment,
 } from '@/src/api/comments';
-import { Swipeable } from 'react-native-gesture-handler';
+import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 import { Trash2, ArrowLeft, GlassWater, Sparkles, Search } from 'lucide-react-native';
+// Only import Swipeable on native platforms to avoid web bundle errors
+let Swipeable: any = null;
+if (Platform.OS !== 'web') {
+  const GestureHandler = require('react-native-gesture-handler');
+  Swipeable = GestureHandler.Swipeable;
+}
 import { colors } from '@/src/theme/colors';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -610,6 +616,12 @@ export const HomeScreen: React.FC = () => {
     if (!result.success) {
       // revert if error
       setFeedPosts((prev) => prev.map((p) => (p.id === postId ? existing : p)));
+    } else {
+      // Track like/unlike
+      posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+        feature: prevLiked ? 'post_unliked' : 'post_liked',
+        post_id: postId,
+      });
     }
   };
 
@@ -716,6 +728,13 @@ export const HomeScreen: React.FC = () => {
     if (!res.success) {
       console.warn(res.error);
     } else {
+      // Track comment added
+      posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+        feature: 'comment_added',
+        post_id: activePostId,
+        comment_length: content.length,
+      });
+      
       await loadComments(activePostId);
 
       // bump comment count in feed
@@ -738,6 +757,12 @@ export const HomeScreen: React.FC = () => {
     // optimistic: remove from UI
     setCommentsForPost((prev) => prev.filter((c) => c.id !== commentId));
     setLastDeletedComment(comment);
+    
+    // Track comment deleted
+    posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+      feature: 'comment_deleted',
+      post_id: activePostId,
+    });
 
     const res = await deleteComment(commentId, user.id);
     if (!res.success) {
@@ -1195,6 +1220,45 @@ export const HomeScreen: React.FC = () => {
                     const userName = c.Profile?.full_name ?? 'Unknown user';
                     const initials = getInitials(userName);
                     const avatarUrl = c.Profile?.avatar_url ?? null;
+                    
+                    const commentContent = (
+                      <Box className="mb-4 bg-white">
+                        <Box className="flex-row items-start">
+                          <Box className="mr-3">
+                            <Avatar
+                              avatarUrl={avatarUrl}
+                              initials={initials}
+                              size={32}
+                              fallbackColor="#009689"
+                            />
+                          </Box>
+                          <Box className="flex-1">
+                            <Text className="text-sm font-semibold text-neutral-900 mb-1">
+                              {userName}
+                            </Text>
+                            <Text className="text-sm text-neutral-700">
+                              {c.content}
+                            </Text>
+                          </Box>
+                          {/* Show delete button on web */}
+                          {Platform.OS === 'web' && canDelete && (
+                            <Pressable
+                              className="ml-2 p-2"
+                              onPress={() => handleDeleteComment(c.id)}
+                            >
+                              <Trash2 size={16} color="#ef4444" />
+                            </Pressable>
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                    
+                    // On web: render without Swipeable
+                    if (Platform.OS === 'web') {
+                      return <View key={c.id}>{commentContent}</View>;
+                    }
+                    
+                    // On native: use Swipeable for swipe-to-delete
                     return (
                       <Swipeable
                         key={c.id}
@@ -1211,26 +1275,7 @@ export const HomeScreen: React.FC = () => {
                           if (canDelete) handleDeleteComment(c.id);
                         }}
                       >
-                        <Box className="mb-4 bg-white">
-                          <Box className="flex-row items-start">
-                            <Box className="mr-3">
-                              <Avatar
-                                avatarUrl={avatarUrl}
-                                initials={initials}
-                                size={32}
-                                fallbackColor="#009689"
-                              />
-                            </Box>
-                            <Box className="flex-1">
-                              <Text className="text-sm font-semibold text-neutral-900 mb-1">
-                                {userName}
-                              </Text>
-                              <Text className="text-sm text-neutral-700">
-                                {c.content}
-                              </Text>
-                            </Box>
-                          </Box>
-                        </Box>
+                        {commentContent}
                       </Swipeable>
                     );
                   })}
