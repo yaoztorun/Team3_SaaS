@@ -230,20 +230,27 @@ export const Shop = () => {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 0, gap: 8 }}
                         >
-                            {categories.map((cat) => (
-                                <FilterChip
-                                    key={cat}
-                                    label={cat}
-                                    selected={selectedCategories.includes(cat)}
-                                    onPress={() => {
-                                        setSelectedCategories(prev => 
-                                            prev.includes(cat) 
-                                                ? prev.filter(c => c !== cat)
-                                                : [...prev, cat]
-                                        );
-                                    }}
-                                />
-                            ))}
+                            {categories.map((cat) => {
+                                const displayLabel = cat
+                                    .replace(/-/g, ' ')
+                                    .split(' ')
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ');
+                                return (
+                                    <FilterChip
+                                        key={cat}
+                                        label={displayLabel}
+                                        selected={selectedCategories.includes(cat)}
+                                        onPress={() => {
+                                            setSelectedCategories(prev => 
+                                                prev.includes(cat) 
+                                                    ? prev.filter(c => c !== cat)
+                                                    : [...prev, cat]
+                                            );
+                                        }}
+                                    />
+                                );
+                            })}
                         </ScrollView>
                     </Box>
 
