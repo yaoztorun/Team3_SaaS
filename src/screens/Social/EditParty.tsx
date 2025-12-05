@@ -339,7 +339,7 @@ export const EditParty = () => {
                                         ? 'bg-teal-50 border-teal-500'
                                         : 'border-neutral-200'
                                         }`}
-                                    style={{ width: '48%' }}
+                                    style={{ minWidth: '45%', flexGrow: 1, flexBasis: '45%' }}
                                 >
                                     <Text
                                         className={`text-base ${selectedType === type.id

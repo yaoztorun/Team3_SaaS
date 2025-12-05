@@ -379,6 +379,7 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             current={selectedDateString}
                                             minDate={new Date().toISOString().split('T')[0]}
                                             onDayPress={handleDateSelect}
+                                            firstDay={1}
                                             theme={{
                                                 selectedDayBackgroundColor: colors.primary[500],
                                                 selectedDayTextColor: '#ffffff',
@@ -424,9 +425,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
                                                 :
                                             </Text>
-                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
-                                                {tempStartMinute.toString().padStart(2, '0')}
-                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={() => setCurrentStep('start-minute')}
+                                                style={{
+                                                    paddingHorizontal: 12,
+                                                    paddingVertical: 8,
+                                                    borderRadius: 8,
+                                                }}
+                                            >
+                                                <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempStartMinute.toString().padStart(2, '0')}
+                                                </Text>
+                                            </TouchableOpacity>
                                         </View>
                                         <ClockPicker
                                             selectedValue={tempStartHour}
@@ -448,9 +458,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             flexDirection: 'row',
                                             alignItems: 'center',
                                         }}>
-                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
-                                                {tempStartHour.toString().padStart(2, '0')}
-                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={() => setCurrentStep('start-hour')}
+                                                style={{
+                                                    paddingHorizontal: 12,
+                                                    paddingVertical: 8,
+                                                    borderRadius: 8,
+                                                }}
+                                            >
+                                                <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempStartHour.toString().padStart(2, '0')}
+                                                </Text>
+                                            </TouchableOpacity>
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
                                                 :
                                             </Text>
@@ -498,9 +517,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
                                                 :
                                             </Text>
-                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
-                                                {tempEndMinute.toString().padStart(2, '0')}
-                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={() => setCurrentStep('end-minute')}
+                                                style={{
+                                                    paddingHorizontal: 12,
+                                                    paddingVertical: 8,
+                                                    borderRadius: 8,
+                                                }}
+                                            >
+                                                <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempEndMinute.toString().padStart(2, '0')}
+                                                </Text>
+                                            </TouchableOpacity>
                                         </View>
                                         <ClockPicker
                                             selectedValue={tempEndHour}
@@ -537,9 +565,18 @@ export const DateTimePicker: React.FC<DateTimePickerProps> = ({
                                             flexDirection: 'row',
                                             alignItems: 'center',
                                         }}>
-                                            <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
-                                                {tempEndHour.toString().padStart(2, '0')}
-                                            </Text>
+                                            <TouchableOpacity
+                                                onPress={() => setCurrentStep('end-hour')}
+                                                style={{
+                                                    paddingHorizontal: 12,
+                                                    paddingVertical: 8,
+                                                    borderRadius: 8,
+                                                }}
+                                            >
+                                                <Text style={{ color: '#6b7280', fontSize: 32, fontWeight: '700' }}>
+                                                    {tempEndHour.toString().padStart(2, '0')}
+                                                </Text>
+                                            </TouchableOpacity>
                                             <Text style={{ color: '#111827', fontSize: 32, fontWeight: '700', marginHorizontal: 8 }}>
                                                 :
                                             </Text>
