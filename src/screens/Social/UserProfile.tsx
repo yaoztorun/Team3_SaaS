@@ -14,8 +14,8 @@ import { Button } from '@/src/components/ui/button';
 import { Avatar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useUserStats } from '@/src/hooks/useUserStats';
-import { 
-    sendFriendRequest, 
+import {
+    sendFriendRequest,
     getFriendshipStatus,
     acceptFriendRequest,
     rejectFriendRequest,
@@ -43,47 +43,48 @@ type UserProfileRouteProp = RouteProp<RouteParams, 'UserProfile'>;
 type View = 'drinks' | 'stats';
 
 type DbDrinkLog = {
-  id: string;
-  created_at: string;
-  caption: string | null;
-  rating: number | null;
-  visibility: 'public' | 'friends' | 'private';
-  user_id: string;
-  Cocktail?: {
     id: string;
-    name: string | null;
+    created_at: string;
+    caption: string | null;
+    rating: number | null;
+    visibility: 'public' | 'friends' | 'private';
+    user_id: string;
+    Cocktail?: {
+        id: string;
+        name: string | null;
+        image_url?: string | null;
+    } | null;
     image_url?: string | null;
-  } | null;
-  image_url?: string | null;
 };
 
 type RecentDrink = {
-  id: string;
-  name: string;
-  subtitle: string;
-  rating: number;
-  time: string;
-  imageUrl: string;
-  visibility?: 'public' | 'friends' | 'private';
-  cocktailId?: string | null;
+    id: string;
+    name: string;
+    subtitle: string;
+    rating: number;
+    time: string;
+    createdAt: string;
+    imageUrl: string;
+    visibility?: 'public' | 'friends' | 'private';
+    cocktailId?: string | null;
 };
 
 const formatTimeAgo = (isoDate: string) => {
-  const date = new Date(isoDate);
-  const diffMs = Date.now() - date.getTime();
-  const diffMinutes = Math.floor(diffMs / 60000);
+    const date = new Date(isoDate);
+    const diffMs = Date.now() - date.getTime();
+    const diffMinutes = Math.floor(diffMs / 60000);
 
-  if (diffMinutes < 1) return 'Just now';
-  if (diffMinutes < 60) return `${diffMinutes} min ago`;
+    if (diffMinutes < 1) return 'Just now';
+    if (diffMinutes < 60) return `${diffMinutes} min ago`;
 
-  const diffHours = Math.floor(diffMinutes / 60);
-  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
 
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
 
-  const diffWeeks = Math.floor(diffDays / 7);
-  return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+    const diffWeeks = Math.floor(diffDays / 7);
+    return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
 };
 
 export const UserProfile = () => {
@@ -91,14 +92,14 @@ export const UserProfile = () => {
     const navigation = useNavigation();
     const { user: currentUser } = useAuth();
     const { userId } = route.params;
-    
+
     const [profile, setProfile] = useState<Profile | null>(null);
     const [loading, setLoading] = useState(true);
     const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending' | 'accepted'>('none');
     const [processingRequest, setProcessingRequest] = useState(false);
     const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
     const [friendshipId, setFriendshipId] = useState<string | null>(null);
-    
+
     // Use centralized stats hook
     const { userStats, loadingStats, avgRatingOutOf5, ratingTrendCounts5 } = useUserStats(userId);
     const [badges, setBadges] = useState<Badge[]>([]);
@@ -125,7 +126,7 @@ export const UserProfile = () => {
         if (!currentUser?.id) return;
 
         setLoading(true);
-        
+
         // Fetch profile
         const { fetchProfile } = await import('@/src/api/profile');
         const profileData = await fetchProfile(userId);
@@ -163,9 +164,9 @@ export const UserProfile = () => {
         }
 
         setLoading(false);
-        
+
         // Stats are loaded automatically by useUserStats hook
-        
+
         // Load badges
         loadBadges();
 
@@ -225,6 +226,7 @@ export const UserProfile = () => {
                     subtitle: raw.caption ?? '',
                     rating: raw.rating ?? 0,
                     time: formatTimeAgo(raw.created_at),
+                    createdAt: raw.created_at,
                     imageUrl: preview,
                     visibility: raw.visibility as any,
                     cocktailId: raw.Cocktail?.id ?? null,
@@ -284,9 +286,9 @@ export const UserProfile = () => {
 
             const likesMap = await getLikesForLogs([drink.id], currentUser.id);
             const tagsMap = await getTagsForLogs([drink.id]);
-            const likes = { 
-                count: likesMap.counts.get(drink.id) || 0, 
-                isLiked: likesMap.likedByMe.has(drink.id) 
+            const likes = {
+                count: likesMap.counts.get(drink.id) || 0,
+                isLiked: likesMap.likedByMe.has(drink.id)
             };
             const taggedFriends = tagsMap.get(drink.id) || [];
 
@@ -297,7 +299,7 @@ export const UserProfile = () => {
 
             const cocktailData = log.Cocktail as any;
             const profileData = log.Profile as any;
-            
+
             const imageUrl = log.image_url || cocktailData?.image_url || '';
             const userName = profileData?.full_name || 'Unknown User';
             const userInitials = userName
@@ -354,7 +356,7 @@ export const UserProfile = () => {
             console.warn(res.error);
         } else {
             await loadComments(selectedPostId);
-            
+
             if (focusedPost) {
                 setFocusedPost({
                     ...focusedPost,
@@ -389,17 +391,17 @@ export const UserProfile = () => {
 
     const handlePressCocktail = async (cocktailId: string) => {
         if (!cocktailId) return;
-        
+
         const cocktail = await fetchCocktailById(cocktailId);
-        
+
         if (!cocktail) {
             console.log('Cocktail not found or not accessible');
             return;
         }
-        
+
         console.log('UserProfile: Closing modal and navigating to cocktail:', cocktail.name);
         closePostModal();
-        
+
         // Navigate to Main (BottomTabs), then to Explore tab, then to CocktailDetail
         navigation.dispatch(
             CommonActions.navigate({
@@ -417,10 +419,10 @@ export const UserProfile = () => {
 
     const handleSendRequest = async () => {
         if (!currentUser?.id) return;
-        
+
         setProcessingRequest(true);
         const result = await sendFriendRequest(currentUser.id, userId);
-        
+
         if (result.success) {
             setFriendshipStatus('pending');
         } else {
@@ -431,10 +433,10 @@ export const UserProfile = () => {
 
     const handleAcceptRequest = async () => {
         if (!pendingRequestId) return;
-        
+
         setProcessingRequest(true);
         const result = await acceptFriendRequest(pendingRequestId);
-        
+
         if (result.success) {
             setFriendshipStatus('accepted');
         } else {
@@ -445,10 +447,10 @@ export const UserProfile = () => {
 
     const handleRejectRequest = async () => {
         if (!pendingRequestId) return;
-        
+
         setProcessingRequest(true);
         const result = await rejectFriendRequest(pendingRequestId);
-        
+
         if (result.success) {
             setFriendshipStatus('none');
             setFriendshipId(null);
@@ -461,10 +463,10 @@ export const UserProfile = () => {
 
     const handleCancelRequest = async () => {
         if (!friendshipId) return;
-        
+
         setProcessingRequest(true);
         const result = await cancelFriendRequest(friendshipId);
-        
+
         if (result.success) {
             setFriendshipStatus('none');
             setFriendshipId(null);
@@ -476,10 +478,10 @@ export const UserProfile = () => {
 
     const handleUnfriend = async () => {
         if (!friendshipId) return;
-        
+
         setProcessingRequest(true);
         const result = await unfriendUser(friendshipId);
-        
+
         if (result.success) {
             setFriendshipStatus('none');
             setFriendshipId(null);
@@ -514,7 +516,7 @@ export const UserProfile = () => {
     return (
         <Box className="flex-1 bg-neutral-50" style={{ height: '100vh', maxHeight: '100vh' } as any}>
             <TopBar title="Profile" showBack onBackPress={() => navigation.goBack()} />
-            
+
             <ScrollView
                 style={{ flex: 1 }}
                 contentContainerStyle={{
@@ -538,7 +540,7 @@ export const UserProfile = () => {
                         <Heading level="h3" className="mb-1">
                             {profile.full_name || 'User'}
                         </Heading>
-                        
+
                         {/* Badges - only visible to friends or own profile */}
                         {(friendshipStatus === 'accepted' || currentUser?.id === userId) && (
                             <Box className="mt-2">
@@ -582,9 +584,9 @@ export const UserProfile = () => {
                                     </Text>
                                 </Button>
                             )}
-                            
+
                             {friendshipStatus === 'pending' && !pendingRequestId && (
-                                <Button 
+                                <Button
                                     variant="outline"
                                     onPress={handleCancelRequest}
                                     disabled={processingRequest}
@@ -617,7 +619,7 @@ export const UserProfile = () => {
                             )}
 
                             {friendshipStatus === 'accepted' && (
-                                <Button 
+                                <Button
                                     variant="outline"
                                     onPress={handleUnfriend}
                                     disabled={processingRequest}
@@ -646,55 +648,55 @@ export const UserProfile = () => {
                             <>
                                 {/* Drinks Grid */}
                                 {loadingDrinks && (
-                            <Box className="items-center justify-center py-4">
-                                <ActivityIndicator size="large" color="#00BBA7" />
-                            </Box>
-                        )}
+                                    <Box className="items-center justify-center py-4">
+                                        <ActivityIndicator size="large" color="#00BBA7" />
+                                    </Box>
+                                )}
 
-                        {!loadingDrinks && recentDrinks.length === 0 && (
-                            <Box className="py-4">
-                                <Text className="text-sm text-neutral-500">
-                                    No drinks logged yet.
-                                </Text>
-                            </Box>
-                        )}
+                                {!loadingDrinks && recentDrinks.length === 0 && (
+                                    <Box className="py-4">
+                                        <Text className="text-sm text-neutral-500">
+                                            No drinks logged yet.
+                                        </Text>
+                                    </Box>
+                                )}
 
-                        {!loadingDrinks && recentDrinks.length > 0 && (
-                            <GridGallery
-                                items={recentDrinks}
-                                onPress={(item) => openPostModal(item)}
-                            />
+                                {!loadingDrinks && recentDrinks.length > 0 && (
+                                    <GridGallery
+                                        items={recentDrinks}
+                                        onPress={(item) => openPostModal(item)}
+                                    />
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                {/* Stats View */}
+                                <ProfileStats
+                                    userStats={userStats}
+                                    avgRatingOutOf5={avgRatingOutOf5}
+                                    ratingTrendCounts5={ratingTrendCounts5}
+                                    loading={loadingStats}
+                                    title="Stats"
+                                />
+                            </>
                         )}
                     </>
                 ) : (
-                    <>
-                        {/* Stats View */}
-                        <ProfileStats
-                            userStats={userStats}
-                            avgRatingOutOf5={avgRatingOutOf5}
-                            ratingTrendCounts5={ratingTrendCounts5}
-                            loading={loadingStats}
-                            title="Stats"
-                        />
-                    </>
-                )}
-            </>
-        ) : (
-            /* Private Profile Message */
-            <Box className="bg-white rounded-2xl p-8">
-                <Center>
-                    <Box className="w-16 h-16 rounded-full bg-neutral-200 items-center justify-center mb-4">
-                        <Text className="text-3xl">🔒</Text>
+                    /* Private Profile Message */
+                    <Box className="bg-white rounded-2xl p-8">
+                        <Center>
+                            <Box className="w-16 h-16 rounded-full bg-neutral-200 items-center justify-center mb-4">
+                                <Text className="text-3xl">🔒</Text>
+                            </Box>
+                            <Heading level="h3" className="mb-2">
+                                This Profile is Private
+                            </Heading>
+                            <Text className="text-sm text-neutral-500 text-center">
+                                Add this user as a friend to see their drinks and stats
+                            </Text>
+                        </Center>
                     </Box>
-                    <Heading level="h3" className="mb-2">
-                        This Profile is Private
-                    </Heading>
-                    <Text className="text-sm text-neutral-500 text-center">
-                        Add this user as a friend to see their drinks and stats
-                    </Text>
-                </Center>
-            </Box>
-        )}
+                )}
             </ScrollView>
 
             {/* Badge Modal */}
@@ -728,7 +730,7 @@ export const UserProfile = () => {
                             </Box>
 
                             {/* Content */}
-                            <ScrollView 
+                            <ScrollView
                                 style={{ flex: 1 }}
                                 contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
                             >
@@ -736,7 +738,7 @@ export const UserProfile = () => {
                                     <FeedPostCard
                                         {...focusedPost}
                                         onToggleLike={() => handleToggleLike(focusedPost.id)}
-                                        onPressComments={() => {}}
+                                        onPressComments={() => { }}
                                         onPressCocktail={handlePressCocktail}
                                     />
                                 )}
@@ -817,29 +819,59 @@ export const UserProfile = () => {
 
 // Grid gallery component
 const GridGallery = ({ items, onPress }: { items: RecentDrink[]; onPress: (item: RecentDrink) => void }) => {
-    const gap = 4;
+    const gap = 6;
+
+    const formatDate = (isoDate: string) => {
+        const date = new Date(isoDate);
+        const month = date.toLocaleDateString('en-US', { month: 'short' });
+        const day = date.getDate();
+        return `${month} ${day}`;
+    };
+
     return (
         <Box>
-            <Box className="flex-row flex-wrap">
+            <Box className="flex-row flex-wrap" style={{ marginRight: -gap }}>
                 {items.map((it, idx) => (
                     <Pressable
                         key={`${it.id}-${idx}`}
                         onPress={() => onPress(it)}
-                        style={{ width: '33.333%', paddingRight: ((idx + 1) % 3 === 0) ? 0 : gap, paddingBottom: gap }}
+                        style={{ width: '33.333%', paddingRight: gap, paddingBottom: gap }}
                     >
-                        {it.imageUrl ? (
-                            <Image
-                                source={{ uri: it.imageUrl }}
-                                style={{ width: '100%', aspectRatio: 1, borderRadius: 5 }}
-                                resizeMode="cover"
-                            />
-                        ) : (
-                            <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 5 }}>
-                                <Text style={{ fontSize: 12, color: '#374151' }} numberOfLines={1}>{it.name}</Text>
-                            </Center>
-                        )}
-                        <Box className="mt-1 px-2 items-center">
-                            <Text style={{ fontSize: 12, fontWeight: '500', color: '#171717', textAlign: 'center' }} numberOfLines={1}>{it.name}</Text>
+                        <Box
+                            className="bg-white rounded-xl overflow-hidden"
+                            style={{
+                                borderWidth: 1,
+                                borderColor: '#e5e7eb',
+                            }}
+                        >
+                            {it.imageUrl ? (
+                                <Image
+                                    source={{ uri: it.imageUrl }}
+                                    style={{ width: '100%', aspectRatio: 1, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
+                                    resizeMode="cover"
+                                />
+                            ) : (
+                                <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                                    <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
+                                </Center>
+                            )}
+
+                            <Box style={{ height: 1, backgroundColor: '#e5e7eb' }} />
+
+                            <Box style={{ paddingLeft: 8, paddingRight: 8, paddingTop: 6, paddingBottom: 6 }}>
+                                <Text
+                                    className="text-xs font-medium text-neutral-900"
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                    isTruncated
+                                    style={{ flexShrink: 1, height: 18 }}
+                                >
+                                    {it.name}
+                                </Text>
+                                <Text className="text-[10px] text-neutral-400" style={{ marginTop: 2, height: 14 }} numberOfLines={1}>
+                                    {formatDate(it.createdAt)}
+                                </Text>
+                            </Box>
                         </Box>
                     </Pressable>
                 ))}

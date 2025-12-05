@@ -65,8 +65,8 @@ export const ToggleSwitch: React.FC<ToggleSwitchProps> = ({
 
     return (
         <Box 
-            className="rounded-xl bg-white overflow-hidden p-1"
-            style={{ flexDirection: 'row', borderWidth: 2, borderColor: '#e5e7eb' }}
+            className="rounded-xl overflow-hidden"
+            style={{ flexDirection: 'row', borderWidth: 2, borderColor: '#e5e7eb', backgroundColor: '#ffffff', padding: 4 }}
         >
             <Pressable 
                 className="flex-1 py-2 px-3 justify-center rounded-lg"

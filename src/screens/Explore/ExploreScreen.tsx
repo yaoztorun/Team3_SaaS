@@ -277,7 +277,7 @@ export const ExploreScreen = () => {
                         onPress={() => navigateToSection('UpcomingEvents')}
                         className="px-4 mb-3 flex-row items-center justify-between"
                     >
-                        <Heading level="h4">Upcoming Events Nearby</Heading>
+                        <Heading level="h4">Upcoming Events</Heading>
                         <ChevronRight size={20} color="#000" />
                     </Pressable>
                     {loadingEvents ? (

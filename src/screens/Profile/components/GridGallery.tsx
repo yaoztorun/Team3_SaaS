@@ -25,7 +25,7 @@ interface GridGalleryProps {
 }
 
 export const GridGallery: React.FC<GridGalleryProps> = ({ items, onPress }) => {
-  const gap = 12;
+  const gap = 6;
 
   const formatDate = (isoDate: string) => {
     const date = new Date(isoDate);
@@ -50,24 +50,22 @@ export const GridGallery: React.FC<GridGalleryProps> = ({ items, onPress }) => {
                 borderColor: '#e5e7eb',
               }}
             >
-              <Box style={{ padding: 8 }}>
-                {it.imageUrl ? (
-                  <Image
-                    source={{ uri: it.imageUrl }}
-                    style={{ width: '100%', aspectRatio: 1, borderRadius: 8 }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 8 }}>
-                    <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
-                  </Center>
-                )}
-              </Box>
+              {it.imageUrl ? (
+                <Image
+                  source={{ uri: it.imageUrl }}
+                  style={{ width: '100%', aspectRatio: 1, borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
+                  resizeMode="cover"
+                />
+              ) : (
+                <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderTopLeftRadius: 12, borderTopRightRadius: 12 }}>
+                  <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
+                </Center>
+              )}
 
               <Box style={{ height: 1, backgroundColor: '#e5e7eb' }} />
 
               <Box style={{ paddingLeft: 8, paddingRight: 8, paddingTop: 6, paddingBottom: 6 }}>
-                <Text 
+                <Text
                   className="text-xs font-medium text-neutral-900"
                   numberOfLines={1}
                   ellipsizeMode="tail"
