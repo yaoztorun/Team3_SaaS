@@ -64,8 +64,6 @@ trackWithTTFA(ANALYTICS_EVENTS.SIGNUP_COMPLETED, {
 3. `useAuth.tsx` detects `SIGNED_IN` event
 4. Checks if user is new (created < 10 seconds ago)
 5. Tracks `signup_completed` (new user) or `login_completed` (existing user)
-});
-```
 
 ### ✨ Activation
 Track first meaningful actions that indicate user engagement.
@@ -75,16 +73,39 @@ Track first meaningful actions that indicate user engagement.
 - `first_share_clicked` - First time user clicks share
 - `feature_used` - General feature usage tracking
 
-**Properties tracked:**
+**Properties tracked (for `first_cocktail_logged`):**
 - `cocktail_id`: ID of the cocktail
 - `has_photo`: whether a photo was included
 - `rating`: user's rating (0-5)
 - `visibility`: 'private', 'friends', or 'public'
 - `location_type`: 'home' or 'bar'
-- `feature`: name of the feature used
+
+**Features tracked via `feature_used` event:**
+- `post_liked` / `post_unliked` - User likes/unlikes a post (HomeScreen)
+- `comment_added` - User adds a comment (HomeScreen)
+- `comment_deleted` - User deletes a comment (HomeScreen)
+- `cocktail_logged` - User logs a cocktail (subsequent logs after first)
+- `recipe_created` - User creates a custom recipe (RecipeView)
+- `friend_search` - User searches for friends (FriendsView)
+- `friend_request_sent` - User sends a friend request (FriendsView)
+- `friend_request_accepted` - User accepts a friend request (FriendsView)
+- `what_can_i_make` - User uses ingredient matcher (WhatCanIMake)
+- `bar_search` - User searches for bars (BestBars)
+- `cocktail_search` - User searches for cocktails (AllCocktails)
+- `cocktail_filter` - User filters cocktails by type/difficulty (AllCocktails)
+- `shop_search_filter` - User searches/filters shop items (Shop)
+- `ai_assistant_used` - User interacts with AI assistant (AIAssistant)
 
 **Implementation locations:**
-- `/src/screens/Add/AddScreen.tsx` - First cocktail logged
+- `/src/screens/Add/AddScreen.tsx` - First cocktail logged, subsequent logs
+- `/src/screens/Add/RecipeView.tsx` - Recipe creation
+- `/src/screens/Home/HomeScreen.tsx` - Post interactions (like, comment)
+- `/src/screens/Social/FriendsView.tsx` - Friend features
+- `/src/screens/Explore/Pages/WhatCanIMake.tsx` - Ingredient matcher
+- `/src/screens/Explore/Pages/BestBars.tsx` - Bar search
+- `/src/screens/Explore/Pages/AllCocktails.tsx` - Cocktail search/filter
+- `/src/screens/Explore/Pages/Shop.tsx` - Shop search/filter
+- `/src/screens/Explore/Pages/AIAssistant.tsx` - AI chat
 
 **Time to First Action (TTFA):**
 The `trackWithTTFA()` helper automatically includes `time_to_first_action_ms` property, measuring time from session start to the event.
@@ -101,17 +122,39 @@ trackWithTTFA(ANALYTICS_EVENTS.FIRST_COCKTAIL_LOGGED, {
 ```
 
 ### 💰 Revenue
-Track premium upgrades and monetization events.
+Track partnership and affiliate monetization through shop item interactions.
 
 **Events:**
-- `premium_upgraded` - When user upgrades to premium
+- `shop_item_viewed` - When user views a shop item detail page
+- `shop_item_clicked` - When user clicks through to purchase a shop item
 
-**Properties to track:**
-- `plan_type`: subscription tier
-- `price`: amount paid
-- `billing_period`: 'monthly' or 'annual'
+**Properties tracked:**
+- `item_id`: ID of the shop item
+- `item_name`: name of the product
+- `item_category`: category of the product
+- `item_price`: price of the product
+- `affiliate_link`: the external purchase link
 
-**Status:** 🚧 Not yet implemented (premium features TBD)
+**Implementation locations:**
+- `/src/screens/Explore/Pages/ItemDetail.tsx` - Shop item tracking
+
+**Example:**
+```typescript
+posthogCapture(ANALYTICS_EVENTS.SHOP_ITEM_VIEWED, {
+  item_id: item.id,
+  item_name: item.name,
+  item_category: item.category,
+  item_price: item.price,
+});
+
+posthogCapture(ANALYTICS_EVENTS.SHOP_ITEM_CLICKED, {
+  item_id: item.id,
+  item_name: item.name,
+  affiliate_link: item.purchaseLink,
+});
+```
+
+**Status:** ✅ Fully implemented
 
 ### 🔄 Retention
 PostHog automatically calculates retention metrics from user activity.
@@ -139,7 +182,6 @@ Track sharing and invite actions, including viral loop completion.
 - `share_clicked` - When user shares content (all shares tracked)
 - `share_link_opened` - When someone opens a shared link (via UTM params)
 - `share_converted` - When shared link leads to a signup
-- `invite_sent` - When user sends an invite
 
 **Properties tracked:**
 - `post_id`: ID of shared post
@@ -154,9 +196,10 @@ Track sharing and invite actions, including viral loop completion.
 **Implementation locations:**
 - `/src/components/global/FeedPostCard.tsx` - Share button handlers
 - `/src/utils/share.ts` - Share URL generation with UTM params
-- `/src/utils/referral.ts` - UTM extraction and referral attribution
-- `/App.tsx` - Share link open tracking
+- `/src/utils/referral.ts` - UTM extraction and referral attribution (trackShareLinkOpen function)
+- `/App.tsx` - Share link open tracking (calls trackShareLinkOpen on web)
 - `/src/screens/Auth/RegisterScreen.tsx` - Share conversion tracking
+- `/src/hooks/useAuth.tsx` - Share conversion tracking on Google OAuth signup
 
 **Example:**
 ```typescript
@@ -200,7 +243,7 @@ Uses `trackFirstTime()` helper which:
 - Tracks time to first action for activation metrics
 - Resets on user logout
 
-**Status:** ✅ Fully implemented (invite functionality pending)
+**Status:** ✅ Fully implemented
 
 ## API Reference
 
@@ -284,8 +327,8 @@ posthogCapture(ANALYTICS_EVENTS.SIGNUP_COMPLETED, { ... });
 - `LOGIN_COMPLETED`
 - `FIRST_COCKTAIL_LOGGED`
 - `FEATURE_USED`
-- `PREMIUM_UPGRADED`
-- `INVITE_SENT`
+- `SHOP_ITEM_VIEWED`
+- `SHOP_ITEM_CLICKED`
 - `SHARE_CLICKED`
 - `SHARE_LINK_OPENED`
 - `SHARE_CONVERTED`

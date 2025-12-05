@@ -39,21 +39,27 @@ export function createCameraHandlers(setPhotoUri: SetUri) {
                                 allowsEditing: true,
                         });
 
-                        if (!result.canceled) {
-                                const uri = result.assets && result.assets[0] && result.assets[0].uri;
-                                if (uri) {
-                                        setPhotoUri(uri);
-                                        if ((Platform as any).OS !== 'web') {
+                        if (!result.canceled && result.assets && result.assets[0]) {
+                                const uri = result.assets[0].uri;
+                                
+                                // Save to media library on native platforms
+                                if (Platform.OS === 'ios' || Platform.OS === 'android') {
+                                        try {
                                                 const { status: mlStatus } = await MediaLibrary.requestPermissionsAsync();
                                                 if (mlStatus === 'granted') {
-                                                        try {
-                                                                await MediaLibrary.saveToLibraryAsync(uri);
-                                                        } catch (e) {
-                                                                // ignore save failures
-                                                        }
+                                                        await MediaLibrary.saveToLibraryAsync(uri);
+                                                        console.log('Photo saved to library');
+                                                } else {
+                                                        console.warn('Media library permission denied');
                                                 }
+                                        } catch (e) {
+                                                console.error('Failed to save photo to library:', e);
+                                                alert('Photo taken but could not be saved to gallery.');
                                         }
                                 }
+                                
+                                // Set URI after attempting to save
+                                setPhotoUri(uri);
                         }
                 } catch (e) {
                         console.error('Camera error', e);
