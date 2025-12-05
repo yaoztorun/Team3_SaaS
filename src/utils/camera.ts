@@ -43,7 +43,7 @@ export function createCameraHandlers(setPhotoUri: SetUri) {
                                 const uri = result.assets[0].uri;
                                 
                                 // Save to media library on native platforms
-                                if (Platform.OS !== 'web') {
+                                if (Platform.OS === 'ios' || Platform.OS === 'android') {
                                         try {
                                                 const { status: mlStatus } = await MediaLibrary.requestPermissionsAsync();
                                                 if (mlStatus === 'granted') {
