@@ -242,18 +242,26 @@ export const PartyDetails: React.FC = () => {
                         </HStack>
 
                         {/* Host Info */}
-                        <HStack className="items-center mb-4">
-                            <Avatar
-                                avatarUrl={party.organizer_profile?.avatar_url}
-                                initials={organizerInitials}
-                                size={32}
-                                fallbackColor="#cbfbf1"
-                            />
-                            <Box className="ml-2">
-                                <Text className="text-sm text-neutral-600">Hosted by</Text>
-                                <Text className="text-sm text-neutral-950 font-medium">{organizerName}</Text>
-                            </Box>
-                        </HStack>
+                        <Pressable 
+                            onPress={() => {
+                                if (party.organiser_id) {
+                                    navigation.navigate('UserProfile', { userId: party.organiser_id });
+                                }
+                            }}
+                        >
+                            <HStack className="items-center mb-4">
+                                <Avatar
+                                    avatarUrl={party.organizer_profile?.avatar_url}
+                                    initials={organizerInitials}
+                                    size={32}
+                                    fallbackColor="#cbfbf1"
+                                />
+                                <Box className="ml-2">
+                                    <Text className="text-sm text-neutral-600">Hosted by</Text>
+                                    <Text className="text-sm text-neutral-950 font-medium underline">{organizerName}</Text>
+                                </Box>
+                            </HStack>
+                        </Pressable>
 
                         {/* Details with Icons */}
                         <Box className="mt-2 space-y-3">
@@ -325,17 +333,22 @@ export const PartyDetails: React.FC = () => {
                                 </Text>
                                 <Box className="space-y-3">
                                     {registeredAttendees.map((attendee) => (
-                                        <HStack key={attendee.id} className="items-center">
-                                            <Avatar
-                                                avatarUrl={attendee.avatar_url}
-                                                initials={getInitials(attendee.full_name)}
-                                                size={40}
-                                                fallbackColor="#cbfbf1"
-                                            />
-                                            <Text className="text-base text-neutral-950 ml-3">
-                                                {attendee.full_name || 'Unknown User'}
-                                            </Text>
-                                        </HStack>
+                                        <Pressable
+                                            key={attendee.id}
+                                            onPress={() => navigation.navigate('UserProfile', { userId: attendee.id })}
+                                        >
+                                            <HStack className="items-center">
+                                                <Avatar
+                                                    avatarUrl={attendee.avatar_url}
+                                                    initials={getInitials(attendee.full_name)}
+                                                    size={40}
+                                                    fallbackColor="#cbfbf1"
+                                                />
+                                                <Text className="text-base text-neutral-950 ml-3 underline">
+                                                    {attendee.full_name || 'Unknown User'}
+                                                </Text>
+                                            </HStack>
+                                        </Pressable>
                                     ))}
                                 </Box>
                             </Box>
@@ -351,17 +364,22 @@ export const PartyDetails: React.FC = () => {
                                     {waitlistedAttendees.map((attendee) => (
                                         <Box key={attendee.id} className="bg-gray-50 rounded-xl p-3">
                                             <HStack className="items-center justify-between">
-                                                <HStack className="items-center flex-1">
-                                                    <Avatar
-                                                        avatarUrl={attendee.avatar_url}
-                                                        initials={getInitials(attendee.full_name)}
-                                                        size={40}
-                                                        fallbackColor="#d1d5db"
-                                                    />
-                                                    <Text className="text-base text-neutral-950 ml-3 flex-1">
-                                                        {attendee.full_name || 'Unknown User'}
-                                                    </Text>
-                                                </HStack>
+                                                <Pressable
+                                                    onPress={() => navigation.navigate('UserProfile', { userId: attendee.id })}
+                                                    className="flex-1"
+                                                >
+                                                    <HStack className="items-center flex-1">
+                                                        <Avatar
+                                                            avatarUrl={attendee.avatar_url}
+                                                            initials={getInitials(attendee.full_name)}
+                                                            size={40}
+                                                            fallbackColor="#d1d5db"
+                                                        />
+                                                        <Text className="text-base text-neutral-950 ml-3 flex-1 underline">
+                                                            {attendee.full_name || 'Unknown User'}
+                                                        </Text>
+                                                    </HStack>
+                                                </Pressable>
                                                 {isHost && (
                                                     <HStack className="gap-2">
                                                         <Pressable
