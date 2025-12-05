@@ -166,7 +166,7 @@ export const AllCocktails = () => {
         const results = cocktails.filter(c => {
             const name = (c.name ?? '')?.toString().toLowerCase();
             const matchesQuery = !q || name.includes(q);
-            
+
             // Type filtering
             let matchesType = true;
             if (activeType === 'Bookmarks') {
@@ -180,14 +180,14 @@ export const AllCocktails = () => {
                 const dbTypeValue = activeType.toLowerCase().replace(/ /g, '_'); // Convert "Mixed Drinks" back to "mixed_drinks"
                 matchesType = c.cocktail_type === dbTypeValue;
             }
-            
+
             // Difficulty filtering
-            const matchesDifficulty = activeDifficulty === 'All' || 
+            const matchesDifficulty = activeDifficulty === 'All' ||
                 c.difficulty?.toLowerCase() === activeDifficulty.toLowerCase();
-            
+
             return matchesQuery && matchesType && matchesDifficulty;
         });
-        
+
         // Track filter usage when filters are applied
         if (activeType !== 'All' || activeDifficulty !== 'All') {
             posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
@@ -197,7 +197,7 @@ export const AllCocktails = () => {
                 results_count: results.length,
             });
         }
-        
+
         return results;
     }, [debouncedQuery, activeType, activeDifficulty, cocktails, user, bookmarkedCocktailIds]);
 
@@ -298,19 +298,19 @@ export const AllCocktails = () => {
                     {/* Cocktail Type Filter */}
                     <Box className="mb-3">
                         <Text className="text-xs font-medium text-neutral-600 mb-2">Type</Text>
-                        <ScrollViewHorizontal 
-                            categories={['All', ...(user ? ['Bookmarks', 'Own Recipes'] : []), ...cocktailTypes]} 
-                            active={activeType} 
-                            onChange={setActiveType} 
+                        <ScrollViewHorizontal
+                            categories={['All', ...(user ? ['Bookmarks', 'Own Recipes'] : []), ...cocktailTypes]}
+                            active={activeType}
+                            onChange={setActiveType}
                         />
                     </Box>
                     {/* Difficulty Filter */}
                     <Box>
                         <Text className="text-xs font-medium text-neutral-600 mb-2">Difficulty</Text>
-                        <ScrollViewHorizontal 
-                            categories={difficulties} 
-                            active={activeDifficulty} 
-                            onChange={setActiveDifficulty} 
+                        <ScrollViewHorizontal
+                            categories={difficulties}
+                            active={activeDifficulty}
+                            onChange={setActiveDifficulty}
                         />
                     </Box>
                 </Animated.View>

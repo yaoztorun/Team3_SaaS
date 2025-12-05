@@ -108,7 +108,7 @@ export const CocktailDetail = () => {
     const toggleBookmark = async () => {
         console.log('=== TOGGLE BOOKMARK CLICKED ===');
         console.log('Current bookmark state:', isBookmarked);
-        
+
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
             console.log('User not authenticated');
@@ -136,7 +136,7 @@ export const CocktailDetail = () => {
             // Add bookmark
             console.log('Attempting to ADD bookmark...');
             console.log('Insert data:', { user_id: user.id, cocktail_id: cocktail.id });
-            
+
             const { data, error } = await supabase
                 .from('bookmarks')
                 .insert({
@@ -146,7 +146,7 @@ export const CocktailDetail = () => {
                 .select();
 
             console.log('Insert result:', { data, error });
-            
+
             if (!error) {
                 console.log('✓ Bookmark added successfully');
                 setIsBookmarked(true);
@@ -421,7 +421,7 @@ Rules:
                             </Pressable>
                         </HStack>
                     )}
-                    
+
                     {/* Difficulty Badge */}
                     <View
                         style={{
