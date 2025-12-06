@@ -15,7 +15,7 @@ interface BadgeModalProps {
 const BADGE_DESCRIPTIONS: Record<string, { title: string; description: string }> = {
     cocktails: {
         title: 'Cocktail Enthusiast',
-        description: 'Earned by logging cocktails you\'ve tried.\n\nBronze: 5 cocktails\nSilver: 20 cocktails\nGold: 50 cocktails',
+        description: 'Earned by posting cocktails you\'ve tried.\n\nBronze: 5 cocktails\nSilver: 20 cocktails\nGold: 50 cocktails',
     },
     friends: {
         title: 'Social Butterfly',
@@ -35,7 +35,7 @@ const BADGE_DESCRIPTIONS: Record<string, { title: string; description: string }>
     },
     streak: {
         title: 'Daily Streak',
-        description: 'Earned by logging cocktails on consecutive days.\n\nBronze: 5 day streak\nSilver: 20 day streak\nGold: 50 day streak',
+        description: 'Earned by posting cocktails on consecutive days.\n\nBronze: 5 day streak\nSilver: 20 day streak\nGold: 50 day streak',
     },
 };
 

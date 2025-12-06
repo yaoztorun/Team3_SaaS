@@ -225,7 +225,7 @@ export const AddScreen = () => {
 
             // user will dismiss the modal manually
         } catch (e) {
-            console.error('Error logging cocktail', e);
+            console.error('Error posting cocktail', e);
             alert('Upload failed. See console for details.');
         } finally {
             setIsUploading(false);
