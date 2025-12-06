@@ -1,19 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ScrollView, Image, ActivityIndicator, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Center } from '@/src/components/ui/center';
 import { HStack } from '@/src/components/ui/hstack';
-import { Pressable } from '@/src/components/ui/pressable';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
-import { useRoute, useNavigation, CommonActions } from '@react-navigation/native';
+import { useRoute, useNavigation } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Profile } from '@/src/types/profile';
 import { Button } from '@/src/components/ui/button';
-import { Avatar } from '@/src/components/global';
+import { Pressable } from '@/src/components/ui/pressable';
 import { useAuth } from '@/src/hooks/useAuth';
-import { useUserStats } from '@/src/hooks/useUserStats';
 import { 
     sendFriendRequest, 
     getFriendshipStatus,
@@ -23,8 +21,9 @@ import {
     unfriendUser,
     getFriends
 } from '@/src/api/friendship';
+import { fetchUserStats, UserStats } from '@/src/api/stats';
+import { LineChart, PieChart } from 'react-native-chart-kit';
 import { Heading, ToggleSwitch, FeedPostCard, TextInputField } from '@/src/components/global';
-import { ProfileStats } from '@/src/screens/Profile/components/ProfileStats';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
 import { supabase } from '@/src/lib/supabase';
@@ -98,9 +97,8 @@ export const UserProfile = () => {
     const [processingRequest, setProcessingRequest] = useState(false);
     const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
     const [friendshipId, setFriendshipId] = useState<string | null>(null);
-    
-    // Use centralized stats hook
-    const { userStats, loadingStats, avgRatingOutOf5, ratingTrendCounts5 } = useUserStats(userId);
+    const [userStats, setUserStats] = useState<UserStats | null>(null);
+    const [loadingStats, setLoadingStats] = useState(true);
     const [badges, setBadges] = useState<Badge[]>([]);
     const [loadingBadges, setLoadingBadges] = useState(false);
     const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
@@ -116,6 +114,25 @@ export const UserProfile = () => {
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState('');
     const [sendingComment, setSendingComment] = useState(false);
+
+    // Derived stats display (out of 5)
+    const avgRatingOutOf5 = useMemo(() => {
+        const raw = userStats?.avgRating ?? 0;
+        return Math.round(raw / 2);
+    }, [userStats?.avgRating]);
+
+    const ratingTrendCounts5 = useMemo(() => {
+        const arr = userStats?.ratingTrend?.map((it: any) => it.count) ?? [];
+        const c = (i: number) => (arr[i] ?? 0);
+        return [
+            c(0) + c(1),
+            c(2) + c(3),
+            c(4) + c(5),
+            c(6) + c(7),
+            c(8) + c(9),
+            c(10),
+        ];
+    }, [userStats?.ratingTrend]);
 
     useEffect(() => {
         loadUserProfile();
@@ -164,13 +181,26 @@ export const UserProfile = () => {
 
         setLoading(false);
         
-        // Stats are loaded automatically by useUserStats hook
+        // Load stats
+        loadStats();
         
         // Load badges
         loadBadges();
 
         // Load drinks
         loadRecentDrinks();
+    };
+
+    const loadStats = async () => {
+        setLoadingStats(true);
+        try {
+            const stats = await fetchUserStats(userId);
+            setUserStats(stats);
+        } catch (error) {
+            console.error('Failed to load user stats:', error);
+        } finally {
+            setLoadingStats(false);
+        }
     };
 
     const loadBadges = async () => {
@@ -397,22 +427,12 @@ export const UserProfile = () => {
             return;
         }
         
-        console.log('UserProfile: Closing modal and navigating to cocktail:', cocktail.name);
         closePostModal();
         
-        // Navigate to Main (BottomTabs), then to Explore tab, then to CocktailDetail
-        navigation.dispatch(
-            CommonActions.navigate({
-                name: 'Main',
-                params: {
-                    screen: 'Explore',
-                    params: {
-                        screen: 'CocktailDetail',
-                        params: { cocktail }
-                    }
-                }
-            })
-        );
+        (navigation as any).navigate('Explore', { 
+            screen: 'CocktailDetail',
+            params: { cocktail }
+        });
     };
 
     const handleSendRequest = async () => {
@@ -512,11 +532,11 @@ export const UserProfile = () => {
     }
 
     return (
-        <Box className="flex-1 bg-neutral-50" style={{ height: '100vh', maxHeight: '100vh' } as any}>
+        <Box className="flex-1 bg-neutral-50">
             <TopBar title="Profile" showBack onBackPress={() => navigation.goBack()} />
             
             <ScrollView
-                style={{ flex: 1 }}
+                className="flex-1"
                 contentContainerStyle={{
                     paddingHorizontal: spacing.screenHorizontal,
                     paddingTop: spacing.screenVertical,
@@ -526,12 +546,21 @@ export const UserProfile = () => {
                 {/* User Profile Card */}
                 <Box className="p-6 bg-white rounded-2xl mb-4">
                     <Center className="mb-4">
-                        <Avatar
-                            avatarUrl={profile.avatar_url}
-                            initials={profile.full_name?.charAt(0)?.toUpperCase() || profile.email?.charAt(0)?.toUpperCase() || '?'}
-                            size={96}
-                            fallbackColor="#14b8a6"
-                        />
+                        {profile.avatar_url ? (
+                            <Box className="w-24 h-24 rounded-full overflow-hidden bg-gray-200">
+                                <Image 
+                                    source={{ uri: profile.avatar_url }} 
+                                    style={{ width: 96, height: 96 }}
+                                    resizeMode="cover"
+                                />
+                            </Box>
+                        ) : (
+                            <Center className="h-24 w-24 rounded-full bg-teal-500">
+                                <Text className="text-3xl text-white">
+                                    {profile.full_name?.charAt(0)?.toUpperCase() || profile.email?.charAt(0)?.toUpperCase() || '?'}
+                                </Text>
+                            </Center>
+                        )}
                     </Center>
 
                     <Center className="mb-4">
@@ -633,7 +662,7 @@ export const UserProfile = () => {
                 {(friendshipStatus === 'accepted' || currentUser?.id === userId) ? (
                     <>
                         {/* View Toggle */}
-                        <Box className="mb-4 bg-white rounded-2xl p-1">
+                        <Box className="mb-4">
                             <ToggleSwitch
                                 value={currentView === 'drinks' ? 'left' : 'right'}
                                 onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'drinks' : 'stats')}
@@ -669,13 +698,170 @@ export const UserProfile = () => {
                 ) : (
                     <>
                         {/* Stats View */}
-                        <ProfileStats
-                            userStats={userStats}
-                            avgRatingOutOf5={avgRatingOutOf5}
-                            ratingTrendCounts5={ratingTrendCounts5}
-                            loading={loadingStats}
-                            title="Stats"
-                        />
+                        <Box className="bg-white rounded-2xl p-4 mb-4">
+                            <Text className="text-base text-neutral-900 mb-4">Stats</Text>
+                            {loadingStats ? (
+                                <Center className="py-4">
+                                    <ActivityIndicator size="small" color="#00BBA7" />
+                                </Center>
+                            ) : (
+                                <HStack className="justify-around">
+                                    <Box className="items-center">
+                                        <Text className="text-3xl text-teal-500 font-semibold">
+                                            {userStats?.drinksLogged || 0}
+                                        </Text>
+                                        <Text className="text-xs text-neutral-500">Drinks Logged</Text>
+                                    </Box>
+                                    <Box className="items-center">
+                                        <Text className="text-3xl text-red-500 font-semibold">
+                                            {avgRatingOutOf5}
+                                        </Text>
+                                        <Text className="text-xs text-neutral-500">Avg Rating</Text>
+                                    </Box>
+                                    <Box className="items-center">
+                                        <Text className="text-3xl text-blue-500 font-semibold">
+                                            {userStats?.barsVisited || 0}
+                                        </Text>
+                                        <Text className="text-xs text-neutral-500">Bars Visited</Text>
+                                    </Box>
+                                </HStack>
+                            )}
+                        </Box>
+
+                        {/* Top Cocktails */}
+                        {userStats?.topCocktails && userStats.topCocktails.length > 0 && (
+                            <Box className="bg-white rounded-2xl p-4 mb-4">
+                                <Text className="text-base text-neutral-900 mb-3">
+                                    Most Popular
+                                </Text>
+                                {userStats.topCocktails.map((cocktail, index) => (
+                                    <Box
+                                        key={index}
+                                        className="flex-row items-center justify-between py-3 border-b border-neutral-100 last:border-b-0"
+                                    >
+                                        <HStack className="items-center flex-1">
+                                            <Box className="w-8 h-8 rounded-full bg-teal-500 items-center justify-center mr-3">
+                                                <Text className="text-white font-semibold">
+                                                    {index + 1}
+                                                </Text>
+                                            </Box>
+                                            <Text className="text-sm text-neutral-900 flex-1" numberOfLines={1}>
+                                                {cocktail.name}
+                                            </Text>
+                                        </HStack>
+                                        <Box className="bg-teal-50 px-3 py-1 rounded-full ml-2">
+                                            <Text className="text-sm text-teal-600 font-medium">
+                                                {cocktail.count}x
+                                            </Text>
+                                        </Box>
+                                    </Box>
+                                ))}
+                            </Box>
+                        )}
+
+                        {/* Rating Trend */}
+                        <Box className="bg-white rounded-2xl p-4 mb-4">
+                            <Text className="text-base text-neutral-900 mb-4">
+                                Rating Trend
+                            </Text>
+                            {userStats?.ratingTrend && userStats.ratingTrend.some(item => item.count > 0) ? (
+                                <Box className="items-center justify-center -ml-8">
+                                    <LineChart
+                                        data={{
+                                            labels: ['0', '1', '2', '3', '4', '5'],
+                                            datasets: [{
+                                                data: ratingTrendCounts5,
+                                            }],
+                                        }}
+                                        width={360}
+                                        height={220}
+                                        yAxisLabel=""
+                                        yAxisSuffix=""
+                                        chartConfig={{
+                                            backgroundColor: '#ffffff',
+                                            backgroundGradientFrom: '#ffffff',
+                                            backgroundGradientTo: '#ffffff',
+                                            decimalPlaces: 0,
+                                            color: (opacity = 1) => `rgba(96, 165, 250, ${opacity})`,
+                                            labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                            propsForDots: {
+                                                r: '3',
+                                                strokeWidth: '2',
+                                                stroke: '#60A5FA',
+                                            },
+                                        }}
+                                        bezier
+                                        style={{
+                                            marginVertical: 8,
+                                            borderRadius: 16,
+                                            marginLeft: -40,
+                                        }}
+                                        withDots={true}
+                                        withInnerLines={false}
+                                        withOuterLines={false}
+                                        withVerticalLines={false}
+                                        withHorizontalLines={false}
+                                        withShadow={false}
+                                        segments={4}
+                                    />
+                                </Box>
+                            ) : (
+                                <Box className="h-48 items-center justify-center">
+                                    <Text className="text-gray-400">No rating data yet</Text>
+                                </Box>
+                            )}
+                        </Box>
+
+                        {/* Cocktail Breakdown */}
+                        <Box className="bg-white rounded-2xl p-4">
+                            <Heading level="h3" className="mb-4">
+                                Cocktail Breakdown
+                            </Heading>
+                            {userStats?.cocktailBreakdown && userStats.cocktailBreakdown.length > 0 ? (
+                                <>
+                                    <Box className="items-center justify-center mb-4">
+                                        <PieChart
+                                            data={userStats.cocktailBreakdown.map(item => ({
+                                                name: item.name,
+                                                population: item.count,
+                                                color: item.color,
+                                                legendFontColor: '#374151',
+                                                legendFontSize: 12,
+                                            }))}
+                                            width={260}
+                                            height={200}
+                                            chartConfig={{
+                                                color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                            }}
+                                            accessor="population"
+                                            backgroundColor="transparent"
+                                            paddingLeft="60"
+                                            hasLegend={false}
+                                        />
+                                    </Box>
+                                    <Box className="flex-row flex-wrap">
+                                        {userStats.cocktailBreakdown.map((item, index) => (
+                                            <Box
+                                                key={index}
+                                                className="w-1/2 flex-row items-center mb-2 pr-2"
+                                            >
+                                                <Box
+                                                    style={{ backgroundColor: item.color }}
+                                                    className="h-4 w-4 rounded-full mr-2"
+                                                />
+                                                <Text className="text-sm text-neutral-900" numberOfLines={1}>
+                                                    {item.name} ({item.count})
+                                                </Text>
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                </>
+                            ) : (
+                                <Box className="h-48 items-center justify-center">
+                                    <Text className="text-gray-400">No cocktail data yet</Text>
+                                </Box>
+                            )}
+                        </Box>
                     </>
                 )}
             </>
@@ -760,14 +946,19 @@ export const UserProfile = () => {
                                         return (
                                             <Box key={comment.id} className="mb-4 bg-white">
                                                 <Box className="flex-row items-start">
-                                                    <Box className="mr-3">
-                                                        <Avatar
-                                                            avatarUrl={avatarUrl}
-                                                            initials={initials}
-                                                            size={32}
-                                                            fallbackColor="#009689"
-                                                        />
-                                                    </Box>
+                                                    {avatarUrl ? (
+                                                        <Box className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 mr-3">
+                                                            <Image
+                                                                source={{ uri: avatarUrl }}
+                                                                style={{ width: 32, height: 32 }}
+                                                                resizeMode="cover"
+                                                            />
+                                                        </Box>
+                                                    ) : (
+                                                        <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
+                                                            <Text className="text-white text-xs font-medium">{initials}</Text>
+                                                        </Box>
+                                                    )}
                                                     <Box className="flex-1">
                                                         <Text className="text-sm font-semibold text-neutral-900">
                                                             {userName}
@@ -835,11 +1026,11 @@ const GridGallery = ({ items, onPress }: { items: RecentDrink[]; onPress: (item:
                             />
                         ) : (
                             <Center style={{ width: '100%', aspectRatio: 1, backgroundColor: '#e5e7eb', borderRadius: 5 }}>
-                                <Text style={{ fontSize: 12, color: '#374151' }} numberOfLines={1}>{it.name}</Text>
+                                <Text className="text-xs text-neutral-700" numberOfLines={1}>{it.name}</Text>
                             </Center>
                         )}
                         <Box className="mt-1 px-2 items-center">
-                            <Text style={{ fontSize: 12, fontWeight: '500', color: '#171717', textAlign: 'center' }} numberOfLines={1}>{it.name}</Text>
+                            <Text className="text-[12px] font-medium text-neutral-900 text-center" numberOfLines={1}>{it.name}</Text>
                         </Box>
                     </Pressable>
                 ))}
