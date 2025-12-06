@@ -26,6 +26,7 @@ const RegisterScreen: React.FC = () => {
     const [isSignInHovered, setIsSignInHovered] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
 
@@ -169,6 +170,8 @@ const RegisterScreen: React.FC = () => {
                             value={password}
                             onChangeText={setPassword}
                             onSubmitEditing={handleRegister}
+                            showPassword={showPassword}
+                            onTogglePassword={() => setShowPassword(!showPassword)}
                         />
                         <Box className="mt-2">
                             <Text className="text-xs text-neutral-500">
@@ -187,6 +190,8 @@ const RegisterScreen: React.FC = () => {
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
                             onSubmitEditing={handleRegister}
+                            showPassword={showPassword}
+                            onTogglePassword={() => setShowPassword(!showPassword)}
                         />
                     </Box>
                     {message && (
@@ -272,7 +277,7 @@ const RegisterScreen: React.FC = () => {
 
                         {/* Message */}
                         <Text className="text-base text-neutral-600 text-center mb-6">
-                            Your account has been created successfully. Please check your email to verify your account before logging in.
+                            Please check your email to verify your account before logging in.
                         </Text>
 
                         {/* Login Button */}

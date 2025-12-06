@@ -9,6 +9,8 @@ interface PasswordInputProps {
     value: string;
     onChangeText: (text: string) => void;
     onSubmitEditing?: () => void;
+    showPassword?: boolean;
+    onTogglePassword?: () => void;
 }
 
 export const PasswordInput: React.FC<PasswordInputProps> = ({
@@ -17,8 +19,14 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
     value,
     onChangeText,
     onSubmitEditing,
+    showPassword: externalShowPassword,
+    onTogglePassword,
 }) => {
-    const [showPassword, setShowPassword] = useState(false);
+    const [internalShowPassword, setInternalShowPassword] = useState(false);
+    
+    // Use external state if provided, otherwise use internal state
+    const showPassword = externalShowPassword !== undefined ? externalShowPassword : internalShowPassword;
+    const togglePassword = onTogglePassword || (() => setInternalShowPassword(!internalShowPassword));
 
     return (
         <TextInputField
@@ -29,7 +37,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
             secureTextEntry={!showPassword}
             onSubmitEditing={onSubmitEditing}
             icon={
-                <Pressable onPress={() => setShowPassword(!showPassword)}>
+                <Pressable onPress={togglePassword}>
                     {showPassword ? (
                         <EyeOff size={20} color="#717182" />
                     ) : (
