@@ -4,11 +4,10 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList, RootStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading, PasswordInput } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { GoogleSignInButton } from '@/src/components/global/GoogleSignInButton';
 import { spacing } from '@/src/theme/spacing';
@@ -24,7 +23,6 @@ const LoginScreen: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isSignUpHovered, setIsSignUpHovered] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
@@ -131,22 +129,12 @@ const LoginScreen: React.FC = () => {
                     />
 
                     <Box className="mt-6 mb-8">
-                        <TextInputField
+                        <PasswordInput
                             label="Password"
                             placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
                             onSubmitEditing={handleLogin}
-                            icon={
-                                <Pressable onPress={() => setShowPassword(!showPassword)}>
-                                    {showPassword ? (
-                                        <EyeOff size={20} color="#717182" />
-                                    ) : (
-                                        <Eye size={20} color="#717182" />
-                                    )}
-                                </Pressable>
-                            }
                         />
                     </Box>
 

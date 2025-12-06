@@ -78,7 +78,6 @@ Track first meaningful actions that indicate user engagement.
 - `has_photo`: whether a photo was included
 - `rating`: user's rating (0-5)
 - `visibility`: 'private', 'friends', or 'public'
-- `location_type`: 'home' or 'bar'
 
 **Features tracked via `feature_used` event:**
 - `post_liked` / `post_unliked` - User likes/unlikes a post (HomeScreen)
@@ -153,8 +152,6 @@ posthogCapture(ANALYTICS_EVENTS.SHOP_ITEM_CLICKED, {
   affiliate_link: item.purchaseLink,
 });
 ```
-
-**Status:** ✅ Fully implemented
 
 ### 🔄 Retention
 PostHog automatically calculates retention metrics from user activity.
@@ -243,7 +240,6 @@ Uses `trackFirstTime()` helper which:
 - Tracks time to first action for activation metrics
 - Resets on user logout
 
-**Status:** ✅ Fully implemented
 
 ## API Reference
 
@@ -382,14 +378,6 @@ Call `identifyUser()` as soon as the user logs in or signs up to ensure all subs
 4. User logs out
    └─> resetUser() in useAuth.tsx
 ```
-
-## Privacy & Compliance
-
-- ✅ Autocapture is disabled to prevent unintended PII collection
-- ✅ All events are manually defined and reviewed
-- ✅ User identity is cleared on logout
-- ⚠️ Ensure cookie consent is implemented for GDPR compliance
-- ⚠️ Review user properties to ensure no sensitive data is tracked
 
 ## Support
 

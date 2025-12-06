@@ -4,11 +4,11 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Eye, EyeOff, Mail } from 'lucide-react-native';
+import { ChevronLeft, Mail } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading, PasswordInput } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
@@ -24,8 +24,6 @@ const RegisterScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isSignInHovered, setIsSignInHovered] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
 
@@ -165,22 +163,12 @@ const RegisterScreen: React.FC = () => {
                     </Box>
 
                     <Box className="mt-6">
-                        <TextInputField
+                        <PasswordInput
                             label="Password"
                             placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
                             onSubmitEditing={handleRegister}
-                            icon={
-                                <Pressable onPress={() => setShowPassword(!showPassword)}>
-                                    {showPassword ? (
-                                        <EyeOff size={20} color="#717182" />
-                                    ) : (
-                                        <Eye size={20} color="#717182" />
-                                    )}
-                                </Pressable>
-                            }
                         />
                         <Box className="mt-2">
                             <Text className="text-xs text-neutral-500">
@@ -193,22 +181,12 @@ const RegisterScreen: React.FC = () => {
                     </Box>
 
                     <Box className="mt-6 mb-8">
-                        <TextInputField
+                        <PasswordInput
                             label="Confirm Password"
                             placeholder="Confirm your password"
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
-                            secureTextEntry={!showConfirmPassword}
                             onSubmitEditing={handleRegister}
-                            icon={
-                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                                    {showConfirmPassword ? (
-                                        <EyeOff size={20} color="#717182" />
-                                    ) : (
-                                        <Eye size={20} color="#717182" />
-                                    )}
-                                </Pressable>
-                            }
                         />
                     </Box>
                     {message && (

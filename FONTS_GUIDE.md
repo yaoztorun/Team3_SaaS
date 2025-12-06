@@ -48,34 +48,6 @@ import { Heading } from '@/src/components/global';
 </Text>
 ```
 
-### Option 2: Direct Font Names (Less Common)
-
-You can also use the font names directly:
-
-```tsx
-<Text className="font-rubik text-xl font-semibold">
-  Heading with Rubik
-</Text>
-
-<Text className="font-inter">
-  Body text with Inter
-</Text>
-```
-
-### Option 3: Inline Styles (Avoid When Possible)
-
-Only use this when necessary:
-
-```tsx
-<Text style={{ fontFamily: 'Rubik, system-ui, sans-serif' }}>
-  Heading
-</Text>
-
-<Text style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-  Body
-</Text>
-```
-
 ## Font Weights Available
 
 ### Rubik (for headings)

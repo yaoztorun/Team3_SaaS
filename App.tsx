@@ -16,7 +16,10 @@ import { trackShareLinkOpen } from './src/utils/referral';
 const MAX_CONTENT_WIDTH = 480; // ~iPhone 14 Pro Max width
 
 export default function App() {
-  initAnalytics();
+  // Initialize analytics once on mount
+  useEffect(() => {
+    initAnalytics();
+  }, []);
   
   // Track if user arrived via shared link (UTM parameters)
   useEffect(() => {

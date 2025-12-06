@@ -102,9 +102,10 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
         }));
 
         // 6. Cocktail Breakdown - for pie chart
-        // Include cocktails until smallest slice would be < 8.33% (1/12) of total
+        // Show top cocktails with smart grouping
         const totalCocktailsCount = Array.from(cocktailMap.values()).reduce((sum, c) => sum + c.count, 0);
         const minSliceSize = totalCocktailsCount * 0.0833; // 1/12 of total (~8.3%)
+        const maxSlices = 8; // Maximum number of individual slices before grouping
         
         const cocktailBreakdown: Array<{ name: string; count: number; color: string }> = [];
         let othersCount = 0;
@@ -112,15 +113,19 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
         for (let i = 0; i < allCocktailsSorted.length; i++) {
             const cocktail = allCocktailsSorted[i];
             
-            // If this cocktail is too small for its own slice, add to "Others"
-            if (cocktail.count < minSliceSize) {
-                othersCount += cocktail.count;
-            } else {
+            // Show top cocktails: either under max slices OR above minimum size threshold
+            const shouldShowIndividually = 
+                cocktailBreakdown.length < maxSlices || 
+                (cocktailBreakdown.length < maxSlices && cocktail.count >= minSliceSize);
+            
+            if (shouldShowIndividually && cocktailBreakdown.length < maxSlices) {
                 cocktailBreakdown.push({
                     name: cocktail.name,
                     count: cocktail.count,
                     color: CHART_COLORS[cocktailBreakdown.length % CHART_COLORS.length],
                 });
+            } else {
+                othersCount += cocktail.count;
             }
         }
         

@@ -4,6 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { X } from 'lucide-react-native';
 import { Badge } from '@/src/api/badges';
+import { Heading } from './Heading';
 
 interface BadgeModalProps {
     visible: boolean;
@@ -77,9 +78,7 @@ export const BadgeModal: React.FC<BadgeModalProps> = ({ visible, badge, onClose 
                     </Box>
 
                     {/* Badge Title */}
-                    <Text className="text-2xl font-bold text-neutral-900 text-center mb-2">
-                        {badgeInfo.title}
-                    </Text>
+                    <Heading level="h2" className="text-center mb-2">{badgeInfo.title}</Heading>
 
                     {/* Tier and Count */}
                     <Text className="text-lg text-[#00BBA7] font-semibold text-center mb-4">
