@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { ScrollView, Image, ActivityIndicator, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -398,8 +398,7 @@ export const UserProfile = () => {
             console.log('Cocktail not found or not accessible');
             return;
         }
-
-        console.log('UserProfile: Closing modal and navigating to cocktail:', cocktail.name);
+        
         closePostModal();
 
         // Navigate to Main (BottomTabs), then to Explore tab, then to CocktailDetail
@@ -514,11 +513,11 @@ export const UserProfile = () => {
     }
 
     return (
-        <Box className="flex-1 bg-neutral-50" style={{ height: '100vh', maxHeight: '100vh' } as any}>
+        <Box className="flex-1 bg-neutral-50">
             <TopBar title="Profile" showBack onBackPress={() => navigation.goBack()} />
 
             <ScrollView
-                style={{ flex: 1 }}
+                className="flex-1"
                 contentContainerStyle={{
                     paddingHorizontal: spacing.screenHorizontal,
                     paddingTop: spacing.screenVertical,
@@ -635,7 +634,7 @@ export const UserProfile = () => {
                 {(friendshipStatus === 'accepted' || currentUser?.id === userId) ? (
                     <>
                         {/* View Toggle */}
-                        <Box className="mb-4 bg-white rounded-2xl p-1">
+                        <Box className="mb-4">
                             <ToggleSwitch
                                 value={currentView === 'drinks' ? 'left' : 'right'}
                                 onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'drinks' : 'stats')}

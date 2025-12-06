@@ -206,7 +206,7 @@ export const HomeScreen: React.FC = () => {
   // Function to advance carousel automatically
   const autoAdvanceCarousel = () => {
     const newIndex = (currentIndexRef.current + 1) % COCKTAILS.length;
-
+    
     Animated.parallel([
       Animated.timing(dragX, {
         toValue: -Dimensions.get('window').width,
@@ -220,7 +220,7 @@ export const HomeScreen: React.FC = () => {
       }),
     ]).start(() => {
       setCurrentCocktailIndex(newIndex);
-
+      
       // crossfade side previews
       sideLeftOpacity.setValue(0);
       sideRightOpacity.setValue(0);
@@ -228,7 +228,7 @@ export const HomeScreen: React.FC = () => {
         Animated.timing(sideLeftOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
         Animated.timing(sideRightOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
       ]).start();
-
+      
       // animate dot scales
       dotScales.forEach((val, idx) => {
         Animated.spring(val, {
@@ -238,7 +238,7 @@ export const HomeScreen: React.FC = () => {
           tension: 90,
         }).start();
       });
-
+      
       dragX.setValue(Dimensions.get('window').width);
       cardOpacity.setValue(0);
       gestureX.setValue(0);
@@ -271,7 +271,7 @@ export const HomeScreen: React.FC = () => {
   // Set up auto-scroll effect
   useEffect(() => {
     resetAutoScrollTimer();
-
+    
     return () => {
       if (autoScrollTimerRef.current) {
         clearTimeout(autoScrollTimerRef.current);
@@ -360,7 +360,7 @@ export const HomeScreen: React.FC = () => {
             }).start();
           });
           // light haptic feedback on successful swipe (native only)
-          try { if (Platform.OS !== 'web') Haptics.selectionAsync(); } catch { }
+          try { if (Platform.OS !== 'web') Haptics.selectionAsync(); } catch {}
           dragX.setValue(-direction * Dimensions.get('window').width);
           cardOpacity.setValue(0);
           gestureX.setValue(0); // reset gesture preview influence immediately
@@ -412,6 +412,7 @@ export const HomeScreen: React.FC = () => {
     });
     return () => gestureX.removeListener(id);
   }, [gestureX]);
+
 
   // Reload feed when screen comes into focus (e.g., after creating a post)
   useFocusEffect(
@@ -565,7 +566,7 @@ export const HomeScreen: React.FC = () => {
       if (id) {
         setPendingOpenPostId(id);
       }
-      return () => { };
+      return () => {};
     }, [route?.params?.openDrinkLogId])
   );
 
@@ -577,7 +578,7 @@ export const HomeScreen: React.FC = () => {
       // Clear the route param so subsequent navigations with same id work
       try {
         navigation.setParams({ openDrinkLogId: undefined });
-      } catch { }
+      } catch {}
     }
   }, [pendingOpenPostId, feedPosts]);
 
@@ -604,10 +605,10 @@ export const HomeScreen: React.FC = () => {
       prev.map((p) =>
         p.id === postId
           ? {
-            ...p,
-            isLiked: !p.isLiked,
-            likes: p.likes + (p.isLiked ? -1 : 1),
-          }
+              ...p,
+              isLiked: !p.isLiked,
+              likes: p.likes + (p.isLiked ? -1 : 1),
+            }
           : p,
       ),
     );
@@ -632,7 +633,7 @@ export const HomeScreen: React.FC = () => {
     const rows = await getCommentsForLog(postId);
     setCommentsForPost(rows);
     setCommentsLoading(false);
-
+    
     // Scroll to bottom after comments load
     setTimeout(() => {
       commentsScrollViewRef.current?.scrollToEnd({ animated: false });
@@ -652,7 +653,7 @@ export const HomeScreen: React.FC = () => {
     setActivePostId(postId);
     setCommentsVisible(true);
     await loadComments(postId);
-
+    
     // Scroll to bottom after a short delay to ensure content is rendered
     setTimeout(() => {
       commentsScrollViewRef.current?.scrollToEnd({ animated: false });
@@ -688,17 +689,17 @@ export const HomeScreen: React.FC = () => {
 
     // Close comments modal first
     closeComments();
-
+    
     // Fetch the full cocktail data (RLS ensures we only get public or own cocktails)
     const cocktail = await fetchCocktailById(cocktailId);
-
+    
     if (!cocktail) {
       console.log('Cocktail not found or not accessible');
       return;
     }
-
+    
     // Navigate to CocktailDetail in the Explore stack
-    navigation.navigate('Explore' as never, {
+    navigation.navigate('Explore' as never, { 
       screen: 'CocktailDetail',
       params: { cocktail }
     } as never);
@@ -757,7 +758,7 @@ export const HomeScreen: React.FC = () => {
     // optimistic: remove from UI
     setCommentsForPost((prev) => prev.filter((c) => c.id !== commentId));
     setLastDeletedComment(comment);
-    
+
     // Track comment deleted
     posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
       feature: 'comment_deleted',
@@ -858,17 +859,16 @@ export const HomeScreen: React.FC = () => {
                 position: 'absolute',
                 zIndex: 1,
                 transform: [
-                  {
-                    translateX: Animated.add(
-                      gestureX.interpolate({ inputRange: [-200, 0, 200], outputRange: [-6, 0, 6], extrapolate: 'clamp' }),
-                      new Animated.Value(-(ACTIVE_CARD_WIDTH / 2 + PREVIEW_GAP))
+                  { translateX: Animated.add(
+                      gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [-6,0,6], extrapolate: 'clamp' }),
+                      new Animated.Value(-(ACTIVE_CARD_WIDTH/2 + PREVIEW_GAP))
                     )
                   },
-                  { scale: gestureX.interpolate({ inputRange: [-200, 0, 200], outputRange: [0.9, 0.92, 0.94], extrapolate: 'clamp' }) },
+                  { scale: gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.9,0.92,0.94], extrapolate: 'clamp' }) },
                 ],
                 opacity: Animated.multiply(
                   sideLeftOpacity,
-                  gestureX.interpolate({ inputRange: [-200, 0, 200], outputRange: [0.55, 0.6, 0.7], extrapolate: 'clamp' })
+                  gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.55,0.6,0.7], extrapolate: 'clamp' })
                 ),
               }} pointerEvents="none">
                 <View style={{
@@ -911,17 +911,16 @@ export const HomeScreen: React.FC = () => {
                 position: 'absolute',
                 zIndex: 1,
                 transform: [
-                  {
-                    translateX: Animated.add(
-                      gestureX.interpolate({ inputRange: [-200, 0, 200], outputRange: [-6, 0, 6], extrapolate: 'clamp' }),
-                      new Animated.Value(ACTIVE_CARD_WIDTH / 2 + PREVIEW_GAP)
+                  { translateX: Animated.add(
+                      gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [-6,0,6], extrapolate: 'clamp' }),
+                      new Animated.Value(ACTIVE_CARD_WIDTH/2 + PREVIEW_GAP)
                     )
                   },
-                  { scale: gestureX.interpolate({ inputRange: [-200, 0, 200], outputRange: [0.94, 0.92, 0.9], extrapolate: 'clamp' }) },
+                  { scale: gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.94,0.92,0.9], extrapolate: 'clamp' }) },
                 ],
                 opacity: Animated.multiply(
                   sideRightOpacity,
-                  gestureX.interpolate({ inputRange: [-200, 0, 200], outputRange: [0.7, 0.6, 0.55], extrapolate: 'clamp' })
+                  gestureX.interpolate({ inputRange: [-200,0,200], outputRange: [0.7,0.6,0.55], extrapolate: 'clamp' })
                 ),
               }} pointerEvents="none">
                 <View style={{
@@ -961,10 +960,10 @@ export const HomeScreen: React.FC = () => {
                 </View>
               </Animated.View>
               {/* Active card */}
-              <Animated.View
+               <Animated.View
                 {...panResponder.panHandlers}
                 style={{
-                  width: 220,
+                   width: 220,
                   height: 320,
                   borderRadius: 32,
                   backgroundColor: '#ffffff',
@@ -1011,7 +1010,7 @@ export const HomeScreen: React.FC = () => {
                   opacity: dragBlurOpacity,
                 }} />
                 {(() => {
-                  const enlargedIds = ['margarita', 'clover-club', 'jungle-bird'];
+                  const enlargedIds = ['margarita','clover-club','jungle-bird'];
                   const isEnlarged = enlargedIds.includes(COCKTAILS[currentCocktailIndex].id);
                   return (
                     <Image
@@ -1032,28 +1031,28 @@ export const HomeScreen: React.FC = () => {
             </View>
             {/* Pagination dots below card */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
-              {COCKTAILS.map((c, idx) => (
-                <Animated.View
-                  key={c.id}
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 10,
-                    marginHorizontal: 5,
-                    backgroundColor: idx === currentCocktailIndex ? colors.primary[500] : '#d1d5db',
-                    opacity: idx === currentCocktailIndex ? 1 : 0.55,
-                    borderWidth: idx === currentCocktailIndex ? 2 : 0,
-                    borderColor: idx === currentCocktailIndex ? 'rgba(0,150,137,0.3)' : 'transparent',
-                    transform: [{ scale: dotScales[idx] }],
-                  }}
-                />
-              ))}
+               {COCKTAILS.map((c, idx) => (
+                 <Animated.View
+                   key={c.id}
+                   style={{
+                     width: 10,
+                     height: 10,
+                     borderRadius: 10,
+                     marginHorizontal: 5,
+                     backgroundColor: idx === currentCocktailIndex ? colors.primary[500] : '#d1d5db',
+                     opacity: idx === currentCocktailIndex ? 1 : 0.55,
+                     borderWidth: idx === currentCocktailIndex ? 2 : 0,
+                     borderColor: idx === currentCocktailIndex ? 'rgba(0,150,137,0.3)' : 'transparent',
+                     transform: [{ scale: dotScales[idx] }],
+                   }}
+                 />
+               ))}
             </View>
           </Box>
         </Box>
 
         {/* Feed toggle */}
-        <Box className="mb-4 bg-white rounded-2xl p-1">
+        <Box className="mb-4">
           <ToggleSwitch
             value={feedFilter === 'friends' ? 'left' : 'right'}
             onChange={(val: 'left' | 'right') => setFeedFilter(val === 'left' ? 'friends' : 'for-you')}
@@ -1178,50 +1177,49 @@ export const HomeScreen: React.FC = () => {
                 style={{ flex: 1 }}
                 contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
               >
-                {/* Focused post card */}
-                {focusedPost && (
-                  <Box className="mb-4">
-                    <FeedPostCard
-                      {...focusedPost}
-                      onToggleLike={() => handleToggleLike(focusedPost.id)}
-                      // comments button does nothing here (we're already in detail)
-                      onPressComments={() => { }}
-                      onPressUser={() => {
+              {/* Focused post card */}
+              {focusedPost && (
+                <Box className="mb-4">
+                  <FeedPostCard
+                    {...focusedPost}
+                    onToggleLike={() => handleToggleLike(focusedPost.id)}
+                    // comments button does nothing here (we're already in detail)
+                    onPressComments={() => {}}
+                    onPressUser={() => {
                         if (focusedPost.userId) {
                           handlePressUser(focusedPost.userId);
                         }
-                      }}
-                      onPressTags={() => {
-                        if (focusedPost.taggedFriends && focusedPost.taggedFriends.length > 0) {
-                          setCurrentTaggedFriends(focusedPost.taggedFriends);
-                          setTagsModalVisible(true);
-                        }
-                      }}
-                      onPressCocktail={handlePressCocktail}
-                    />
-                  </Box>
-                )}
+                    }}
+                    onPressTags={() => {
+                      if (focusedPost.taggedFriends && focusedPost.taggedFriends.length > 0) {
+                        setCurrentTaggedFriends(focusedPost.taggedFriends);
+                        setTagsModalVisible(true);
+                      }
+                    }}
+                    onPressCocktail={handlePressCocktail}
+                  />
+                </Box>
+              )}
 
-                {/* Comments title */}
-                <Text className="text-sm font-semibold text-neutral-900 mb-2">
-                  Comments
-                </Text>
+              {/* Comments title */}
+              <Text className="text-sm font-semibold text-neutral-900 mb-2">
+                Comments
+              </Text>
 
-                {/* Comments list */}
-                {commentsLoading && (
-                  <Box className="py-3 items-center">
-                    <ActivityIndicator size="small" color="#00BBA7" />
-                  </Box>
-                )}
+              {/* Comments list */}
+              {commentsLoading && (
+                <Box className="py-3 items-center">
+                  <ActivityIndicator size="small" color="#00BBA7" />
+                </Box>
+              )}
 
-                {!commentsLoading &&
-                  commentsForPost.map((c) => {
-                    const canDelete = c.user_id === user?.id;
-                    const userName = c.Profile?.full_name ?? 'Unknown user';
-                    const initials = getInitials(userName);
-                    const avatarUrl = c.Profile?.avatar_url ?? null;
-                    
-                    const commentContent = (
+              {!commentsLoading &&
+                commentsForPost.map((c) => {
+                  const canDelete = c.user_id === user?.id;
+                  const userName = c.Profile?.full_name ?? 'Unknown user';
+                  const initials = getInitials(userName);
+                  const avatarUrl = c.Profile?.avatar_url ?? null;
+                  const commentContent = (
                       <Box className="mb-4 bg-white">
                         <Box className="flex-row items-start">
                           <Box className="mr-3">
@@ -1259,50 +1257,50 @@ export const HomeScreen: React.FC = () => {
                     }
                     
                     // On native: use Swipeable for swipe-to-delete
-                    return (
-                      <Swipeable
-                        key={c.id}
-                        enabled={canDelete}
-                        renderRightActions={() => (
-                          <Pressable
-                            className="bg-red-500 justify-center items-center w-16 rounded-lg"
-                            onPress={() => handleDeleteComment(c.id)}
-                          >
-                            <Trash2 size={20} color="#fff" />
-                          </Pressable>
-                        )}
-                        onSwipeableOpen={() => {
-                          if (canDelete) handleDeleteComment(c.id);
-                        }}
-                      >
-                        {commentContent}
-                      </Swipeable>
-                    );
-                  })}
+                  return (
+                    <Swipeable
+                      key={c.id}
+                      enabled={canDelete}
+                      renderRightActions={() => (
+                        <Pressable
+                          className="bg-red-500 justify-center items-center w-16 rounded-lg"
+                          onPress={() => handleDeleteComment(c.id)}
+                        >
+                          <Trash2 size={20} color="#fff" />
+                        </Pressable>
+                      )}
+                      onSwipeableOpen={() => {
+                        if (canDelete) handleDeleteComment(c.id);
+                      }}
+                    >
+                      {commentContent}
+                    </Swipeable>
+                  );
+                })}
 
-                {!commentsLoading && commentsForPost.length === 0 && (
-                  <Text className="text-sm text-neutral-500">
-                    Be the first to comment.
+              {!commentsLoading && commentsForPost.length === 0 && (
+                <Text className="text-sm text-neutral-500">
+                  Be the first to comment.
+                </Text>
+              )}
+
+              {/* Undo bar */}
+              {lastDeletedComment && (
+                <Box className="flex-row items-center justify-between mt-2 px-3 py-2 rounded-lg bg-neutral-100">
+                  <Text className="text-xs text-neutral-700">
+                    Comment deleted
                   </Text>
-                )}
-
-                {/* Undo bar */}
-                {lastDeletedComment && (
-                  <Box className="flex-row items-center justify-between mt-2 px-3 py-2 rounded-lg bg-neutral-100">
-                    <Text className="text-xs text-neutral-700">
-                      Comment deleted
+                  <Pressable onPress={handleUndoDeleteComment}>
+                    <Text className="text-xs font-semibold text-[#009689]">
+                      Undo
                     </Text>
-                    <Pressable onPress={handleUndoDeleteComment}>
-                      <Text className="text-xs font-semibold text-[#009689]">
-                        Undo
-                      </Text>
-                    </Pressable>
-                  </Box>
-                )}
-              </ScrollView>
+                  </Pressable>
+                </Box>
+              )}
+            </ScrollView>
 
-              {/* Input row at bottom */}
-              {user && (
+            {/* Input box at bottom */}
+            {user && (
                 <Box className="px-4 py-3 border-t border-neutral-200 bg-white">
                   <Box className="flex-row items-center gap-2">
                     <Box className="flex-1">
@@ -1324,8 +1322,8 @@ export const HomeScreen: React.FC = () => {
                   </Box>
                 </Box>
               )}
-            </Box>
-          </KeyboardAvoidingView>
+          </Box>
+        </KeyboardAvoidingView>
         </View>
       </Modal>
 
@@ -1335,8 +1333,6 @@ export const HomeScreen: React.FC = () => {
         onClose={() => setTagsModalVisible(false)}
         taggedFriends={currentTaggedFriends}
         onPressFriend={(friendId) => {
-          setTagsModalVisible(false);
-          closeComments();
           navigation.navigate('UserProfile', { userId: friendId });
         }}
       />

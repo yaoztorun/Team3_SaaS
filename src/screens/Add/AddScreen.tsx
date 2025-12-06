@@ -1,5 +1,4 @@
 import React, { useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ScrollView, Modal, View } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -13,6 +12,7 @@ import RecipeView from './RecipeView';
 import { createCameraHandlers } from '@/src/utils/camera';
 import uploadImageUri from '@/src/utils/storage';
 import { supabase } from '@/src/lib/supabase';
+import fetchLocations from '@/src/api/location';
 import { fetchPublicCocktails, fetchPrivatePersonalRecipes } from '@/src/api/cocktail';
 import type { DBCocktail } from '@/src/api/cocktail';
 import { colors } from '@/src/theme/colors';
@@ -24,7 +24,7 @@ type ViewType = 'log' | 'recipe';
 export const AddScreen = () => {
     const navigation = useNavigation();
     const route = useRoute<any>();
-    const { prefilledCocktailId, prefilledCocktailName, prefilledCocktailImageUrl } = route.params || {};
+    const { prefilledCocktailId, prefilledCocktailName } = route.params || {};
 
     const [activeView, setActiveView] = useState<ViewType>('log');
     const [rating, setRating] = useState(0);
@@ -37,11 +37,21 @@ export const AddScreen = () => {
     // Track if user has interacted with form (to show validation errors)
     const [hasLogInteracted, setHasLogInteracted] = useState(false);
     const [hasRecipeInteracted, setHasRecipeInteracted] = useState(false);
+    const [locations, setLocations] = useState<Array<{ id: string; name: string | null }>>([]);
+    const [locationQuery, setLocationQuery] = useState('');
+    const [suggestionsVisible, setSuggestionsVisible] = useState(false);
+    const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+    const [selectedLocationType, setSelectedLocationType] = useState<'public' | 'personal' | null>(null);
 
     const { handleCameraPress, handleGalleryPress } = createCameraHandlers(setPhotoUri);
 
     React.useEffect(() => {
         let mounted = true;
+        (async () => {
+            const data = await fetchLocations();
+            if (!mounted) return;
+            setLocations(data.map(l => ({ id: l.id, name: l.name })));
+        })();
         (async () => {
             // Fetch both public cocktails and user's private personal recipes
             const [publicCocktails, personalRecipes] = await Promise.all([
@@ -57,9 +67,6 @@ export const AddScreen = () => {
             if (prefilledCocktailId && prefilledCocktailName) {
                 setCocktailQuery(prefilledCocktailName);
                 setSelectedCocktailId(prefilledCocktailId);
-                if (prefilledCocktailImageUrl) {
-                    setPhotoUri(prefilledCocktailImageUrl);
-                }
             }
         })();
         return () => { mounted = false };
@@ -73,7 +80,6 @@ export const AddScreen = () => {
     const [caption, setCaption] = useState('');
     const [modalVisible, setModalVisible] = useState(false);
     const [modalMessage, setModalMessage] = useState<string | null>(null);
-    const [modalActions, setModalActions] = useState<'default' | 'post-or-home'>('default');
     const [taggedFriendIds, setTaggedFriendIds] = useState<string[]>([]);
 
     const handleLogCocktail = async () => {
@@ -102,6 +108,7 @@ export const AddScreen = () => {
             if (!selectedCocktailId) missing.push('cocktail');
             if (!rating || rating <= 0) missing.push('rating');
             if (!caption || caption.trim().length === 0) missing.push('review');
+            if (!isAtHome && !selectedLocationId) missing.push('location');
 
             if (missing.length > 0) {
                 alert(`Please fill required fields: ${missing.join(', ')}`);
@@ -115,10 +122,11 @@ export const AddScreen = () => {
                 console.log('Uploaded image URL:', uploadedUrl);
             }
 
-            // Rating is already on 0-5 scale from RatingStars component
-            const storedRating = rating;
+            // convert rating with half-stars into an integer smallint representation (store halves as *2)
+            const storedRating = Math.round(rating * 2);
 
             // save a DrinkLog for this user including the uploaded image URL
+            // Note: DrinkLog only has location_id for public locations, no user_location_id field
             const { data: insertData, error: insertError } = await supabase
                 .from('DrinkLog')
                 .insert([
@@ -127,7 +135,7 @@ export const AddScreen = () => {
                         cocktail_id: selectedCocktailId,
                         rating: storedRating,
                         caption: caption.trim(),
-                        location_id: null,
+                        location_id: (isAtHome || selectedLocationType === 'personal') ? null : selectedLocationId,
                         visibility: shareWith,
                         image_url: uploadedUrl,
                         created_at: new Date().toISOString(),
@@ -181,6 +189,7 @@ export const AddScreen = () => {
                     has_photo: !!uploadedUrl,
                     rating: rating,
                     visibility: shareWith,
+                    location_type: isAtHome ? 'home' : 'bar',
                 });
             } else {
                 posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
@@ -189,6 +198,7 @@ export const AddScreen = () => {
                     has_photo: !!uploadedUrl,
                     rating: rating,
                     visibility: shareWith,
+                    location_type: isAtHome ? 'home' : 'bar',
                 });
             }
 
@@ -198,16 +208,19 @@ export const AddScreen = () => {
             setCaption('');
             setRating(0);
             setPhotoUri(null);
+            setLocationQuery('');
+            setSelectedLocationId(null);
+            setIsAtHome(false);
             setShareWith('private');
             setCocktailSuggestionsVisible(false);
+            setSuggestionsVisible(false);
             setTaggedFriendIds([]);
 
             // Reset interaction state so errors won't show on fresh form
             setHasLogInteracted(false);
 
             // Show confirmation modal
-            setModalMessage('Drink posted successfully');
-            setModalActions('default');
+            setModalMessage('Drink logged successfully');
             setModalVisible(true);
 
             // user will dismiss the modal manually
@@ -219,7 +232,7 @@ export const AddScreen = () => {
         }
     };
 
-    const handleRecipeCreated = (created: { id: string; name: string; image_url: string | null }) => {
+    const handleRecipeCreated = () => {
         // Clear form fields first
         setPhotoUri(null);
         setSelectedDifficulty('Easy');
@@ -227,38 +240,18 @@ export const AddScreen = () => {
         // Reset interaction state so errors won't show on fresh form
         setHasRecipeInteracted(false);
 
-        // Prefill log view with created recipe and prompt user to post now or go home
-        setActiveView('log');
-        setCocktailQuery(created.name || '');
-        setSelectedCocktailId(created.id || null);
-        if (created.image_url) setPhotoUri(created.image_url);
-
+        // Show success modal
         setModalMessage('Recipe created successfully');
-        setModalActions('post-or-home');
         setModalVisible(true);
-
-        // Increment recent recipe count for Home tip
-        (async () => {
-            try {
-                const raw = await AsyncStorage.getItem('recent_recipe_count');
-                const n = raw ? parseInt(raw) : 0;
-                await AsyncStorage.setItem('recent_recipe_count', String(n + 1));
-            } catch { }
-        })();
     };
 
     const handleModalConfirm = () => {
         setModalVisible(false);
-        if (modalActions === 'post-or-home') {
-            // Keep user on Add screen with log view prefilled
-            setModalActions('default');
-            return;
-        }
-        // Default action: navigate to Home (used after drink post)
+        // Navigate to home tab
         navigation.navigate('Home' as never);
     };
 
-    const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0;
+    const canSubmit = !!selectedCocktailId && rating > 0 && caption.trim().length > 0 && (isAtHome || !!selectedLocationId);
 
     return (
         <Box className="flex-1 bg-neutral-50">
@@ -273,7 +266,7 @@ export const AddScreen = () => {
                 }}
             >
                 {/* View Toggle */}
-                <Box className="mb-4 bg-white rounded-2xl p-1">
+                <Box className="mb-4">
                     <ToggleSwitch
                         value={activeView === 'log' ? 'left' : 'right'}
                         onChange={(val: 'left' | 'right') => setActiveView(val === 'left' ? 'log' : 'recipe')}
@@ -298,6 +291,17 @@ export const AddScreen = () => {
                         setRating={setRating}
                         caption={caption}
                         setCaption={setCaption}
+                        locationQuery={locationQuery}
+                        setLocationQuery={setLocationQuery}
+                        suggestionsVisible={suggestionsVisible}
+                        setSuggestionsVisible={setSuggestionsVisible}
+                        locations={locations}
+                        selectedLocationId={selectedLocationId}
+                        setSelectedLocationId={setSelectedLocationId}
+                        selectedLocationType={selectedLocationType}
+                        setSelectedLocationType={setSelectedLocationType}
+                        isAtHome={isAtHome}
+                        setIsAtHome={setIsAtHome}
                         shareWith={shareWith}
                         setShareWith={setShareWith}
                         isUploading={isUploading}
@@ -334,28 +338,13 @@ export const AddScreen = () => {
                         <Heading level="h2" className="mb-3 text-center">
                             {modalMessage ?? 'Success!'}
                         </Heading>
-                        {modalActions === 'post-or-home' ? (
-                            <>
-                                <Text className="text-neutral-600 mb-6 text-center">
-                                    Post it now or go Home?
-                                </Text>
-                                <Box className="flex-row gap-3">
-                                    <Pressable className="flex-1 rounded-xl" style={{ backgroundColor: colors.primary[500], paddingVertical: 12 }} onPress={handleModalConfirm}>
-                                        <Text className="text-white text-center">Post It</Text>
-                                    </Pressable>
-                                    <Pressable className="flex-1 rounded-xl" style={{ borderWidth: 1, borderColor: colors.primary[500], paddingVertical: 12, backgroundColor: '#fff' }} onPress={() => { setModalVisible(false); navigation.navigate('Home' as never); }}>
-                                        <Text className="text-center" style={{ color: colors.primary[500] }}>Go Home</Text>
-                                    </Pressable>
-                                </Box>
-                            </>
-                        ) : (
-                            <>
-                                <Text className="text-neutral-600 mb-6 text-center">
-                                    Your drink has been posted.
-                                </Text>
-                                <PrimaryButton title="OK" onPress={handleModalConfirm} />
-                            </>
-                        )}
+                        <Text className="text-neutral-600 mb-6 text-center">
+                            {activeView === 'log' ? 'Your drink has been logged.' : 'Your recipe has been created.'}
+                        </Text>
+                        <PrimaryButton
+                            title="OK"
+                            onPress={handleModalConfirm}
+                        />
                     </Box>
                 </View>
             </Modal>
