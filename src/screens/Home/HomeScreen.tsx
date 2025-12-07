@@ -834,7 +834,7 @@ export const HomeScreen: React.FC = () => {
                 try {
                   (navigation as any).navigate('Profile', {
                     screen: 'ProfileMain',
-                    params: { initialGridTab: 'private' },
+                    params: { initialGridTab: 'recipes' },
                   });
                   // Clear the counter once user chooses to view
                   dismissTip();
