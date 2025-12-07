@@ -1,23 +1,41 @@
-# 🍸 Sippin
+<div align="center">
+  <img src="assets/icon.png" alt="Sippin Logo" width="100"/>
+  <h1>Sippin</h1>
+</div>
 
 ### Overview
 **Sippin** is a Progressive Web App (PWA) that helps cocktail lovers log, rate, and explore drinks.  
-Users can discover cocktails they can make with ingredients at home, add their own recipes, and plan parties with smart recommendations.
+Users can discover cocktails they can make with ingredients at home, add their own recipes, and plan parties.
 
-Built with React Native Web, Sippin delivers a native-like mobile experience directly in the browser, with offline support and installability on any device.
+Built with React Native (Web/PWA), Sippin delivers a native-like mobile experience directly in the browser, with offline support and installability on any device.
 
-### 🌐 Live Deployments
-- **Production**: [team3-saas.vercel.app](https://team3-saas.vercel.app)
-- **Development**: [team3-saasdev.vercel.app](https://team3-saasdev.vercel.app)
+### 🌐 Live Demo
+Try the app at [team3-saas.vercel.app](https://team3-saas.vercel.app)
 
-### Key Features
-- Log and rate cocktails you've tried  
-- Find cocktails based on ingredients you have  
-- Create and share your own recipes  
-- Estimate bottle quantities for parties  
-- Get bartending tips, techniques, and history
-- Works offline with PWA support
-- Installable on mobile and desktop devices  
+### ✨ Key Features
+
+**Cocktail Logging & Rating 📝**  
+Track every drink you've tried with detailed ratings and personal notes
+
+**Smart Discovery 🔍**  
+Find cocktails based on ingredients you already have at home — no more guessing what you can make
+
+**Recipe Creation 👨‍🍳**  
+Design and share your own signature cocktails with the community
+
+**AI Bartender Assistant 🤖**  
+Get expert tips, techniques, and cocktail history from our intelligent chatbot
+
+**Bar Finder 📍**  
+Discover great cocktail bars in your area
+
+**Curated Shop 🛒**  
+Browse Sippin-approved bartending tools and cocktail gear from trusted partners
+
+**Progressive Web App 📱**  
+- Works offline with full PWA support
+- Install directly to your home screen on any device
+- Native-like mobile experience in your browser  
 
 <br>
 
@@ -71,6 +89,16 @@ For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md)
 
 </br>
 
+## Initial Setup
+
+Install dependencies before running the app for the first time:
+
+```bash
+npm install
+```
+
+</br>
+
 ## Web Development Mode
 
 The primary way to develop and test Sippin is through the web browser.
@@ -82,31 +110,6 @@ npm run web
 This opens the app in your default browser with hot reloading enabled.
 
 >💡 Tip: Use Chrome DevTools (F12) to simulate mobile devices and test responsive design.
-
-</br>
-
-## Mobile Testing (Optional)
-
-You can also test on physical devices using Expo Go:
-
-```bash
-npm start
-```
-Then press `w` for web, or scan the QR with Expo Go app (iOS/Android)
-
-For tunnel mode (easier for mobile devices):
-```bash
-npm start -- --tunnel
-```
-
-</br>
-
-Terminal shortcuts when running `npm start`:
-```
-w → open in web browser
-a → open in Android emulator
-i → open in iOS simulator (Mac)
-```
 
 </br>
 
@@ -141,12 +144,6 @@ npm start
 # Start web development server
 npm run web
 
-# Start with Android emulator
-npm run android
-
-# Start with iOS simulator (Mac only)
-npm run ios
-
 # Build and serve PWA locally
 npm run pwa
 
@@ -161,10 +158,10 @@ npx expo doctor
 
 ## Deployment
 
-The app is automatically deployed to Vercel:
-- **Production branch (`main`)** → [team3-saas.vercel.app](https://team3-saas.vercel.app)
-- **Development branch (`dev`)** → [team3-saasdev.vercel.app](https://team3-saasdev.vercel.app)
+The app uses **continuous deployment** via GitHub Actions to Vercel:
+- Push to `main` → deploys to **Production** ([team3-saas.vercel.app](https://team3-saas.vercel.app))
+- Push to `dev` → deploys to **Development** ([team3-saasdev.vercel.app](https://team3-saasdev.vercel.app))
 
-Push to either branch to trigger automatic deployment via GitHub Actions.
+No manual deployment needed — just push your code!
 
 

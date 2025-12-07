@@ -5,11 +5,12 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { FlatList, TextInput, TouchableOpacity, Image, View, Platform, ScrollView, Animated } from 'react-native';
 import { HStack } from '@/src/components/ui/hstack';
 import { fetchAllCocktails, fetchCocktailTypes, DBCocktail } from '@/src/api/cocktail';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FilterChip, SearchBar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
+import { supabase } from '@/src/lib/supabase';
 
 type RootStackParamList = {
     CocktailDetail: { cocktail: DBCocktail };
@@ -38,6 +39,7 @@ export const AllCocktails = () => {
     const [error, setError] = useState<string | null>(null);
     const [searchBarHeight, setSearchBarHeight] = useState(0);
     const [filtersHeight, setFiltersHeight] = useState(0);
+    const [bookmarkedCocktailIds, setBookmarkedCocktailIds] = useState<Set<string>>(new Set());
 
     const difficulties = ['All', 'Easy', 'Medium', 'Hard'];
 
@@ -133,15 +135,46 @@ export const AllCocktails = () => {
         };
     }, []);
 
+    // Fetch user's bookmarked cocktails when screen comes into focus
+    useFocusEffect(
+        React.useCallback(() => {
+            const fetchBookmarks = async () => {
+                if (!user) {
+                    setBookmarkedCocktailIds(new Set());
+                    return;
+                }
+
+                try {
+                    const { data, error } = await supabase
+                        .from('bookmarks')
+                        .select('cocktail_id')
+                        .eq('user_id', user.id);
+
+                    if (!error && data) {
+                        const ids = new Set(data.map(b => b.cocktail_id));
+                        setBookmarkedCocktailIds(ids);
+                    }
+                } catch (err) {
+                    console.error('Error fetching bookmarks:', err);
+                }
+            };
+
+            fetchBookmarks();
+        }, [user])
+    );
+
     const filtered = useMemo(() => {
         const q = debouncedQuery.trim().toLowerCase();
         const results = cocktails.filter(c => {
             const name = (c.name ?? '')?.toString().toLowerCase();
             const matchesQuery = !q || name.includes(q);
-            
+
             // Type filtering
             let matchesType = true;
-            if (activeType === 'Own Recipes') {
+            if (activeType === 'Bookmarks') {
+                // Show only bookmarked cocktails
+                matchesType = bookmarkedCocktailIds.has(c.id);
+            } else if (activeType === 'Own Recipes') {
                 // Show only user's own recipes
                 matchesType = user ? c.creator_id === user.id : false;
             } else if (activeType !== 'All') {
@@ -149,14 +182,14 @@ export const AllCocktails = () => {
                 const dbTypeValue = activeType.toLowerCase().replace(/ /g, '_'); // Convert "Mixed Drinks" back to "mixed_drinks"
                 matchesType = c.cocktail_type === dbTypeValue;
             }
-            
+
             // Difficulty filtering
-            const matchesDifficulty = activeDifficulty === 'All' || 
+            const matchesDifficulty = activeDifficulty === 'All' ||
                 c.difficulty?.toLowerCase() === activeDifficulty.toLowerCase();
-            
+
             return matchesQuery && matchesType && matchesDifficulty;
         });
-        
+
         // Track filter usage when filters are applied
         if (activeType !== 'All' || activeDifficulty !== 'All') {
             posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
@@ -166,9 +199,9 @@ export const AllCocktails = () => {
                 results_count: results.length,
             });
         }
-        
+
         return results;
-    }, [debouncedQuery, activeType, activeDifficulty, cocktails, user]);
+    }, [debouncedQuery, activeType, activeDifficulty, cocktails, user, bookmarkedCocktailIds]);
 
     const renderCard = ({ item }: { item: DBCocktail }) => {
         const parseJsonArray = (v: any) => {
@@ -267,19 +300,19 @@ export const AllCocktails = () => {
                     {/* Cocktail Type Filter */}
                     <Box className="mb-3">
                         <Text className="text-xs font-medium text-neutral-600 mb-2">Type</Text>
-                        <ScrollViewHorizontal 
-                            categories={['All', ...(user ? ['Own Recipes'] : []), ...cocktailTypes]} 
-                            active={activeType} 
-                            onChange={setActiveType} 
+                        <ScrollViewHorizontal
+                            categories={['All', ...(user ? ['Bookmarks', 'Own Recipes'] : []), ...cocktailTypes]}
+                            active={activeType}
+                            onChange={setActiveType}
                         />
                     </Box>
                     {/* Difficulty Filter */}
                     <Box>
                         <Text className="text-xs font-medium text-neutral-600 mb-2">Difficulty</Text>
-                        <ScrollViewHorizontal 
-                            categories={difficulties} 
-                            active={activeDifficulty} 
-                            onChange={setActiveDifficulty} 
+                        <ScrollViewHorizontal
+                            categories={difficulties}
+                            active={activeDifficulty}
+                            onChange={setActiveDifficulty}
                         />
                     </Box>
                 </Animated.View>

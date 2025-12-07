@@ -65,15 +65,24 @@ export const UpcomingEvents = () => {
         }, [])
     );
 
+    const getCityString = (event: EventWithDetails) => {
+        return event.location?.city || event.user_location?.city || null;
+    };
+
     const filteredEvents = events.filter(event => {
         // Filter out past events
         const now = new Date();
         const eventDate = event.start_time ? new Date(event.start_time) : null;
         const isUpcoming = !eventDate || eventDate >= now;
 
+        const cityString = getCityString(event);
+        const matchesSearch = searchQuery === '' || 
+            event.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            cityString?.toLowerCase().includes(searchQuery.toLowerCase());
+
         return isUpcoming &&
             (selectedType === 'All' || event.party_type === selectedType) &&
-            (searchQuery === '' || event.name?.toLowerCase().includes(searchQuery.toLowerCase()));
+            matchesSearch;
     });
 
     const formatDate = (dateStr: string | null) => {
@@ -170,7 +179,7 @@ export const UpcomingEvents = () => {
                 <SearchBar
                     value={searchQuery}
                     onChangeText={setSearchQuery}
-                    placeholder="Search events..."
+                    placeholder="Search events by name or city..."
                 />
             </Box>
 
@@ -183,14 +192,19 @@ export const UpcomingEvents = () => {
                     contentContainerStyle={{ flexGrow: 0 }}
                 >
                     <Box className="flex-row gap-2">
-                        {filterTypes.map((type) => (
-                            <FilterChip
-                                key={type}
-                                label={type}
-                                selected={selectedType === type}
-                                onPress={() => setSelectedType(type)}
-                            />
-                        ))}
+                        {filterTypes.map((type) => {
+                            const capitalizedLabel = type.split(' ').map(word => 
+                                word.charAt(0).toUpperCase() + word.slice(1)
+                            ).join(' ');
+                            return (
+                                <FilterChip
+                                    key={type}
+                                    label={capitalizedLabel}
+                                    selected={selectedType === type}
+                                    onPress={() => setSelectedType(type)}
+                                />
+                            );
+                        })}
                     </Box>
                 </ScrollView>
             </Box>
@@ -224,6 +238,7 @@ export const UpcomingEvents = () => {
                             const dateStr = formatDate(event.start_time);
                             const timeStr = formatTime(event.start_time, event.end_time);
                             const locationStr = getLocationString(event);
+                            const cityStr = getCityString(event);
                             const currentStatus = registrationStatus[event.id];
                             const organizerName = getOrganizerName(event);
 
@@ -280,6 +295,16 @@ export const UpcomingEvents = () => {
                                                 {dateStr} · {timeStr}
                                             </Text>
                                         </HStack>
+
+                                        {/* Location / City */}
+                                        {cityStr && (
+                                            <HStack className="items-center mb-2">
+                                                <Text className="text-sm text-neutral-600">📍</Text>
+                                                <Text className="text-sm text-neutral-600 ml-2">
+                                                    {cityStr}
+                                                </Text>
+                                            </HStack>
+                                        )}
 
                                         {/* Attendees and Button */}
                                         <HStack className="justify-between items-center pt-2 border-t border-neutral-100">

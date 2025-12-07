@@ -93,7 +93,6 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
     if (friendError) console.error('Error fetching friendships:', friendError);
 
     const friendCount = friendships?.length || 0;
-    console.log(`Friend count for ${userId}: ${friendCount}`);
 
     // 3. Count events hosted (organiser_id in Event table)
     const { count: eventsHostedCount } = await supabase
@@ -177,11 +176,8 @@ export async function fetchUserBadges(userId: string): Promise<Badge[]> {
       }
     });
 
-    console.log('All badges before filtering:', badges.map(b => ({ type: b.type, count: b.count, tier: b.tier })));
-
     // Filter to only return earned badges (tier not null)
     const earnedBadges = badges.filter(badge => badge.tier !== null);
-    console.log('Earned badges after filtering:', earnedBadges.map(b => ({ type: b.type, count: b.count, tier: b.tier })));
     
     return earnedBadges;
   } catch (error) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { ScrollView } from 'react-native';
-import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
+import { PrimaryButton, PasswordInput, Heading } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 
@@ -94,21 +94,19 @@ const ResetPasswordScreen: React.FC = () => {
                 <Box className="w-full mt-8">
                     {!isSuccess ? (
                         <>
-                            <TextInputField
+                            <PasswordInput
                                 label="New Password"
                                 placeholder="Enter new password"
                                 value={newPassword}
                                 onChangeText={setNewPassword}
-                                secureTextEntry
                             />
 
                             <Box className="mt-6">
-                                <TextInputField
+                                <PasswordInput
                                     label="Confirm Password"
                                     placeholder="Confirm new password"
                                     value={confirmPassword}
                                     onChangeText={setConfirmPassword}
-                                    secureTextEntry
                                     onSubmitEditing={handleUpdatePassword}
                                 />
                             </Box>

@@ -4,7 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
-import { ArrowLeft, Heart, Clock, Info, Users, Minus, Plus } from 'lucide-react-native';
+import { ArrowLeft, Bookmark, Clock, Info, Users, Minus, Plus } from 'lucide-react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { DBCocktail } from '@/src/api/cocktail';
@@ -30,7 +30,7 @@ export const CocktailDetail = () => {
     const isFromWhatCanIMake = userIngredients !== undefined;
 
     const [servings, setServings] = useState(1);
-    const [isFavorited, setIsFavorited] = useState(false);
+    const [isBookmarked, setIsBookmarked] = useState(false);
     const [funFact, setFunFact] = useState<string | null>(cocktail.fun_fact || null);
     const [loadingFunFact, setLoadingFunFact] = useState(false);
     const [hasAttemptedGeneration, setHasAttemptedGeneration] = useState(false);
@@ -71,6 +71,92 @@ export const CocktailDetail = () => {
 
         return initialChecked;
     });
+
+    // Check if cocktail is bookmarked on mount
+    useEffect(() => {
+        const checkBookmarkStatus = async () => {
+            console.log('=== CHECKING BOOKMARK STATUS ===');
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                console.log('No user authenticated');
+                return;
+            }
+            console.log('User ID:', user.id);
+            console.log('Cocktail ID:', cocktail.id);
+
+            const { data, error } = await supabase
+                .from('bookmarks')
+                .select('bookmark_id')
+                .eq('user_id', user.id)
+                .eq('cocktail_id', cocktail.id)
+                .maybeSingle();
+
+            console.log('Bookmark query result:', { data, error });
+            if (!error && data) {
+                console.log('Cocktail is bookmarked!');
+                setIsBookmarked(true);
+            } else {
+                console.log('Cocktail is NOT bookmarked');
+                setIsBookmarked(false);
+            }
+        };
+
+        checkBookmarkStatus();
+    }, [cocktail.id]);
+
+    // Toggle bookmark function
+    const toggleBookmark = async () => {
+        console.log('=== TOGGLE BOOKMARK CLICKED ===');
+        console.log('Current bookmark state:', isBookmarked);
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            console.log('User not authenticated');
+            return;
+        }
+        console.log('User ID:', user.id);
+        console.log('Cocktail ID:', cocktail.id);
+
+        if (isBookmarked) {
+            // Remove bookmark
+            console.log('Attempting to REMOVE bookmark...');
+            const { error } = await supabase
+                .from('bookmarks')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('cocktail_id', cocktail.id);
+
+            if (!error) {
+                console.log('✓ Bookmark removed successfully');
+                setIsBookmarked(false);
+            } else {
+                console.error('✗ Error removing bookmark:', error);
+            }
+        } else {
+            // Add bookmark
+            console.log('Attempting to ADD bookmark...');
+            console.log('Insert data:', { user_id: user.id, cocktail_id: cocktail.id });
+
+            const { data, error } = await supabase
+                .from('bookmarks')
+                .insert({
+                    user_id: user.id,
+                    cocktail_id: cocktail.id
+                })
+                .select();
+
+            console.log('Insert result:', { data, error });
+
+            if (!error) {
+                console.log('✓ Bookmark added successfully');
+                setIsBookmarked(true);
+            } else {
+                console.error('✗ Error adding bookmark:', error);
+                console.error('Error details:', JSON.stringify(error, null, 2));
+            }
+        }
+        console.log('New bookmark state:', !isBookmarked);
+    };
 
     // Fetch the latest cocktail data from database to get updated fun_fact
     useEffect(() => {
@@ -277,13 +363,15 @@ Rules:
                             borderRadius: 20,
                             alignItems: 'center',
                             justifyContent: 'center',
+                            zIndex: 10,
                         }}
                     >
                         <ArrowLeft size={24} color="#fff" />
                     </Pressable>
-                    {/* Favorite Button (scrolls with image) */}
-                    <Pressable
-                        onPress={() => setIsFavorited(!isFavorited)}
+                    {/* Bookmark Button (scrolls with image) */}
+                    <TouchableOpacity
+                        onPress={toggleBookmark}
+                        activeOpacity={0.7}
                         style={{
                             position: 'absolute',
                             top: 16,
@@ -294,14 +382,15 @@ Rules:
                             borderRadius: 20,
                             alignItems: 'center',
                             justifyContent: 'center',
+                            zIndex: 10,
                         }}
                     >
-                        <Heart
+                        <Bookmark
                             size={24}
                             color="#fff"
-                            fill={isFavorited ? '#fff' : 'transparent'}
+                            fill={isBookmarked ? '#fff' : 'transparent'}
                         />
-                    </Pressable>
+                    </TouchableOpacity>
                 </View>
                 {/* preserve previous spacing between image and details */}
                 <View style={{ height: 24 }} />
@@ -332,7 +421,7 @@ Rules:
                             </Pressable>
                         </HStack>
                     )}
-                    
+
                     {/* Difficulty Badge */}
                     <View
                         style={{

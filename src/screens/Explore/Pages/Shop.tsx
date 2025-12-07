@@ -74,6 +74,7 @@ export const Shop = () => {
     const scrollY = useRef(new Animated.Value(0)).current;
     const lastScrollY = useRef(0);
     const filtersTranslateY = useRef(new Animated.Value(0)).current;
+    const isAnimating = useRef(false);
 
     const handleScroll = Animated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -83,22 +84,28 @@ export const Shop = () => {
                 const currentScrollY = event.nativeEvent.contentOffset.y;
                 const diff = currentScrollY - lastScrollY.current;
 
-                // Only hide/show filters after scrolling past initial padding
-                if (currentScrollY > 50) {
+                // Only hide/show filters after scrolling past the initial padding
+                if (currentScrollY > 50 && Math.abs(diff) > 2 && !isAnimating.current) {
                     if (diff > 0) {
-                        // Scrolling down - hide filters
+                        // Scrolling down - hide filters immediately
+                        isAnimating.current = true;
                         Animated.timing(filtersTranslateY, {
                             toValue: -(filtersHeight || 0),
-                            duration: 200,
+                            duration: 150,
                             useNativeDriver: true,
-                        }).start();
+                        }).start(() => {
+                            isAnimating.current = false;
+                        });
                     } else if (diff < 0) {
-                        // Scrolling up - show filters
+                        // Scrolling up - show filters immediately
+                        isAnimating.current = true;
                         Animated.timing(filtersTranslateY, {
                             toValue: 0,
-                            duration: 200,
+                            duration: 150,
                             useNativeDriver: true,
-                        }).start();
+                        }).start(() => {
+                            isAnimating.current = false;
+                        });
                     }
                 }
 
@@ -230,20 +237,27 @@ export const Shop = () => {
                             showsHorizontalScrollIndicator={false}
                             contentContainerStyle={{ paddingHorizontal: 0, gap: 8 }}
                         >
-                            {categories.map((cat) => (
-                                <FilterChip
-                                    key={cat}
-                                    label={cat}
-                                    selected={selectedCategories.includes(cat)}
-                                    onPress={() => {
-                                        setSelectedCategories(prev => 
-                                            prev.includes(cat) 
-                                                ? prev.filter(c => c !== cat)
-                                                : [...prev, cat]
-                                        );
-                                    }}
-                                />
-                            ))}
+                            {categories.map((cat) => {
+                                const displayLabel = cat
+                                    .replace(/-/g, ' ')
+                                    .split(' ')
+                                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                    .join(' ');
+                                return (
+                                    <FilterChip
+                                        key={cat}
+                                        label={displayLabel}
+                                        selected={selectedCategories.includes(cat)}
+                                        onPress={() => {
+                                            setSelectedCategories(prev => 
+                                                prev.includes(cat) 
+                                                    ? prev.filter(c => c !== cat)
+                                                    : [...prev, cat]
+                                            );
+                                        }}
+                                    />
+                                );
+                            })}
                         </ScrollView>
                     </Box>
 

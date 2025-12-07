@@ -688,7 +688,6 @@ export const HomeScreen: React.FC = () => {
 
     // Close comments modal first
     closeComments();
-
     // Fetch the full cocktail data (RLS ensures we only get public or own cocktails)
     const cocktail = await fetchCocktailById(cocktailId);
 
@@ -706,10 +705,10 @@ export const HomeScreen: React.FC = () => {
 
   const handlePressUser = (userId: string) => {
     if (!userId || userId === user?.id) return;
-    
+
     // Close comments modal first
     closeComments();
-    
+
     // Navigate to user profile
     navigation.navigate('UserProfile', { userId });
   };
@@ -734,7 +733,7 @@ export const HomeScreen: React.FC = () => {
         post_id: activePostId,
         comment_length: content.length,
       });
-      
+
       await loadComments(activePostId);
 
       // bump comment count in feed
@@ -757,7 +756,13 @@ export const HomeScreen: React.FC = () => {
     // optimistic: remove from UI
     setCommentsForPost((prev) => prev.filter((c) => c.id !== commentId));
     setLastDeletedComment(comment);
-    
+
+    // Track comment deleted
+    posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+      feature: 'comment_deleted',
+      post_id: activePostId,
+    });
+
     // Track comment deleted
     posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
       feature: 'comment_deleted',
@@ -829,7 +834,7 @@ export const HomeScreen: React.FC = () => {
                 try {
                   (navigation as any).navigate('Profile', {
                     screen: 'ProfileMain',
-                    params: { initialGridTab: 'private' },
+                    params: { initialGridTab: 'recipes' },
                   });
                   // Clear the counter once user chooses to view
                   dismissTip();
@@ -1220,7 +1225,7 @@ export const HomeScreen: React.FC = () => {
                     const userName = c.Profile?.full_name ?? 'Unknown user';
                     const initials = getInitials(userName);
                     const avatarUrl = c.Profile?.avatar_url ?? null;
-                    
+
                     const commentContent = (
                       <Box className="mb-4 bg-white">
                         <Box className="flex-row items-start">
@@ -1252,12 +1257,12 @@ export const HomeScreen: React.FC = () => {
                         </Box>
                       </Box>
                     );
-                    
+
                     // On web: render without Swipeable
                     if (Platform.OS === 'web') {
                       return <View key={c.id}>{commentContent}</View>;
                     }
-                    
+
                     // On native: use Swipeable for swipe-to-delete
                     return (
                       <Swipeable

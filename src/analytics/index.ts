@@ -1,5 +1,8 @@
 import posthog from 'posthog-js';
 
+// Track if PostHog has been initialized
+let isInitialized = false;
+
 // AAARRR Event Constants
 export const ANALYTICS_EVENTS = {
   // Acquisition
@@ -22,11 +25,18 @@ export const ANALYTICS_EVENTS = {
 } as const;
 
 export function initAnalytics() {
+  // Prevent re-initialization
+  if (isInitialized) {
+    return;
+  }
+  
   // PostHog init
   posthog.init(process.env.EXPO_PUBLIC_POSTHOG_API_KEY!, {
     api_host: process.env.EXPO_PUBLIC_POSTHOG_API_HOST!,
     autocapture: false, // autocapture noisy, better manual events
   });
+  
+  isInitialized = true;
 }
 
 export function posthogCapture(eventName: string, properties?: Record<string, any>) {

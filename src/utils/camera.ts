@@ -6,8 +6,16 @@ export type SetUri = (uri: string | null) => void;
 
 const handleWebFile = (file: File | null, setPhotoUri: SetUri) => {
         if (!file) return;
-        const url = URL.createObjectURL(file);
-        setPhotoUri(url);
+        
+        // Use FileReader for better iOS PWA compatibility
+        const reader = new FileReader();
+        reader.onload = (e) => {
+                const result = e.target?.result;
+                if (result && typeof result === 'string') {
+                        setPhotoUri(result);
+                }
+        };
+        reader.readAsDataURL(file);
 };
 
 export function createCameraHandlers(setPhotoUri: SetUri) {
@@ -43,7 +51,7 @@ export function createCameraHandlers(setPhotoUri: SetUri) {
                                 const uri = result.assets[0].uri;
                                 
                                 // Save to media library on native platforms
-                                if (Platform.OS !== 'web') {
+                                if (Platform.OS === 'ios' || Platform.OS === 'android') {
                                         try {
                                                 const { status: mlStatus } = await MediaLibrary.requestPermissionsAsync();
                                                 if (mlStatus === 'granted') {

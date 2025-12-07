@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookmarks: {
+        Row: {
+          bookmark_id: string
+          cocktail_id: string
+          user_id: string
+        }
+        Insert: {
+          bookmark_id?: string
+          cocktail_id?: string
+          user_id?: string
+        }
+        Update: {
+          bookmark_id?: string
+          cocktail_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_cocktail_id_fkey"
+            columns: ["cocktail_id"]
+            isOneToOne: false
+            referencedRelation: "Cocktail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookmarks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       Cocktail: {
         Row: {
           cocktail_type: Database["public"]["Enums"]["cocktail_type"] | null

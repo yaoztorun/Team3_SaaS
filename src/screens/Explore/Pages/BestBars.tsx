@@ -20,9 +20,12 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/300x200.png?text=Bar';
 
 const BarCard = ({ bar, onPress }: { bar: DBLocation; onPress: () => void }) => {
-    const address = [bar.street_name, bar.street_nr, bar.city, bar.country]
-        .filter(Boolean)
-        .join(' ');
+    const addressParts = [
+        [bar.street_name, bar.street_nr].filter(Boolean).join(' '),
+        bar.city,
+        bar.country
+    ].filter(Boolean);
+    const address = addressParts.join(', ');
     const imageUri = bar.image_url || PLACEHOLDER_IMAGE;
 
     return (
