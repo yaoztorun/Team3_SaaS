@@ -5,6 +5,7 @@ import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, Mail } from 'lucide-react-native';
+import { Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
@@ -105,8 +106,8 @@ const RegisterScreen: React.FC = () => {
             clearReferralInfo();
         }
 
-        // Show success modal instead of message and automatic redirect
-        setShowSuccessModal(true);
+        setMessage('Registration successful! Please check your email to verify your account.');
+        setTimeout(() => navigation.navigate('Login'), 3000);
     };
 
     const handleLogin = () => {

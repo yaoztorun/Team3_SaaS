@@ -58,7 +58,7 @@ export const SocialScreen = () => {
                 }}
             >
                 {/* View Toggle */}
-                <Box className="mb-4">
+                <Box className="mb-4 bg-white rounded-2xl p-1">
                     <ToggleSwitch
                         value={activeView === 'friends' ? 'left' : 'right'}
                         onChange={(val: 'left' | 'right') => setActiveView(val === 'left' ? 'friends' : 'parties')}

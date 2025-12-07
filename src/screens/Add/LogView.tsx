@@ -31,17 +31,6 @@ interface LogViewProps {
     setRating: (n: number) => void;
     caption: string;
     setCaption: (s: string) => void;
-    locationQuery: string;
-    setLocationQuery: (s: string) => void;
-    suggestionsVisible: boolean;
-    setSuggestionsVisible: (v: boolean) => void;
-    locations: any[];
-    selectedLocationId: string | null;
-    setSelectedLocationId: (id: string | null) => void;
-    selectedLocationType: 'personal' | 'public' | null;
-    setSelectedLocationType: (t: 'personal' | 'public' | null) => void;
-    isAtHome: boolean;
-    setIsAtHome: (v: boolean) => void;
     shareWith: 'private' | 'friends' | 'public';
     setShareWith: (v: 'private' | 'friends' | 'public') => void;
     isUploading: boolean;
@@ -68,17 +57,6 @@ const LogView: React.FC<LogViewProps> = ({
     setRating,
     caption,
     setCaption,
-    locationQuery,
-    setLocationQuery,
-    suggestionsVisible,
-    setSuggestionsVisible,
-    locations,
-    selectedLocationId,
-    setSelectedLocationId,
-    selectedLocationType,
-    setSelectedLocationType,
-    isAtHome,
-    setIsAtHome,
     shareWith,
     setShareWith,
     isUploading,
