@@ -273,7 +273,7 @@ export const AddScreen = () => {
                 }}
             >
                 {/* View Toggle */}
-                <Box className="mb-4 bg-white rounded-2xl p-1">
+                <Box className="mb-4">
                     <ToggleSwitch
                         value={activeView === 'log' ? 'left' : 'right'}
                         onChange={(val: 'left' | 'right') => setActiveView(val === 'left' ? 'log' : 'recipe')}
