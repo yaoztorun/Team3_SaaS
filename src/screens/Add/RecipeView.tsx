@@ -327,7 +327,7 @@ const RecipeView: React.FC<RecipeViewProps> = ({
 
             {/* Recipe Photo */}
             <Box className="space-y-2">
-                <Text className="text-sm text-neutral-950">Photo</Text>
+                <Text className="text-sm text-neutral-950">Photo *</Text>
                 <ImageUploadBox
                     onCameraPress={handleCameraPress}
                     onGalleryPress={handleGalleryPress}

@@ -1,7 +1,7 @@
 // src/screens/navigation/TopBar.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { View, Image } from 'react-native';
+import { View, Image, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -12,6 +12,7 @@ import {
   Bell,
   Settings as SettingsIcon,
   ArrowLeft,
+  X,
 } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
@@ -64,6 +65,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showStreakModal, setShowStreakModal] = useState(false);
 
   // stats state (streak + total drinks)
   const [computedStreak, setComputedStreak] = useState<number | null>(null);
@@ -292,7 +294,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           ) : (
             <>
               {/* Streak */}
-              <View
+              <Pressable
+                onPress={() => setShowStreakModal(true)}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -309,7 +312,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 >
                   {displayStreak}
                 </Text>
-              </View>
+              </Pressable>
 
               {/* Cocktails logged */}
               <View
@@ -351,6 +354,66 @@ export const TopBar: React.FC<TopBarProps> = ({
         onNotificationPress={handleNotificationItemPress}
         onDeleteNotification={handleDeleteNotification}
       />
+
+      {/* Streak Info Modal */}
+      <Modal
+        visible={showStreakModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStreakModal(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 items-center justify-center p-4"
+          onPress={() => setShowStreakModal(false)}
+        >
+          <Pressable
+            className="bg-white rounded-3xl p-6 w-full max-w-sm"
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <Pressable
+              onPress={() => setShowStreakModal(false)}
+              className="absolute top-4 right-4 z-10"
+            >
+              <X size={24} color="#6b7280" />
+            </Pressable>
+
+            {/* Icon */}
+            <Box className="items-center mb-4">
+              <Box className="w-20 h-20 rounded-full bg-orange-100 items-center justify-center">
+                <Flame size={48} color="#f97316" fill="#f97316" />
+              </Box>
+            </Box>
+
+            {/* Title */}
+            <Text className="text-2xl font-bold text-neutral-900 text-center mb-2">
+              Weekly Streak
+            </Text>
+
+            {/* Current Streak */}
+            <Text className="text-4xl font-bold text-orange-600 text-center mb-4">
+              {displayStreak} {displayStreak === 1 ? 'Day' : 'Days'}
+            </Text>
+
+            {/* Description */}
+            <Text className="text-base text-neutral-600 text-center mb-4 leading-relaxed">
+              Your streak shows how many consecutive days you've posted cocktails in the past week.
+            </Text>
+
+            {/* How to maintain */}
+            <Box className="bg-orange-50 rounded-2xl p-4 border border-orange-200">
+              <Text className="text-sm font-semibold text-neutral-900 mb-2">
+                How to maintain your streak:
+              </Text>
+              <Text className="text-sm text-neutral-700 leading-relaxed">
+                • Post at least one cocktail each day{'\n'}
+                • Your streak counts the last 7 days{'\n'}
+                • Keep going to build longer streaks!
+              </Text>
+            </Box>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Box>
   );
 };
