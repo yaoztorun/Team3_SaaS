@@ -124,7 +124,7 @@ const LoginScreen: React.FC = () => {
                         value={email}
                         onChangeText={setEmail}
                         autoCapitalize="none"
-                        keyboardType="email-address"
+                        autoComplete="email"
                         onSubmitEditing={handleLogin}
                     />
 
