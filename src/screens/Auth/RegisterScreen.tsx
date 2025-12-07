@@ -4,8 +4,7 @@ import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { View, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Mail } from 'lucide-react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { ChevronLeft, Mail, Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
@@ -106,8 +105,8 @@ const RegisterScreen: React.FC = () => {
             clearReferralInfo();
         }
 
-        setMessage('Registration successful! Please check your email to verify your account.');
-        setTimeout(() => navigation.navigate('Login'), 3000);
+        // Show success modal instead of message and automatic redirect
+        setShowSuccessModal(true);
     };
 
     const handleLogin = () => {
@@ -159,7 +158,7 @@ const RegisterScreen: React.FC = () => {
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
-                            keyboardType="email-address"
+                            autoComplete="email"
                             onSubmitEditing={handleRegister}
                         />
                     </Box>
@@ -278,7 +277,7 @@ const RegisterScreen: React.FC = () => {
 
                         {/* Message */}
                         <Text className="text-base text-neutral-600 text-center mb-6">
-                            Please check your email to verify your account before logging in.
+                            Your account has been created successfully. Please check your email to verify your account before logging in.
                         </Text>
 
                         {/* Login Button */}
