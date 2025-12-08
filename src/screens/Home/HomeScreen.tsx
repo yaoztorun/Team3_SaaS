@@ -794,7 +794,7 @@ export const HomeScreen: React.FC = () => {
                 }}>
                   <Image
                     source={items[(currentCocktailIndex - 1 + items.length) % items.length].imageUrl ? { uri: items[(currentCocktailIndex - 1 + items.length) % items.length].imageUrl! } : (items[(currentCocktailIndex - 1 + items.length) % items.length].imageLocal as ImageSourcePropType)}
-                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                    style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
                   />
                   {Platform.OS !== 'web' && (
                     <BlurView
@@ -846,7 +846,7 @@ export const HomeScreen: React.FC = () => {
                 }}>
                   <Image
                     source={items[(currentCocktailIndex + 1) % items.length].imageUrl ? { uri: items[(currentCocktailIndex + 1) % items.length].imageUrl! } : (items[(currentCocktailIndex + 1) % items.length].imageLocal as ImageSourcePropType)}
-                    style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                    style={{ width: '100%', height: '100%', resizeMode: 'cover' }}
                   />
                   {Platform.OS !== 'web' && (
                     <BlurView
@@ -918,18 +918,25 @@ export const HomeScreen: React.FC = () => {
                   opacity: dragBlurOpacity,
                 }} />
                 {(() => {
-                  const enlargedIds = ['margarita','clover-club','jungle-bird'];
-                  const isEnlarged = enlargedIds.includes(items[currentCocktailIndex]?.id ?? '');
+                  const src = items[currentCocktailIndex].imageUrl
+                    ? { uri: items[currentCocktailIndex].imageUrl! }
+                    : (items[currentCocktailIndex].imageLocal as ImageSourcePropType);
                   return (
-                    <Image
-                      source={items[currentCocktailIndex].imageUrl ? { uri: items[currentCocktailIndex].imageUrl! } : (items[currentCocktailIndex].imageLocal as ImageSourcePropType)}
+                    <View
                       style={{
                         width: '100%',
-                        height: isEnlarged ? '100%' : '92%',
-                        resizeMode: 'contain',
-                        marginTop: isEnlarged ? -4 : 0,
+                        height: 220,
+                        borderRadius: 18,
+                        overflow: 'hidden',
+                        backgroundColor: '#050816',
                       }}
-                    />
+                    >
+                      <Image
+                        source={src}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                      />
+                    </View>
                   );
                 })()}
                 <Text className="mt-4 mb-1 text-lg font-medium text-neutral-900 text-center">
