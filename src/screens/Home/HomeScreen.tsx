@@ -32,7 +32,7 @@ import {
   deleteComment,
 } from '@/src/api/comments';
 import { Swipeable } from 'react-native-gesture-handler';
-import { Trash2, ArrowLeft } from 'lucide-react-native';
+import { Trash2, ArrowLeft, MoreVertical } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
@@ -118,31 +118,29 @@ type CarouselItem = {
   imageUrl?: string | null;
 };
 
-// paths: src/screens/Home/HomeScreen.tsx -> ../../../assets/cocktails
-const STATIC_COCKTAILS: CarouselItem[] = [
-  { id: 'margarita', name: 'Margarita', imageLocal: require('../../../assets/cocktails/margarita.png') },
-  { id: 'clover-club', name: 'Clover Club', imageLocal: require('../../../assets/cocktails/clover_club.png') },
-  { id: 'espresso-martini', name: 'Espresso Martini', imageLocal: require('../../../assets/cocktails/espresso_martini.png') },
-  { id: 'whiskey-sour', name: 'Whiskey Sour', imageLocal: require('../../../assets/cocktails/whiskey_sour.png') },
-  { id: 'hemingway', name: 'Hemingway', imageLocal: require('../../../assets/cocktails/hemingway.png') },
-  { id: 'jungle-bird', name: 'Jungle Bird', imageLocal: require('../../../assets/cocktails/jungle_bird.png') },
-];
-
-// dynamic carousel items (fallback to static)
+// dynamic carousel items (no local static fallback)
 const useCarouselItems = () => {
-  const [items, setItems] = useState<CarouselItem[]>(STATIC_COCKTAILS);
+  const [items, setItems] = useState<CarouselItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchTopCocktails = async () => {
       try {
+        // Calculate date 30 days ago
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+        const oneMonthAgoISO = oneMonthAgo.toISOString();
+
         const { data, error } = await supabase
           .from('DrinkLog')
           .select(`cocktail_id, Cocktail ( id, name, image_url )`)
+          .gte('created_at', oneMonthAgoISO)
           .order('created_at', { ascending: false })
           .limit(500);
         if (error) throw error;
         if (!data || data.length === 0) {
-          setItems(STATIC_COCKTAILS);
+          setItems([]);
+          setLoading(false);
           return;
         }
         const counts = new Map<string, { count: number; name: string; imageUrl: string | null }>();
@@ -158,16 +156,18 @@ const useCarouselItems = () => {
           .sort((a, b) => b[1].count - a[1].count)
           .slice(0, 6)
           .map(([id, info]) => ({ id, name: info.name, imageUrl: info.imageUrl })) as CarouselItem[];
-        setItems(top.length > 0 ? top : STATIC_COCKTAILS);
+        setItems(top);
       } catch (e) {
         console.warn('Failed to fetch top cocktails:', (e as any)?.message ?? e);
-        setItems(STATIC_COCKTAILS);
+        setItems([]);
+      } finally {
+        setLoading(false);
       }
     };
     fetchTopCocktails();
   }, []);
 
-  return items;
+  return { items, loading };
 };
 
 // ---------- dummy data (when DB is empty / no user) ----------
@@ -234,10 +234,18 @@ export const HomeScreen: React.FC = () => {
   const [tagsModalVisible, setTagsModalVisible] = useState(false);
   const [currentTaggedFriends, setCurrentTaggedFriends] = useState<TaggedUser[]>([]);
 
+  // delete post menu state
+  const [deleteMenuVisible, setDeleteMenuVisible] = useState(false);
+
   // carousel state - swipe + fade
-  const items = useCarouselItems();
+  const { items, loading: carouselLoading } = useCarouselItems();
+  const itemsRef = useRef<CarouselItem[]>([]);
   const [currentCocktailIndex, setCurrentCocktailIndex] = useState(0);
   const currentIndexRef = useRef(0);
+  // keep itemsRef in sync
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
   const dragX = useRef(new Animated.Value(0)).current;
   const cardOpacity = useRef(new Animated.Value(1)).current;
   // separate gesture tracker for side preview animations (so final swipe animation doesn't distort previews)
@@ -248,8 +256,13 @@ export const HomeScreen: React.FC = () => {
   // side preview crossfade opacities
   const sideLeftOpacity = useRef(new Animated.Value(1)).current;
   const sideRightOpacity = useRef(new Animated.Value(1)).current;
-  // animated scales for pagination dots
-  const dotScales = useRef(items.map((_, i) => new Animated.Value(i === 0 ? 1.15 : 0.9))).current;
+  // animated scales for pagination dots (rebuild when items changes)
+  const dotScales = useRef<Animated.Value[]>([]);
+  useEffect(() => {
+    if (items.length > 0 && dotScales.current.length !== items.length) {
+      dotScales.current = items.map((_, i) => new Animated.Value(i === 0 ? 1.15 : 0.9));
+    }
+  }, [items]);
   const commentsScrollViewRef = useRef<ScrollView | null>(null);
 
   // PanResponder for swipe gestures
@@ -268,24 +281,18 @@ export const HomeScreen: React.FC = () => {
       },
       onPanResponderRelease: (_, gesture) => {
         const { dx } = gesture;
-        // Detect quick tap with minimal movement to open All Cocktails with search
+        const currentItems = itemsRef.current;
+        // Guard: do nothing if items not loaded
+        if (currentItems.length === 0) {
+          return;
+        }
+        // Detect quick tap with minimal movement to navigate to cocktail detail
         const tapDuration = Date.now() - (tapStartRef.current || Date.now());
         if (Math.abs(dx) < 6 && tapDuration < 200) {
-          const active = items[currentIndexRef.current];
-          // map only existing cocktails; exclude Jungle Bird
-          const map: Record<string, string> = {
-            'margarita': 'Margarita',
-            'clover-club': 'Clover Club',
-            'espresso-martini': 'Espresso Martini',
-            'whiskey-sour': 'Whiskey Sour',
-            'hemingway': 'Hemingway',
-          };
-          const q = map[active.id];
-          if (q) {
-            navigation.navigate('Explore' as never, {
-              screen: 'AllCocktails',
-              params: { initialQuery: q },
-            } as never);
+          const active = currentItems[currentIndexRef.current];
+          if (active?.id) {
+            // Navigate to cocktail detail
+            handleCarouselCocktailPress(active.id);
             return;
           }
         }
@@ -297,6 +304,7 @@ export const HomeScreen: React.FC = () => {
           return;
         }
         const direction = dx < 0 ? -1 : 1;
+        const len = itemsRef.current.length;
         Animated.parallel([
           Animated.timing(dragX, {
             toValue: direction * Dimensions.get('window').width,
@@ -311,7 +319,7 @@ export const HomeScreen: React.FC = () => {
         ]).start(() => {
           let newIndex = 0;
           setCurrentCocktailIndex((prev) => {
-            newIndex = direction === -1 ? (prev + 1) % items.length : (prev - 1 + items.length) % items.length;
+            newIndex = direction === -1 ? (prev + 1) % len : (prev - 1 + len) % len;
             return newIndex;
           });
           // crossfade side previews
@@ -322,7 +330,7 @@ export const HomeScreen: React.FC = () => {
             Animated.timing(sideRightOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
           ]).start();
           // animate dot scales
-          dotScales.forEach((val, idx) => {
+          dotScales.current.forEach((val, idx) => {
             Animated.spring(val, {
               toValue: idx === newIndex ? 1.15 : 0.9,
               useNativeDriver: true,
@@ -664,6 +672,22 @@ export const HomeScreen: React.FC = () => {
     } as never);
   };
 
+  // ---------- carousel cocktail navigation ----------
+  const handleCarouselCocktailPress = async (cocktailId: string) => {
+    if (!cocktailId) return;
+    
+    const cocktail = await fetchCocktailById(cocktailId);
+    if (!cocktail) {
+      console.log('Carousel cocktail not found');
+      return;
+    }
+    
+    navigation.navigate('Explore' as never, { 
+      screen: 'CocktailDetail',
+      params: { cocktail }
+    } as never);
+  };
+
   const handleSendComment = async () => {
     if (!user?.id || !activePostId || !newComment.trim() || sendingComment) {
       return;
@@ -745,6 +769,41 @@ export const HomeScreen: React.FC = () => {
     );
   };
 
+  // ---------- delete post ----------
+  const handleDeletePost = async () => {
+    if (!user?.id || !activePostId || !focusedPost) return;
+    
+    // Only allow deletion if user owns the post
+    if (focusedPost.userId !== user.id) {
+      console.log('Cannot delete: not the owner');
+      setDeleteMenuVisible(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('DrinkLog')
+        .delete()
+        .eq('id', activePostId)
+        .eq('user_id', user.id); // Extra safety: ensure user owns the post
+
+      if (error) throw error;
+
+      // Remove from feed
+      setFeedPosts((prev) => prev.filter((p) => p.id !== activePostId));
+      
+      // Close the modal
+      setDeleteMenuVisible(false);
+      closeComments();
+      
+      // Haptic feedback
+      try { if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+    } catch (e) {
+      console.error('Failed to delete post:', e);
+      setDeleteMenuVisible(false);
+    }
+  };
+
   return (
     <Box className="flex-1 bg-neutral-50">
       <TopBar title="Sippin'" onNotificationPress={handleNotificationSelect} showLogo />
@@ -762,6 +821,10 @@ export const HomeScreen: React.FC = () => {
           <Heading level="h3" className="mb-5">Popular right now</Heading>
           <Box className="h-80 items-center justify-center" style={{ overflow: 'visible' }}>
             <View style={{ width: SCREEN_WIDTH, alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
+              {items.length === 0 ? (
+                <Text className="text-sm text-neutral-600">Loading...</Text>
+              ) : (
+              <>
               {/* Side previews */}
               <Animated.View style={{
                 position: 'absolute',
@@ -943,31 +1006,35 @@ export const HomeScreen: React.FC = () => {
                   {items[currentCocktailIndex]?.name ?? ''}
                 </Text>
               </Animated.View>
+              </>
+              )}
             </View>
             {/* Pagination dots below card */}
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
-               {items.map((c, idx) => (
-                 <Animated.View
-                   key={c.id}
-                   style={{
-                     width: 10,
-                     height: 10,
-                     borderRadius: 10,
-                     marginHorizontal: 5,
-                     backgroundColor: idx === currentCocktailIndex ? colors.primary[500] : '#d1d5db',
-                     opacity: idx === currentCocktailIndex ? 1 : 0.55,
-                     borderWidth: idx === currentCocktailIndex ? 2 : 0,
-                     borderColor: idx === currentCocktailIndex ? 'rgba(0,150,137,0.3)' : 'transparent',
-                     transform: [{ scale: dotScales[idx] }],
-                   }}
-                 />
-               ))}
+               {items.length === 0 ? null : (
+                 items.map((c, idx) => (
+                   <Animated.View
+                     key={c.id}
+                     style={{
+                       width: 10,
+                       height: 10,
+                       borderRadius: 10,
+                       marginHorizontal: 5,
+                       backgroundColor: idx === currentCocktailIndex ? colors.primary[500] : '#d1d5db',
+                       opacity: idx === currentCocktailIndex ? 1 : 0.55,
+                       borderWidth: idx === currentCocktailIndex ? 2 : 0,
+                       borderColor: idx === currentCocktailIndex ? 'rgba(0,150,137,0.3)' : 'transparent',
+                       transform: [{ scale: dotScales.current[idx] ?? new Animated.Value(1) }],
+                     }}
+                   />
+                 ))
+               )}
             </View>
           </Box>
         </Box>
 
         {/* Feed toggle */}
-        <Box className="mb-4 bg-white rounded-2xl p-1 flex-row">
+        <Box className="mb-4 bg-white rounded-2xl p-1 flex-row border border-neutral-200">
           <Pressable
             onPress={() => setFeedFilter('friends')}
             className={
@@ -1058,14 +1125,38 @@ export const HomeScreen: React.FC = () => {
           >
             <Box className="flex-1 bg-white">
               {/* Header with back button */}
-              <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
-                <Pressable onPress={closeComments} className="mr-3">
-                  <ArrowLeft size={24} color="#000" />
-                </Pressable>
-                <Text className="text-base font-semibold text-neutral-900">
-                  Post
-                </Text>
+              <Box className="flex-row items-center justify-between px-4 py-4 border-b border-neutral-200">
+                <Box className="flex-row items-center">
+                  <Pressable onPress={closeComments} className="mr-3">
+                    <ArrowLeft size={24} color="#000" />
+                  </Pressable>
+                  <Text className="text-base font-semibold text-neutral-900">
+                    Post
+                  </Text>
+                </Box>
+                {/* Three-dot menu - only show if user owns the post */}
+                {focusedPost && user?.id === focusedPost.userId && (
+                  <Pressable 
+                    onPress={() => setDeleteMenuVisible(!deleteMenuVisible)}
+                    className="p-2"
+                  >
+                    <MoreVertical size={20} color="#666" />
+                  </Pressable>
+                )}
               </Box>
+
+              {/* Delete dropdown menu */}
+              {deleteMenuVisible && focusedPost && user?.id === focusedPost.userId && (
+                <Box className="absolute right-4 top-16 z-50 bg-white rounded-xl shadow-lg border border-neutral-200" style={{ elevation: 5, shadowColor: '#000', shadowOpacity: 0.15, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12 }}>
+                  <Pressable 
+                    onPress={handleDeletePost}
+                    className="flex-row items-center px-4 py-3"
+                  >
+                    <Trash2 size={18} color="#ef4444" />
+                    <Text className="ml-3 text-red-500 font-medium">Delete post</Text>
+                  </Pressable>
+                </Box>
+              )}
 
               {/* Post + comments */}
               <ScrollView
@@ -1146,7 +1237,7 @@ export const HomeScreen: React.FC = () => {
 
               {!commentsLoading && commentsForPost.length === 0 && (
                 <Text className="text-sm text-neutral-500">
-                  Be the first to comment.
+                  No Comments Yet.
                 </Text>
               )}
 

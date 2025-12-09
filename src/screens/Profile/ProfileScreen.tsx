@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { ScrollView, ActivityIndicator } from 'react-native';
+import { ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { HStack } from '@/src/components/ui/hstack';
@@ -23,6 +23,7 @@ import { ToggleSwitch } from '@/src/components/global';
 import { Heart, Wine, BookOpen } from 'lucide-react-native';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
+import * as Haptics from 'expo-haptics';
 import { GridGallery, type RecentDrink } from './components/GridGallery';
 import { ProfileHeader } from './components/ProfileHeader';
 import { ProfileStats } from './components/ProfileStats';
@@ -484,6 +485,44 @@ export const ProfileScreen = () => {
     }
   };
 
+  // ---------- delete post ----------
+  const handleDeletePost = async () => {
+    if (!user?.id || !selectedPostId || !focusedPost) return;
+    
+    // Only allow deletion if user owns the post
+    if (focusedPost.userId !== user.id) {
+      console.log('Cannot delete: not the owner');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('DrinkLog')
+        .delete()
+        .eq('id', selectedPostId)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      // Remove from recent drinks list
+      setRecentDrinks((prev) => prev.filter((d) => d.id !== selectedPostId));
+      setPublicLogs((prev) => prev.filter((d) => d.id !== selectedPostId));
+      setPrivateLogs((prev) => prev.filter((d) => d.id !== selectedPostId));
+      
+      // Close the modal
+      closePostModal();
+      
+      // Refresh stats
+      refreshStats();
+      loadTopBarStats();
+      
+      // Haptic feedback
+      try { if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success); } catch {}
+    } catch (e) {
+      console.error('Failed to delete post:', e);
+    }
+  };
+
 
   return (
     <Box className="flex-1 bg-neutral-50">
@@ -646,11 +685,13 @@ export const ProfileScreen = () => {
         commentsForPost={commentsForPost}
         newComment={newComment}
         sendingComment={sendingComment}
+        isOwnPost={focusedPost?.userId === user?.id}
         onClose={closePostModal}
         onToggleLike={() => handleToggleLike(focusedPost?.id || '')}
         onPressCocktail={() => handlePressCocktail(focusedPost?.cocktailId || '')}
         onCommentChange={setNewComment}
         onSendComment={handleSendComment}
+        onDeletePost={handleDeletePost}
         formatTimeAgo={formatTimeAgo}
       />
     </Box>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
         Modal,
         ScrollView,
@@ -11,7 +11,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { FeedPostCard, TextInputField, Avatar } from '@/src/components/global';
-import { ArrowLeft } from 'lucide-react-native';
+import { ArrowLeft, MoreVertical, Trash2 } from 'lucide-react-native';
 import type { CommentRow } from '@/src/api/comments';
 
 interface PostModalProps {
@@ -21,11 +21,13 @@ interface PostModalProps {
         commentsForPost: CommentRow[];
         newComment: string;
         sendingComment: boolean;
+        isOwnPost?: boolean;
         onClose: () => void;
         onToggleLike: () => void;
         onPressCocktail: () => void;
         onCommentChange: (text: string) => void;
         onSendComment: () => void;
+        onDeletePost?: () => void;
         formatTimeAgo: (date: string) => string;
 }
 
@@ -36,13 +38,29 @@ export const PostModal: React.FC<PostModalProps> = ({
         commentsForPost,
         newComment,
         sendingComment,
+        isOwnPost = false,
         onClose,
         onToggleLike,
         onPressCocktail,
         onCommentChange,
         onSendComment,
+        onDeletePost,
         formatTimeAgo,
 }) => {
+        const [deleteMenuVisible, setDeleteMenuVisible] = useState(false);
+
+        const handleDelete = () => {
+                setDeleteMenuVisible(false);
+                onDeletePost?.();
+        };
+
+        // Reset menu when modal closes
+        React.useEffect(() => {
+                if (!visible) {
+                        setDeleteMenuVisible(false);
+                }
+        }, [visible]);
+
         return (
                 <Modal
                         visible={visible}
@@ -57,14 +75,41 @@ export const PostModal: React.FC<PostModalProps> = ({
                                 >
                                         <Box className="flex-1 bg-white">
                                                 {/* Header */}
-                                                <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
-                                                        <Pressable onPress={onClose} className="mr-3">
-                                                                <ArrowLeft size={24} color="#000" />
-                                                        </Pressable>
-                                                        <Text className="text-base font-semibold text-neutral-900">
-                                                                Post
-                                                        </Text>
+                                                <Box className="flex-row items-center justify-between px-4 py-4 border-b border-neutral-200">
+                                                        <Box className="flex-row items-center">
+                                                                <Pressable onPress={onClose} className="mr-3">
+                                                                        <ArrowLeft size={24} color="#000" />
+                                                                </Pressable>
+                                                                <Text className="text-base font-semibold text-neutral-900">
+                                                                        Post
+                                                                </Text>
+                                                        </Box>
+                                                        {/* Three-dot menu - only show if user owns the post */}
+                                                        {isOwnPost && onDeletePost && (
+                                                                <Pressable 
+                                                                        onPress={() => setDeleteMenuVisible(!deleteMenuVisible)}
+                                                                        className="p-2"
+                                                                >
+                                                                        <MoreVertical size={20} color="#666" />
+                                                                </Pressable>
+                                                        )}
                                                 </Box>
+
+                                                {/* Delete dropdown menu */}
+                                                {deleteMenuVisible && isOwnPost && (
+                                                        <Box 
+                                                                className="absolute right-4 top-16 z-50 bg-white rounded-xl border border-neutral-200" 
+                                                                style={{ elevation: 5, shadowColor: '#000', shadowOpacity: 0.15, shadowOffset: { width: 0, height: 4 }, shadowRadius: 12 }}
+                                                        >
+                                                                <Pressable 
+                                                                        onPress={handleDelete}
+                                                                        className="flex-row items-center px-4 py-3"
+                                                                >
+                                                                        <Trash2 size={18} color="#ef4444" />
+                                                                        <Text className="ml-3 text-red-500 font-medium">Delete post</Text>
+                                                                </Pressable>
+                                                        </Box>
+                                                )}
 
                                                 {/* Content */}
                                                 <ScrollView
