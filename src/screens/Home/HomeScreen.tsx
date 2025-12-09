@@ -1309,7 +1309,7 @@ export const HomeScreen: React.FC = () => {
 
                 {!commentsLoading && commentsForPost.length === 0 && (
                   <Text className="text-sm text-neutral-500">
-                    Be the first to comment.
+                    No comments yet.
                   </Text>
                 )}
 
