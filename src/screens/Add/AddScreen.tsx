@@ -212,7 +212,7 @@ export const AddScreen = () => {
 
             // user will dismiss the modal manually
         } catch (e) {
-            console.error('Error logging cocktail', e);
+            console.error('Error posting cocktail', e);
             alert('Upload failed. See console for details.');
         } finally {
             setIsUploading(false);
@@ -273,7 +273,7 @@ export const AddScreen = () => {
                 }}
             >
                 {/* View Toggle */}
-                <Box className="mb-4 bg-white rounded-2xl p-1">
+                <Box className="mb-4">
                     <ToggleSwitch
                         value={activeView === 'log' ? 'left' : 'right'}
                         onChange={(val: 'left' | 'right') => setActiveView(val === 'left' ? 'log' : 'recipe')}

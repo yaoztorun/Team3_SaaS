@@ -82,7 +82,7 @@ const LogView: React.FC<LogViewProps> = ({
             <TextInputField
                 label="Cocktail Name"
                 required
-                placeholder="Select a cocktail"
+                placeholder="Type the name of the cocktail"
                 value={cocktailQuery}
                 onChangeText={(t) => {
                     handleFieldInteraction();

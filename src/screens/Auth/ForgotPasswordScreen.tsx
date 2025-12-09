@@ -26,8 +26,8 @@ const ForgotPasswordScreen: React.FC = () => {
             return;
         }
 
-        // Basic email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Basic email validation - allows international characters
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
         if (!emailRegex.test(email)) {
             setMessage('Please enter a valid email address');
             setIsSuccess(false);
@@ -97,7 +97,7 @@ const ForgotPasswordScreen: React.FC = () => {
                                 value={email}
                                 onChangeText={setEmail}
                                 autoCapitalize="none"
-                                keyboardType="email-address"
+                                autoComplete="email"
                                 onSubmitEditing={handleResetPassword}
                             />
 

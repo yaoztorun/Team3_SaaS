@@ -14,27 +14,27 @@ We follow a simplified **Git flow** with two long-lived branches that correspond
 | Branch | Environment | Purpose |
 |---------|--------------|----------|
 | **main** | **Production** | Stable, deployment-ready code. What users actually use. |
-| **develop** | **Development** | Active development and integration. Used for internal testing. |
+| **dev** | **Development** | Active development and integration. Used for internal testing. |
 
 <br>
 
 ### Feature Branch Workflow
 
-All new work happens on **short-lived feature branches** created from `develop`.  
+All new work happens on **short-lived feature branches** created from `dev`.  
 Each feature branch focuses on a single change — a feature, fix, or improvement.
 
 **Flow:**
 1. **Start from `develop`:**  
-   Create a branch using the naming convention  
+   Create a branch using the naming convention (see below)
    → `feature/backend-add-login-endpoint`
 2. **Work locally:**  
    Code, commit, and test the feature.
 3. **Push & open a Pull Request (PR):**  
-   Merge the feature branch into `develop` once it’s complete and reviewed.
+   Merge the feature branch into `dev` once it’s complete and reviewed.
 4. **Automatic/Manual Deploy (Dev Environment):**  
-   Every merge into `develop` can trigger deployment to a **development environment** (if available) for internal testing.
+   Every merge into `dev` triggers a deployment to the **development environment** for internal testing.
 5. **Stabilize and Merge to Production:**  
-   When `develop` is tested and stable, merge it into `main`.  
+   When `dev` is tested and stable, merge it into `main`.  
    This deploys the final version to **production**.
 
 <br>
@@ -43,7 +43,7 @@ Each feature branch focuses on a single change — a feature, fix, or improvemen
 
 ```bash
 # 1. Create new feature branch from develop
-git checkout develop
+git checkout dev
 git pull
 git checkout -b feature/frontend-login-screen
 
@@ -52,10 +52,10 @@ git add .
 git commit -m "feat: add login screen UI"
 git push origin feature/frontend-login-screen
 
-# 3. Open PR → merge into develop
-# 4. When develop is stable:
+# 3. Open PR → Peer review → merge into dev
+# 4. When dev is stable:
 git checkout main
-git merge develop
+git merge dev
 git push origin main
 ```
 <br>

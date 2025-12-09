@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
-import { View, KeyboardAvoidingView, Platform, ScrollView, Image } from 'react-native';
+import { View, KeyboardAvoidingView, Platform, ScrollView, Image, Modal } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ChevronLeft, Eye, EyeOff } from 'lucide-react-native';
+import { ChevronLeft, Mail, Eye, EyeOff } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../navigation/types';
-import { PrimaryButton, TextInputField, Heading } from '@/src/components/global';
+import { PrimaryButton, TextInputField, Heading, PasswordInput } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { spacing } from '@/src/theme/spacing';
 import { ANALYTICS_EVENTS, posthogCapture, identifyUser, trackWithTTFA } from '@/src/analytics';
@@ -24,9 +24,9 @@ const RegisterScreen: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isSignInHovered, setIsSignInHovered] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const [message, setMessage] = useState<string | null>(null);
 
@@ -105,8 +105,8 @@ const RegisterScreen: React.FC = () => {
             clearReferralInfo();
         }
 
-        setMessage('Registration successful! Please check your email to verify your account.');
-        setTimeout(() => navigation.navigate('Login'), 3000);
+        // Show success modal instead of message and automatic redirect
+        setShowSuccessModal(true);
     };
 
     const handleLogin = () => {
@@ -158,28 +158,20 @@ const RegisterScreen: React.FC = () => {
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
-                            keyboardType="email-address"
+                            autoComplete="email"
                             onSubmitEditing={handleRegister}
                         />
                     </Box>
 
                     <Box className="mt-6">
-                        <TextInputField
+                        <PasswordInput
                             label="Password"
                             placeholder="Enter your password"
                             value={password}
                             onChangeText={setPassword}
-                            secureTextEntry={!showPassword}
                             onSubmitEditing={handleRegister}
-                            icon={
-                                <Pressable onPress={() => setShowPassword(!showPassword)}>
-                                    {showPassword ? (
-                                        <EyeOff size={20} color="#717182" />
-                                    ) : (
-                                        <Eye size={20} color="#717182" />
-                                    )}
-                                </Pressable>
-                            }
+                            showPassword={showPassword}
+                            onTogglePassword={() => setShowPassword(!showPassword)}
                         />
                         <Box className="mt-2">
                             <Text className="text-xs text-neutral-500">
@@ -192,22 +184,14 @@ const RegisterScreen: React.FC = () => {
                     </Box>
 
                     <Box className="mt-6 mb-8">
-                        <TextInputField
+                        <PasswordInput
                             label="Confirm Password"
                             placeholder="Confirm your password"
                             value={confirmPassword}
                             onChangeText={setConfirmPassword}
-                            secureTextEntry={!showConfirmPassword}
                             onSubmitEditing={handleRegister}
-                            icon={
-                                <Pressable onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
-                                    {showConfirmPassword ? (
-                                        <EyeOff size={20} color="#717182" />
-                                    ) : (
-                                        <Eye size={20} color="#717182" />
-                                    )}
-                                </Pressable>
-                            }
+                            showPassword={showPassword}
+                            onTogglePassword={() => setShowPassword(!showPassword)}
                         />
                     </Box>
                     {message && (
@@ -257,6 +241,56 @@ const RegisterScreen: React.FC = () => {
                     <Text className="text-primary-500">Privacy Policy</Text>
                 </Text>
             </Box>
+
+            {/* Success Modal */}
+            <Modal
+                visible={showSuccessModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => {
+                    setShowSuccessModal(false);
+                    navigation.navigate('Login');
+                }}
+            >
+                <Pressable
+                    className="flex-1 bg-black/50 items-center justify-center p-4"
+                    onPress={() => {
+                        setShowSuccessModal(false);
+                        navigation.navigate('Login');
+                    }}
+                >
+                    <Pressable
+                        className="bg-white rounded-3xl p-6 w-full max-w-sm"
+                        onPress={(e) => e.stopPropagation()}
+                    >
+                        {/* Icon */}
+                        <Box className="items-center mb-4">
+                            <Box className="w-16 h-16 rounded-full bg-teal-100 items-center justify-center">
+                                <Mail size={32} color="#009689" />
+                            </Box>
+                        </Box>
+
+                        {/* Title */}
+                        <Text className="text-2xl font-bold text-neutral-900 text-center mb-3">
+                            Account Created!
+                        </Text>
+
+                        {/* Message */}
+                        <Text className="text-base text-neutral-600 text-center mb-6">
+                            Your account has been created successfully. Please check your email to verify your account before logging in.
+                        </Text>
+
+                        {/* Login Button */}
+                        <PrimaryButton 
+                            title="Go to Login" 
+                            onPress={() => {
+                                setShowSuccessModal(false);
+                                navigation.navigate('Login');
+                            }}
+                        />
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </ScrollView>
     );
 };

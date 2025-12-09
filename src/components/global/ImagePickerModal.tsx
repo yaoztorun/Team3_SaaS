@@ -4,6 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { Camera, Image as ImageIcon, X } from 'lucide-react-native';
+import { Heading } from './Heading';
 
 interface ImagePickerModalProps {
     visible: boolean;
@@ -40,7 +41,7 @@ export const ImagePickerModal: React.FC<ImagePickerModalProps> = ({
                 >
                     <Box className="bg-white rounded-t-3xl p-6">
                         <Box className="flex-row justify-between items-center mb-4">
-                            <Text className="text-xl font-semibold">{title}</Text>
+                            <Heading level="h3">{title}</Heading>
                             <Pressable onPress={onClose}>
                                 <X size={24} color="#666" />
                             </Pressable>

@@ -80,7 +80,7 @@ export const ItemDetail = () => {
                     <TouchableOpacity onPress={() => navigation.goBack()} className="mr-3">
                         <ArrowLeft size={24} color="#333" />
                     </TouchableOpacity>
-                    <Text className="text-xl font-semibold flex-1">Product Details</Text>
+                    <Heading level="h3" className="flex-1">Product Details</Heading>
                 </HStack>
             </Box>
 

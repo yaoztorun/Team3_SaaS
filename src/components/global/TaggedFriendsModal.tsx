@@ -32,8 +32,8 @@ export const TaggedFriendsModal: React.FC<TaggedFriendsModalProps> = ({
       animationType="slide"
       onRequestClose={onClose}
     >
-      <Box className="flex-1 bg-black/50 justify-end">
-        <Box className="bg-white rounded-t-3xl max-h-[70%]">
+      <Box className="flex-1 bg-black/50 justify-center items-center p-4">
+        <Box className="bg-white rounded-3xl max-h-[70%] w-full max-w-sm">
           {/* Header */}
           <Box className="flex-row items-center justify-between px-4 py-4 border-b border-gray-200">
             <Text className="text-lg font-semibold text-neutral-900">

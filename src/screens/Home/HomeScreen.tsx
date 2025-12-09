@@ -18,12 +18,13 @@ import { Text } from '@/src/components/ui/text';
 import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { Pressable } from '@/src/components/ui/pressable';
-import { FeedPostCard, TextInputField, Heading, TaggedFriendsModal } from '@/src/components/global';
+import { FeedPostCard, TextInputField, Heading, TaggedFriendsModal, ToggleSwitch, Avatar } from '@/src/components/global';
 import { supabase } from '@/src/lib/supabase';
 import { useAuth } from '@/src/hooks/useAuth';
 import { getLikesForLogs, toggleLike } from '@/src/api/likes';
 import { getTagsForLogs, TaggedUser } from '@/src/api/tags';
 import { fetchCocktailById } from '@/src/api/cocktail';
+import { posthogCapture, ANALYTICS_EVENTS } from '@/src/analytics';
 import {
   getCommentCountsForLogs,
   getCommentsForLog,
@@ -36,6 +37,7 @@ import { Trash2, ArrowLeft, MoreVertical } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type FeedFilter = 'friends' | 'for-you';
 
@@ -236,6 +238,26 @@ export const HomeScreen: React.FC = () => {
 
   // delete post menu state
   const [deleteMenuVisible, setDeleteMenuVisible] = useState(false);
+
+  // Recently created recipes tip banner
+  const [showRecipeTip, setShowRecipeTip] = useState<{ count: number } | null>(null);
+  useFocusEffect(
+    React.useCallback(() => {
+      let mounted = true;
+      (async () => {
+        try {
+          const raw = await AsyncStorage.getItem('recent_recipe_count');
+          const n = raw ? parseInt(raw) : 0;
+          if (mounted && n > 0) setShowRecipeTip({ count: n });
+        } catch { }
+      })();
+      return () => { mounted = false };
+    }, [])
+  );
+  const dismissTip = async () => {
+    setShowRecipeTip(null);
+    try { await AsyncStorage.removeItem('recent_recipe_count'); } catch { }
+  };
 
   // carousel state - swipe + fade
   const { items, loading: carouselLoading } = useCarouselItems();
@@ -656,7 +678,10 @@ export const HomeScreen: React.FC = () => {
       console.log('No cocktail ID provided');
       return;
     }
-    
+
+    // Close comments modal first
+    closeComments();
+
     // Fetch the full cocktail data (RLS ensures we only get public or own cocktails)
     const cocktail = await fetchCocktailById(cocktailId);
     
@@ -670,6 +695,16 @@ export const HomeScreen: React.FC = () => {
       screen: 'CocktailDetail',
       params: { cocktail }
     } as never);
+  };
+
+  const handlePressUser = (userId: string) => {
+    if (!userId || userId === user?.id) return;
+    
+    // Close comments modal first
+    closeComments();
+    
+    // Navigate to user profile
+    navigation.navigate('UserProfile', { userId });
   };
 
   // ---------- carousel cocktail navigation ----------
@@ -702,6 +737,13 @@ export const HomeScreen: React.FC = () => {
     if (!res.success) {
       console.warn(res.error);
     } else {
+      // Track comment added
+      posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+        feature: 'comment_added',
+        post_id: activePostId,
+        comment_length: content.length,
+      });
+      
       await loadComments(activePostId);
 
       // bump comment count in feed
@@ -724,6 +766,12 @@ export const HomeScreen: React.FC = () => {
     // optimistic: remove from UI
     setCommentsForPost((prev) => prev.filter((c) => c.id !== commentId));
     setLastDeletedComment(comment);
+    
+    // Track comment deleted
+    posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+      feature: 'comment_deleted',
+      post_id: activePostId,
+    });
 
     const res = await deleteComment(commentId, user.id);
     if (!res.success) {
@@ -816,6 +864,34 @@ export const HomeScreen: React.FC = () => {
           paddingBottom: spacing.screenBottom,
         }}
       >
+        {/* Recently Created Recipes Tip (clickable) */}
+        {showRecipeTip && (
+          <Box className="mb-4">
+            <Pressable
+              onPress={() => {
+                // Navigate to Profile main with initial grid tab
+                try {
+                  (navigation as any).navigate('Profile', {
+                    screen: 'ProfileMain',
+                    params: { initialGridTab: 'private' },
+                  });
+                  // Clear the counter once user chooses to view
+                  dismissTip();
+                } catch { }
+              }}
+              className="bg-white rounded-2xl border px-4 py-3"
+              style={{ borderColor: '#d1d5db' }}
+            >
+              <Box className="flex-row items-center justify-between">
+                <Text className="text-sm text-neutral-900">You’ve created {showRecipeTip.count} new recipe{showRecipeTip.count > 1 ? 's' : ''}. Tap to view on your profile.</Text>
+                <Pressable onPress={dismissTip} className="ml-3">
+                  <Text className="text-neutral-500">✕</Text>
+                </Pressable>
+              </Box>
+            </Pressable>
+          </Box>
+        )}
+
         {/* Popular Right Now – Swipeable Cocktail Carousel */}
         <Box className="mb-8">
           <Heading level="h3" className="mb-5">Popular right now</Heading>
@@ -1034,43 +1110,13 @@ export const HomeScreen: React.FC = () => {
         </Box>
 
         {/* Feed toggle */}
-        <Box className="mb-4 bg-white rounded-2xl p-1 flex-row border border-neutral-200">
-          <Pressable
-            onPress={() => setFeedFilter('friends')}
-            className={
-              feedFilter === 'friends'
-                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-            }
-          >
-            <Text
-              className={
-                feedFilter === 'friends'
-                  ? 'text-sm text-center text-white font-medium'
-                  : 'text-sm text-center text-neutral-900 font-medium'
-              }
-            >
-              Friends
-            </Text>
-          </Pressable>
-          <Pressable
-            onPress={() => setFeedFilter('for-you')}
-            className={
-              feedFilter === 'for-you'
-                ? 'flex-1 py-2 px-4 rounded-xl bg-teal-500'
-                : 'flex-1 py-2 px-4 rounded-xl bg-transparent'
-            }
-          >
-            <Text
-              className={
-                feedFilter === 'for-you'
-                  ? 'text-sm text-center text-white font-medium'
-                  : 'text-sm text-center text-neutral-900 font-medium'
-              }
-            >
-              For you
-            </Text>
-          </Pressable>
+        <Box className="mb-4 bg-white rounded-2xl p-1">
+          <ToggleSwitch
+            value={feedFilter === 'friends' ? 'left' : 'right'}
+            onChange={(val: 'left' | 'right') => setFeedFilter(val === 'left' ? 'friends' : 'for-you')}
+            leftLabel="Friends"
+            rightLabel="For you"
+          />
         </Box>
 
         {/* Loading */}
@@ -1195,31 +1241,23 @@ export const HomeScreen: React.FC = () => {
                 </Box>
               )}
 
-              {!commentsLoading &&
-                commentsForPost.map((c) => {
-                  const canDelete = c.user_id === user?.id;
-                  const userName = c.Profile?.full_name ?? 'Unknown user';
-                  const initials = getInitials(userName);
-                  return (
-                    <Swipeable
-                      key={c.id}
-                      enabled={canDelete}
-                      renderRightActions={() => (
-                        <Pressable
-                          className="bg-red-500 justify-center items-center w-16 rounded-lg"
-                          onPress={() => handleDeleteComment(c.id)}
-                        >
-                          <Trash2 size={20} color="#fff" />
-                        </Pressable>
-                      )}
-                      onSwipeableOpen={() => {
-                        if (canDelete) handleDeleteComment(c.id);
-                      }}
-                    >
+                {!commentsLoading &&
+                  commentsForPost.map((c) => {
+                    const canDelete = c.user_id === user?.id;
+                    const userName = c.Profile?.full_name ?? 'Unknown user';
+                    const initials = getInitials(userName);
+                    const avatarUrl = c.Profile?.avatar_url ?? null;
+                    
+                    const commentContent = (
                       <Box className="mb-4 bg-white">
                         <Box className="flex-row items-start">
-                          <Box className="w-8 h-8 rounded-full bg-[#009689] items-center justify-center mr-3">
-                            <Text className="text-white text-xs font-medium">{initials}</Text>
+                          <Box className="mr-3">
+                            <Avatar
+                              avatarUrl={avatarUrl}
+                              initials={initials}
+                              size={32}
+                              fallbackColor="#009689"
+                            />
                           </Box>
                           <Box className="flex-1">
                             <Text className="text-sm font-semibold text-neutral-900 mb-1">
@@ -1229,17 +1267,51 @@ export const HomeScreen: React.FC = () => {
                               {c.content}
                             </Text>
                           </Box>
+                          {/* Show delete button on web */}
+                          {Platform.OS === 'web' && canDelete && (
+                            <Pressable
+                              className="ml-2 p-2"
+                              onPress={() => handleDeleteComment(c.id)}
+                            >
+                              <Trash2 size={16} color="#ef4444" />
+                            </Pressable>
+                          )}
                         </Box>
                       </Box>
-                    </Swipeable>
-                  );
-                })}
+                    );
+                    
+                    // On web: render without Swipeable
+                    if (Platform.OS === 'web') {
+                      return <View key={c.id}>{commentContent}</View>;
+                    }
+                    
+                    // On native: use Swipeable for swipe-to-delete
+                    return (
+                      <Swipeable
+                        key={c.id}
+                        enabled={canDelete}
+                        renderRightActions={() => (
+                          <Pressable
+                            className="bg-red-500 justify-center items-center w-16 rounded-lg"
+                            onPress={() => handleDeleteComment(c.id)}
+                          >
+                            <Trash2 size={20} color="#fff" />
+                          </Pressable>
+                        )}
+                        onSwipeableOpen={() => {
+                          if (canDelete) handleDeleteComment(c.id);
+                        }}
+                      >
+                        {commentContent}
+                      </Swipeable>
+                    );
+                  })}
 
-              {!commentsLoading && commentsForPost.length === 0 && (
-                <Text className="text-sm text-neutral-500">
-                  No Comments Yet.
-                </Text>
-              )}
+                {!commentsLoading && commentsForPost.length === 0 && (
+                  <Text className="text-sm text-neutral-500">
+                    Be the first to comment.
+                  </Text>
+                )}
 
               {/* Undo bar */}
               {lastDeletedComment && (

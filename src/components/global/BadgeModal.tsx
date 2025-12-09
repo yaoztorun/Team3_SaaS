@@ -4,6 +4,7 @@ import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { X } from 'lucide-react-native';
 import { Badge } from '@/src/api/badges';
+import { Heading } from './Heading';
 
 interface BadgeModalProps {
     visible: boolean;
@@ -14,7 +15,7 @@ interface BadgeModalProps {
 const BADGE_DESCRIPTIONS: Record<string, { title: string; description: string }> = {
     cocktails: {
         title: 'Cocktail Enthusiast',
-        description: 'Earned by logging cocktails you\'ve tried.\n\nBronze: 5 cocktails\nSilver: 20 cocktails\nGold: 50 cocktails',
+        description: 'Earned by posting cocktails you\'ve tried.\n\nBronze: 5 cocktails\nSilver: 20 cocktails\nGold: 50 cocktails',
     },
     friends: {
         title: 'Social Butterfly',
@@ -34,7 +35,7 @@ const BADGE_DESCRIPTIONS: Record<string, { title: string; description: string }>
     },
     streak: {
         title: 'Daily Streak',
-        description: 'Earned by logging cocktails on consecutive days.\n\nBronze: 5 day streak\nSilver: 20 day streak\nGold: 50 day streak',
+        description: 'Earned by posting cocktails on consecutive days.\n\nBronze: 5 day streak\nSilver: 20 day streak\nGold: 50 day streak',
     },
 };
 
@@ -77,9 +78,7 @@ export const BadgeModal: React.FC<BadgeModalProps> = ({ visible, badge, onClose 
                     </Box>
 
                     {/* Badge Title */}
-                    <Text className="text-2xl font-bold text-neutral-900 text-center mb-2">
-                        {badgeInfo.title}
-                    </Text>
+                    <Heading level="h2" className="text-center mb-2">{badgeInfo.title}</Heading>
 
                     {/* Tier and Count */}
                     <Text className="text-lg text-[#00BBA7] font-semibold text-center mb-4">

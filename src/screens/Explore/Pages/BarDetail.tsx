@@ -24,9 +24,12 @@ export const BarDetail = () => {
     const navigation = useNavigation();
     const { bar } = route.params;
 
-    const address = [bar.street_name, bar.street_nr, bar.city, bar.country]
-        .filter(Boolean)
-        .join(', ');
+    const addressParts = [
+        [bar.street_name, bar.street_nr].filter(Boolean).join(' '),
+        bar.city,
+        bar.country
+    ].filter(Boolean);
+    const address = addressParts.join(', ');
     const imageUri = bar.image_url || PLACEHOLDER_IMAGE;
 
     return (
