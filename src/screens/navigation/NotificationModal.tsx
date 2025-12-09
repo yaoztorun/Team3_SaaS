@@ -20,6 +20,7 @@ export interface Notification {
   isRead: boolean;
   type: string;
   drinkLogId?: string | null;
+  eventId?: string | null;
 }
 
 interface NotificationModalProps {

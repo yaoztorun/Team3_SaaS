@@ -12,27 +12,52 @@ import { TopBar } from '@/src/screens/navigation/TopBar';
 import { spacing } from '@/src/theme/spacing';
 import { colors } from '@/src/theme/colors';
 import { Pressable } from '@/src/components/ui/pressable';
-import { PrimaryButton, Heading, Avatar } from '@/src/components/global';
-import { Calendar, MapPin, Users, Shirt, DollarSign, Edit } from 'lucide-react-native';
+import { PrimaryButton, Heading, Avatar, FriendSelectorModal } from '@/src/components/global';
+import { Calendar, MapPin, Users, Shirt, DollarSign, Edit, UserPlus } from 'lucide-react-native';
 import type { EventWithDetails } from '@/src/api/event';
-import { fetchEventAttendees, updateRegistrationStatus, getUserEventRegistration, registerForEvent, cancelEventRegistration } from '@/src/api/event';
+import { fetchEventAttendees, updateRegistrationStatus, getUserEventRegistration, registerForEvent, cancelEventRegistration, inviteFriendsToParty, fetchEventById } from '@/src/api/event';
 import { supabase } from '@/src/lib/supabase';
 
 export const PartyDetails: React.FC = () => {
     const route = useRoute<RouteProp<SocialStackParamList, 'PartyDetails'>>();
     const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
-    const initialParty = route.params?.party as EventWithDetails;
-    const [party, setParty] = useState<EventWithDetails>(initialParty);
+    const initialParty = route.params?.party;
+    const partyId = route.params?.partyId;
+    const [party, setParty] = useState<EventWithDetails | null>(initialParty || null);
+    const [isLoadingParty, setIsLoadingParty] = useState(!initialParty && !!partyId);
     const [registeredAttendees, setRegisteredAttendees] = useState<Array<{ id: string; full_name: string | null; avatar_url: string | null }>>([]);
     const [waitlistedAttendees, setWaitlistedAttendees] = useState<Array<{ id: string; full_name: string | null; avatar_url: string | null }>>([]);
+    const [invitedAttendees, setInvitedAttendees] = useState<Array<{ id: string; full_name: string | null; avatar_url: string | null }>>([]);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
     const [processingRequests, setProcessingRequests] = useState<Set<string>>(new Set());
-    const [userRegistrationStatus, setUserRegistrationStatus] = useState<'registered' | 'waitlisted' | null>(null);
+    const [userRegistrationStatus, setUserRegistrationStatus] = useState<'registered' | 'waitlisted' | 'invited' | null>(null);
     const [isRegistering, setIsRegistering] = useState(false);
+    const [showInviteModal, setShowInviteModal] = useState(false);
+    const [isInviting, setIsInviting] = useState(false);
+    const [inviteSuccessMessage, setInviteSuccessMessage] = useState<string | null>(null);
+    const [inviteWarningMessage, setInviteWarningMessage] = useState<string | null>(null);
+
+    // Fetch party by ID if only partyId is provided
+    useEffect(() => {
+        const loadParty = async () => {
+            if (partyId && !initialParty) {
+                setIsLoadingParty(true);
+                const fetchedParty = await fetchEventById(partyId);
+                if (fetchedParty) {
+                    setParty(fetchedParty);
+                } else {
+                    console.error('Failed to fetch party');
+                    navigation.goBack();
+                }
+                setIsLoadingParty(false);
+            }
+        };
+        loadParty();
+    }, [partyId, initialParty]);
 
     // Fetch party details from database
     const fetchPartyDetails = async () => {
-        if (!initialParty?.id) return;
+        if (!party?.id) return;
 
         try {
             const { data, error } = await supabase
@@ -43,7 +68,7 @@ export const PartyDetails: React.FC = () => {
                     location:Location(id, name, street_name, street_nr, city),
                     user_location:UserLocations(id, label, street, house_nr, city)
                 `)
-                .eq('id', initialParty.id)
+                .eq('id', party.id)
                 .single();
 
             if (error) {
@@ -90,9 +115,10 @@ export const PartyDetails: React.FC = () => {
     );
 
     const loadAttendees = async () => {
-        const { registered, waitlisted } = await fetchEventAttendees(party.id);
+        const { registered, waitlisted, invited } = await fetchEventAttendees(party.id);
         setRegisteredAttendees(registered);
         setWaitlistedAttendees(waitlisted);
+        setInvitedAttendees(invited);
     };
 
     const loadUserRegistrationStatus = async () => {
@@ -105,13 +131,13 @@ export const PartyDetails: React.FC = () => {
     const isHost = currentUserId && party?.organiser_id === currentUserId;
 
     // Check if max attendees is reached
-    const isMaxAttendeesReached = party.max_attendees ? registeredAttendees.length >= party.max_attendees : false;
+    const isMaxAttendeesReached = party?.max_attendees ? registeredAttendees.length >= party.max_attendees : false;
 
     // Handle user registration toggle
     const handleRegistrationToggle = async () => {
         setIsRegistering(true);
         try {
-            if (userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted') {
+            if (userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted' || userRegistrationStatus === 'invited') {
                 // Cancel registration
                 await cancelEventRegistration(party.id);
                 setUserRegistrationStatus(null);
@@ -150,6 +176,46 @@ export const PartyDetails: React.FC = () => {
         }
     };
 
+    // Handle inviting friends to party
+    const handleInviteFriends = async (friendIds: string[]) => {
+        if (friendIds.length === 0) return;
+        
+        setIsInviting(true);
+        const result = await inviteFriendsToParty(party!.id, friendIds);
+        
+        if (result.success) {
+            const invitedCount = friendIds.length - (result.alreadyInvited?.length || 0);
+            const skippedCount = result.alreadyInvited?.length || 0;
+            
+            let message = `Successfully invited ${invitedCount} friend${invitedCount !== 1 ? 's' : ''}!`;
+            if (skippedCount > 0) {
+                message += ` (${skippedCount} already invited/registered)`;
+            }
+            setInviteSuccessMessage(message);
+            setShowInviteModal(false);
+            await loadAttendees(); // Refresh to show newly invited users
+            
+            // Clear message after 3 seconds
+            setTimeout(() => setInviteSuccessMessage(null), 3000);
+        } else {
+            // Show warning for already invited/registered friends
+            if (result.alreadyInvited && result.alreadyInvited.length > 0) {
+                const count = result.alreadyInvited.length;
+                setInviteWarningMessage(
+                    count === 1 
+                        ? 'This friend has already been invited or registered for this party'
+                        : `All ${count} selected friends have already been invited or registered`
+                );
+                setTimeout(() => setInviteWarningMessage(null), 4000);
+            } else {
+                setInviteWarningMessage(result.error || 'Failed to send invites');
+                setTimeout(() => setInviteWarningMessage(null), 3000);
+            }
+            setShowInviteModal(false);
+        }
+        setIsInviting(false);
+    };
+
     // Format date helper
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -181,6 +247,14 @@ export const PartyDetails: React.FC = () => {
     const organizerName = party?.organizer_profile?.full_name || 'Unknown';
     const organizerInitials = getInitials(organizerName);
 
+    if (isLoadingParty) {
+        return (
+            <Box className="flex-1 bg-gray-50 items-center justify-center">
+                <Text className="text-gray-600">Loading party details...</Text>
+            </Box>
+        );
+    }
+
     if (!party) {
         return (
             <Box className="flex-1 items-center justify-center bg-neutral-50">
@@ -192,6 +266,20 @@ export const PartyDetails: React.FC = () => {
     return (
         <Box className="flex-1 bg-gray-50">
             <TopBar title="Party Details" showBack onBackPress={() => navigation.goBack()} />
+            
+            {/* Success Message Banner */}
+            {inviteSuccessMessage && (
+                <Box className="bg-green-500 px-4 py-3">
+                    <Text className="text-white text-center font-medium">{inviteSuccessMessage}</Text>
+                </Box>
+            )}
+            
+            {/* Warning Message Banner */}
+            {inviteWarningMessage && (
+                <Box className="bg-orange-500 px-4 py-3">
+                    <Text className="text-white text-center font-medium">{inviteWarningMessage}</Text>
+                </Box>
+            )}
             <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                 style={{ flex: 1 }}
@@ -217,16 +305,29 @@ export const PartyDetails: React.FC = () => {
                                 <Text className="text-8xl">🎉</Text>
                             </Box>
                         )}
-                        {/* Edit Button for Host - Positioned on Cover Image */}
-                        {isHost && (
-                            <Pressable
-                                onPress={() => navigation.navigate('EditParty', { party })}
-                                className="absolute left-4 bottom-4 bg-[#00a294] rounded-lg px-4 py-2 flex-row items-center shadow-lg"
-                            >
-                                <Edit size={18} color="#fff" />
-                                <Text className="text-white text-sm font-semibold ml-2">Edit Party</Text>
-                            </Pressable>
-                        )}
+                        {/* Action Buttons - Positioned on Cover Image */}
+                        <HStack className="absolute left-4 bottom-4 gap-2">
+                            {/* Edit button - only for host */}
+                            {isHost && (
+                                <Pressable
+                                    onPress={() => navigation.navigate('EditParty', { party })}
+                                    className="bg-[#00a294] rounded-lg px-4 py-2 flex-row items-center shadow-lg"
+                                >
+                                    <Edit size={18} color="#fff" />
+                                    <Text className="text-white text-sm font-semibold ml-2">Edit</Text>
+                                </Pressable>
+                            )}
+                            {/* Invite button - host can always invite, registered users can invite to public events, invited users cannot */}
+                            {(isHost || (party.isPublic && userRegistrationStatus === 'registered')) && (
+                                <Pressable
+                                    onPress={() => setShowInviteModal(true)}
+                                    className="bg-white rounded-lg px-4 py-2 flex-row items-center shadow-lg"
+                                >
+                                    <UserPlus size={18} color="#00a294" />
+                                    <Text className="text-[#00a294] text-sm font-semibold ml-2">Invite</Text>
+                                </Pressable>
+                            )}
+                        </HStack>
                     </Box>
 
                     {/* Party Info Card */}
@@ -422,7 +523,44 @@ export const PartyDetails: React.FC = () => {
                         )}
 
                         {/* Registration Button - Only for non-hosts */}
-                        {!isHost && (
+                        {!isHost && userRegistrationStatus === 'invited' && (
+                            <Box>
+                                <Text className="text-sm text-neutral-600 mb-2">You've been invited to this party</Text>
+                                <HStack className="gap-2">
+                                    <Button
+                                        variant="solid"
+                                        className="bg-[#00a294] flex-1"
+                                        onPress={async () => {
+                                            setIsRegistering(true);
+                                            const success = await registerForEvent(party.id, false);
+                                            if (success) {
+                                                setUserRegistrationStatus('registered');
+                                                await loadAttendees();
+                                            }
+                                            setIsRegistering(false);
+                                        }}
+                                        disabled={isRegistering}
+                                    >
+                                        <Text className="text-white font-medium">✓ Accept</Text>
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        className="border-red-500 flex-1"
+                                        onPress={async () => {
+                                            setIsRegistering(true);
+                                            await cancelEventRegistration(party.id);
+                                            setUserRegistrationStatus(null);
+                                            await loadAttendees();
+                                            setIsRegistering(false);
+                                        }}
+                                        disabled={isRegistering}
+                                    >
+                                        <Text className="text-red-500 font-medium">✕ Decline</Text>
+                                    </Button>
+                                </HStack>
+                            </Box>
+                        )}
+                        {!isHost && userRegistrationStatus !== 'invited' && (
                             <Button
                                 variant={(userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted') ? "solid" : "outline"}
                                 className={(userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted')
@@ -449,6 +587,14 @@ export const PartyDetails: React.FC = () => {
                     </Box>
                 </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* Friend Invite Modal */}
+            <FriendSelectorModal
+                visible={showInviteModal}
+                onClose={() => setShowInviteModal(false)}
+                selectedFriendIds={[]}
+                onConfirm={handleInviteFriends}
+            />
         </Box>
     );
 };

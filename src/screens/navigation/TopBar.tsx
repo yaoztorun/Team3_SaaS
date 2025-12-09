@@ -38,6 +38,7 @@ interface TopBarProps {
     id: string;
     type: string;
     drinkLogId?: string | null;
+    eventId?: string | null;
   }) => void;
   showSettingsIcon?: boolean;
   onSettingsPress?: () => void;
@@ -144,12 +145,39 @@ export const TopBar: React.FC<TopBarProps> = ({
       setUnreadCount((prev) => Math.max(0, prev - 1));
     }
 
-    // bubble up to parent (e.g. HomeScreen) with id/type/drinkLogId
-    if (onNotificationPress) {
+    // Handle party invites directly, don't delegate to parent
+    if (notification.type === 'party_invite' && notification.eventId) {
+      // Navigate to PartyDetails when party invite is clicked
+      console.log('Navigating to party details with eventId:', notification.eventId);
+      try {
+        // Try nested navigation first
+        navigation.navigate('Main' as never, {
+          screen: 'Social',
+          params: {
+            screen: 'PartyDetails',
+            params: { partyId: notification.eventId },
+          },
+        } as never);
+      } catch (e) {
+        console.error('Failed to navigate to party details:', e);
+        // Fallback: try direct navigation
+        try {
+          navigation.navigate('Social' as never, {
+            screen: 'PartyDetails',
+            params: { partyId: notification.eventId },
+          } as never);
+        } catch (e2) {
+          console.error('Fallback navigation also failed:', e2);
+        }
+      }
+    }
+    // bubble up to parent for other notification types (e.g. HomeScreen) with id/type/drinkLogId/eventId
+    else if (onNotificationPress) {
       onNotificationPress({
         id: notification.id,
         type: notification.type,
         drinkLogId: notification.drinkLogId,
+        eventId: notification.eventId,
       });
     } else if (notification.drinkLogId) {
       // Fallback: open Home tab and deep-link to the post
@@ -206,6 +234,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       message: row.message ?? 'New activity',
       timeAgo: formatTimeAgo(row.created_at),
       isRead: row.is_read,
+      eventId: row.event_id,
       type: row.type,
       drinkLogId: row.drink_log_id,
     }));

@@ -7,7 +7,8 @@ export type NotificationType =
   | 'comment'
   | 'friend_request'
   | 'friend_accepted'
-  | 'close_friend_post';
+  | 'close_friend_post'
+  | 'party_invite';
 
 export type NotificationRow = {
   id: string;
@@ -17,6 +18,7 @@ export type NotificationRow = {
   type: NotificationType;
   drink_log_id: string | null;
   friendship_id: string | null;
+  event_id: string | null;
   message: string | null;
   is_read: boolean;
 };
@@ -100,6 +102,7 @@ export async function createNotification(input: {
   type: NotificationType;
   drinkLogId?: string | null;
   friendshipId?: string | null;
+  eventId?: string | null;
   message?: string | null;
 }) {
   const {
@@ -108,6 +111,7 @@ export async function createNotification(input: {
     type,
     drinkLogId = null,
     friendshipId = null,
+    eventId = null,
     message = null,
   } = input;
 
@@ -136,17 +140,23 @@ export async function createNotification(input: {
     return { success: true, skipped: true };
   }
 
-  const { error } = await supabase.from('Notification').insert({
+  const insertData = {
     user_id: userId,
     actor_id: actorId,
     type,
     drink_log_id: drinkLogId,
     friendship_id: friendshipId,
+    event_id: eventId,
     message,
-  });
+  };
+  
+  console.log('Attempting to insert notification:', insertData);
+  
+  const { error } = await supabase.from('Notification').insert(insertData);
 
   if (error) {
     console.error('Error creating notification:', error);
+    console.error('Full error details:', JSON.stringify(error, null, 2));
     return { success: false, error: error.message };
   }
   return { success: true };
