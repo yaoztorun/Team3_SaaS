@@ -6,14 +6,15 @@ import {
   PanResponder,
   Dimensions,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
-import type { ImageSourcePropType } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Heading } from '@/src/components/global';
 import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/src/theme/colors';
+import { supabase } from '@/src/lib/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ACTIVE_CARD_WIDTH = 220;
@@ -23,24 +24,74 @@ const PREVIEW_GAP = 24; // distance from active card edge to preview center
 export type CarouselItem = {
   id: string;
   name: string;
-  image: ImageSourcePropType;
+  image: string; // URL string from database
+  count: number; // Number of logs this month
 };
 
-// paths: src/components/home/CocktailCarousel.tsx -> ../../../assets/cocktails
-const COCKTAILS: CarouselItem[] = [
-  { id: 'margarita', name: 'Margarita', image: require('../../../assets/cocktails/margarita.png') },
-  { id: 'clover-club', name: 'Clover Club', image: require('../../../assets/cocktails/clover_club.png') },
-  { id: 'espresso-martini', name: 'Espresso Martini', image: require('../../../assets/cocktails/espresso_martini.png') },
-  { id: 'whiskey-sour', name: 'Whiskey Sour', image: require('../../../assets/cocktails/whiskey_sour.png') },
-  { id: 'hemingway', name: 'Hemingway', image: require('../../../assets/cocktails/hemingway.png') },
-  { id: 'jungle-bird', name: 'Jungle Bird', image: require('../../../assets/cocktails/jungle_bird.png') },
-];
+/**
+ * Fetch the 6 most logged cocktails within the last month
+ */
+async function fetchMostLoggedCocktailsThisMonth(): Promise<CarouselItem[]> {
+  try {
+    // Calculate the date 30 days ago
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+    const oneMonthAgoISO = oneMonthAgo.toISOString();
+
+    // Fetch drink logs from the last month with cocktail info
+    const { data: drinkLogs, error } = await supabase
+      .from('DrinkLog')
+      .select('cocktail_id, Cocktail(id, name, image_url)')
+      .gte('created_at', oneMonthAgoISO)
+      .not('cocktail_id', 'is', null);
+
+    if (error) {
+      console.error('Error fetching most logged cocktails:', error);
+      return [];
+    }
+
+    // Count occurrences of each cocktail
+    const cocktailCounts = new Map<string, { id: string; name: string; image: string; count: number }>();
+    
+    drinkLogs?.forEach((log: any) => {
+      const cocktailId = log.cocktail_id;
+      const cocktail = log.Cocktail;
+      
+      if (cocktail && cocktail.image_url) {
+        if (cocktailCounts.has(cocktailId)) {
+          cocktailCounts.get(cocktailId)!.count++;
+        } else {
+          cocktailCounts.set(cocktailId, {
+            id: cocktail.id,
+            name: cocktail.name || 'Unknown',
+            image: cocktail.image_url,
+            count: 1,
+          });
+        }
+      }
+    });
+
+    // Sort by count and take top 6
+    const sortedCocktails = Array.from(cocktailCounts.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6)
+      .map(({ id, name, image, count }) => ({ id, name, image, count }));
+
+    return sortedCocktails;
+  } catch (e) {
+    console.error('Unexpected error fetching most logged cocktails:', e);
+    return [];
+  }
+}
 
 type CocktailCarouselProps = {
   onCardTap?: (cocktailId: string, cocktailName: string) => void;
 };
 
 export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap }) => {
+  const [cocktails, setCocktails] = useState<CarouselItem[]>([]);
+  const cocktailsRef = useRef<CarouselItem[]>([]); // ref to avoid stale closure in panResponder
+  const [isLoading, setIsLoading] = useState(true);
   const [currentCocktailIndex, setCurrentCocktailIndex] = useState(0);
   const currentIndexRef = useRef(0);
   const dragX = useRef(new Animated.Value(0)).current;
@@ -53,16 +104,31 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
   // side preview crossfade opacities
   const sideLeftOpacity = useRef(new Animated.Value(1)).current;
   const sideRightOpacity = useRef(new Animated.Value(1)).current;
-  // animated scales for pagination dots
-  const dotScales = useRef(COCKTAILS.map((_, i) => new Animated.Value(i === 0 ? 1.15 : 0.9))).current;
+  // animated scales for pagination dots (initialized empty, updated when cocktails load)
+  const dotScales = useRef<Animated.Value[]>([]);
   // auto-scroll timer
   const autoScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastInteractionRef = useRef<number>(Date.now());
   const tapStartRef = useRef<number | null>(null);
 
+  // Fetch cocktails on mount
+  useEffect(() => {
+    const loadCocktails = async () => {
+      setIsLoading(true);
+      const data = await fetchMostLoggedCocktailsThisMonth();
+      setCocktails(data);
+      cocktailsRef.current = data; // keep ref in sync
+      // Initialize dot scales for the fetched cocktails
+      dotScales.current = data.map((_, i) => new Animated.Value(i === 0 ? 1.15 : 0.9));
+      setIsLoading(false);
+    };
+    loadCocktails();
+  }, []);
+
   // Function to advance carousel automatically
   const autoAdvanceCarousel = () => {
-    const newIndex = (currentIndexRef.current + 1) % COCKTAILS.length;
+    if (cocktailsRef.current.length === 0) return;
+    const newIndex = (currentIndexRef.current + 1) % cocktailsRef.current.length;
 
     Animated.parallel([
       Animated.timing(dragX, {
@@ -87,7 +153,7 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
       ]).start();
 
       // animate dot scales
-      dotScales.forEach((val, idx) => {
+      dotScales.current.forEach((val, idx) => {
         Animated.spring(val, {
           toValue: idx === newIndex ? 1.15 : 0.9,
           useNativeDriver: true,
@@ -116,6 +182,7 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
 
   // Reset auto-scroll timer
   const resetAutoScrollTimer = () => {
+    if (cocktailsRef.current.length === 0) return;
     lastInteractionRef.current = Date.now();
     if (autoScrollTimerRef.current) {
       clearTimeout(autoScrollTimerRef.current);
@@ -127,14 +194,16 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
 
   // Set up auto-scroll effect
   useEffect(() => {
-    resetAutoScrollTimer();
+    if (cocktails.length > 0) {
+      resetAutoScrollTimer();
+    }
 
     return () => {
       if (autoScrollTimerRef.current) {
         clearTimeout(autoScrollTimerRef.current);
       }
     };
-  }, [currentCocktailIndex]);
+  }, [currentCocktailIndex, cocktails.length]);
 
   // PanResponder for swipe gestures
   const swipeThreshold = 80; // px drag required to trigger swipe
@@ -157,18 +226,10 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
         // Detect quick tap with minimal movement to trigger callback
         const tapDuration = Date.now() - (tapStartRef.current || Date.now());
         if (Math.abs(dx) < 6 && tapDuration < 200) {
-          const active = COCKTAILS[currentIndexRef.current];
-          // map only existing cocktails; exclude Jungle Bird
-          const map: Record<string, string> = {
-            'margarita': 'Margarita',
-            'clover-club': 'Clover Club',
-            'espresso-martini': 'Espresso Martini',
-            'whiskey-sour': 'Whiskey Sour',
-            'hemingway': 'Hemingway',
-          };
-          const searchQuery = map[active.id];
-          if (searchQuery && onCardTap) {
-            onCardTap(active.id, searchQuery);
+          if (cocktailsRef.current.length === 0) return;
+          const active = cocktailsRef.current[currentIndexRef.current];
+          if (active && onCardTap) {
+            onCardTap(active.id, active.name);
           }
           return;
         }
@@ -194,7 +255,7 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
         ]).start(() => {
           let newIndex = 0;
           setCurrentCocktailIndex((prev) => {
-            newIndex = direction === -1 ? (prev + 1) % COCKTAILS.length : (prev - 1 + COCKTAILS.length) % COCKTAILS.length;
+            newIndex = direction === -1 ? (prev + 1) % cocktailsRef.current.length : (prev - 1 + cocktailsRef.current.length) % cocktailsRef.current.length;
             return newIndex;
           });
           // crossfade side previews
@@ -205,7 +266,7 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
             Animated.timing(sideRightOpacity, { toValue: 1, duration: 320, useNativeDriver: true }),
           ]).start();
           // animate dot scales
-          dotScales.forEach((val, idx) => {
+          dotScales.current.forEach((val: Animated.Value, idx: number) => {
             Animated.spring(val, {
               toValue: idx === newIndex ? 1.15 : 0.9,
               useNativeDriver: true,
@@ -268,6 +329,31 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
     return () => gestureX.removeListener(id);
   }, [gestureX]);
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <Box className="mb-8">
+        <Heading level="h3" className="mb-5">Popular right now</Heading>
+        <Box className="h-80 items-center justify-center">
+          <ActivityIndicator size="large" color={colors.primary[500]} />
+          <Text className="mt-4 text-neutral-500">Loading...</Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Show message if no cocktails found
+  if (cocktails.length === 0) {
+    return (
+      <Box className="mb-8">
+        <Heading level="h3" className="mb-5">Popular right now</Heading>
+        <Box className="h-80 items-center justify-center">
+          <Text className="text-neutral-500">No popular cocktails this week</Text>
+        </Box>
+      </Box>
+    );
+  }
+
   return (
     <Box className="mb-8">
       <Heading level="h3" className="mb-5">Popular right now</Heading>
@@ -305,8 +391,8 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
               shadowRadius: 8,
             }}>
               <Image
-                source={COCKTAILS[(currentCocktailIndex - 1 + COCKTAILS.length) % COCKTAILS.length].image}
-                style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                source={{ uri: cocktails[(currentCocktailIndex - 1 + cocktails.length) % cocktails.length]?.image }}
+                style={{ width: '100%', height: '100%', resizeMode: 'cover', borderRadius: 26 }}
               />
               {Platform.OS !== 'web' && (
                 <BlurView
@@ -358,8 +444,8 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
               shadowRadius: 8,
             }}>
               <Image
-                source={COCKTAILS[(currentCocktailIndex + 1) % COCKTAILS.length].image}
-                style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
+                source={{ uri: cocktails[(currentCocktailIndex + 1) % cocktails.length]?.image }}
+                style={{ width: '100%', height: '100%', resizeMode: 'cover', borderRadius: 26 }}
               />
               {Platform.OS !== 'web' && (
                 <BlurView
@@ -386,18 +472,18 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
             style={{
               width: 220,
               height: 320,
-              borderRadius: 32,
+              borderRadius: 28,
               backgroundColor: '#ffffff',
               shadowColor: '#009689',
-              shadowOpacity: 0.25,
-              shadowOffset: { width: 0, height: 12 },
-              shadowRadius: 18,
-              elevation: 10,
-              borderWidth: 2,
-              borderColor: 'rgba(0,150,137,0.35)',
-              padding: 16,
-              paddingBottom: 26,
-              justifyContent: 'center',
+              shadowOpacity: 0.28,
+              shadowOffset: { width: 0, height: 14 },
+              shadowRadius: 22,
+              elevation: 12,
+              borderWidth: 1.5,
+              borderColor: 'rgba(0,150,137,0.25)',
+              padding: 12,
+              paddingBottom: 16,
+              justifyContent: 'space-between',
               alignItems: 'center',
               overflow: 'hidden',
               transform: [
@@ -430,29 +516,53 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
               backgroundColor: colors.primary[100],
               opacity: dragBlurOpacity,
             }} />
-            {(() => {
-              const enlargedIds = ['margarita', 'clover-club', 'jungle-bird'];
-              const isEnlarged = enlargedIds.includes(COCKTAILS[currentCocktailIndex].id);
-              return (
-                <Image
-                  source={COCKTAILS[currentCocktailIndex].image}
-                  style={{
-                    width: '100%',
-                    height: isEnlarged ? '100%' : '92%',
-                    resizeMode: 'contain',
-                    marginTop: isEnlarged ? -4 : 0,
-                  }}
-                />
-              );
-            })()}
-            <Text className="mt-4 mb-1 text-lg font-medium text-neutral-900 text-center">
-              {COCKTAILS[currentCocktailIndex].name}
+            {/* Image container with proper border radius */}
+            <View style={{
+              width: '100%',
+              height: '82%',
+              borderRadius: 18,
+              overflow: 'hidden',
+              backgroundColor: '#f8fafc',
+            }}>
+              <Image
+                source={{ uri: cocktails[currentCocktailIndex]?.image }}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  resizeMode: 'cover',
+                }}
+              />
+              {/* Log count badge - bottom left */}
+              <View style={{
+                position: 'absolute',
+                bottom: 8,
+                left: 8,
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+                borderRadius: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOpacity: 0.12,
+                shadowOffset: { width: 0, height: 2 },
+                shadowRadius: 6,
+                elevation: 4,
+              }}>
+                <Text style={{ fontSize: 13, marginRight: 4 }}>🔥</Text>
+                <Text style={{ color: colors.primary[600], fontSize: 13, fontWeight: '700' }}>
+                  {cocktails[currentCocktailIndex]?.count || 0}
+                </Text>
+              </View>
+            </View>
+            <Text className="text-lg font-semibold text-neutral-800 text-center" numberOfLines={1}>
+              {cocktails[currentCocktailIndex]?.name}
             </Text>
           </Animated.View>
         </View>
         {/* Pagination dots below card */}
         <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 16 }}>
-          {COCKTAILS.map((c, idx) => (
+          {cocktails.map((c, idx) => (
             <Animated.View
               key={c.id}
               style={{
@@ -464,7 +574,7 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
                 opacity: idx === currentCocktailIndex ? 1 : 0.55,
                 borderWidth: idx === currentCocktailIndex ? 2 : 0,
                 borderColor: idx === currentCocktailIndex ? 'rgba(0,150,137,0.3)' : 'transparent',
-                transform: [{ scale: dotScales[idx] }],
+                transform: [{ scale: dotScales.current[idx] || 1 }],
               }}
             />
           ))}
