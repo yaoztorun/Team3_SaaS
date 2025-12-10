@@ -193,7 +193,7 @@ const CenterButton = ({
 }: {
     onPress?: (event: GestureResponderEvent) => void;
 }) => {
-    const scaleAnim = React.useRef(new Animated.Value(1)).current;
+    const scaleAnim = React.useMemo(() => new Animated.Value(1), []);
 
     const handlePressIn = () => {
         Animated.spring(scaleAnim, {

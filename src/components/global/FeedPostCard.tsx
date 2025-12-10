@@ -185,7 +185,9 @@ export const FeedPostCard: React.FC<FeedPostCardProps> = ({
             onPress={() => onPressCocktail?.(cocktailId)}
           >
             <Text className="text-base mr-1">🍸</Text>
-            <Text className="text-sm text-neutral-900">{cocktailName}</Text>
+            <Text className="text-sm text-neutral-900">
+              {cocktailName.length > 16 ? `${cocktailName.substring(0, 16)}...` : cocktailName}
+            </Text>
           </Pressable>
           <Box 
             className="rounded-xl px-3 py-2 flex-row items-center"

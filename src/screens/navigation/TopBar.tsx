@@ -421,12 +421,12 @@ export const TopBar: React.FC<TopBarProps> = ({
 
             {/* Current Streak */}
             <Text className="text-4xl font-bold text-orange-600 text-center mb-4">
-              {displayStreak} {displayStreak === 1 ? 'Day' : 'Days'}
+              {displayStreak} {displayStreak === 1 ? 'Week' : 'Weeks'}
             </Text>
 
             {/* Description */}
             <Text className="text-base text-neutral-600 text-center mb-4 leading-relaxed">
-              Your streak shows how many consecutive days you've posted cocktails in the past week.
+              Your streak shows how many consecutive weeks you've posted at least one cocktail.
             </Text>
 
             {/* How to maintain */}
@@ -435,9 +435,9 @@ export const TopBar: React.FC<TopBarProps> = ({
                 How to maintain your streak:
               </Text>
               <Text className="text-sm text-neutral-700 leading-relaxed">
-                • Post at least one cocktail each day{'\n'}
-                • Your streak counts the last 7 days{'\n'}
-                • Keep going to build longer streaks!
+                • Post at least one cocktail each week{'\n'}
+                • Each week with a post increases your streak by 1{'\n'}
+                • Keep posting weekly to build longer streaks!
               </Text>
             </Box>
           </Pressable>
