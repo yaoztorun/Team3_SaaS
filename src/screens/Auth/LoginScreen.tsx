@@ -109,10 +109,10 @@ const LoginScreen: React.FC = () => {
                         }}
                     />
                     <Heading level="h2" className="mt-6 mb-2">
-                        Welcome Back
+                        Welcome to Sippin!
                     </Heading>
                     <Text className="text-neutral-500 text-center">
-                        Sign in to access your cocktail recipes and personalized recommendations
+                        Track, discover and share your amazing cocktails
                     </Text>
                 </Box>
 
