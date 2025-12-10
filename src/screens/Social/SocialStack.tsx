@@ -12,7 +12,7 @@ export type SocialStackParamList = {
     CreateParty: undefined;
     EditParty: { party: EventWithDetails };
     UserProfile: { userId: string };
-    PartyDetails: { party: EventWithDetails } | undefined;
+    PartyDetails: { party?: EventWithDetails; partyId?: string } | undefined;
 };
 
 const Stack = createStackNavigator<SocialStackParamList>();

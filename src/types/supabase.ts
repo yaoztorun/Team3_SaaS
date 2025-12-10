@@ -659,7 +659,7 @@ export type Database = {
         | "themed party"
         | "workshop"
         | "tasting"
-      registration_status: "registered" | "cancelled" | "waitlisted"
+      registration_status: "registered" | "cancelled" | "waitlisted" | "invited"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -821,7 +821,7 @@ export const Constants = {
         "workshop",
         "tasting",
       ],
-      registration_status: ["registered", "cancelled", "waitlisted"],
+      registration_status: ["registered", "cancelled", "waitlisted", "invited"],
     },
   },
 } as const

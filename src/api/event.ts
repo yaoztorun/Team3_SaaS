@@ -30,6 +30,127 @@ export type EventWithDetails = DBEvent & {
 };
 
 /**
+ * Fetch a single event by ID with full details
+ */
+export async function fetchEventById(eventId: string): Promise<EventWithDetails | null> {
+        const { data, error } = await supabase
+                .from('Event')
+                .select('*')
+                .eq('id', eventId)
+                .single();
+
+        if (error || !data) {
+                console.error('Error fetching event:', error);
+                return null;
+        }
+
+        const events = await fetchEventsWithDetails([data as DBEvent]);
+        return events[0] || null;
+}
+
+/**
+ * Invite friends to a party by sending them notifications
+ */
+export async function inviteFriendsToParty(eventId: string, friendIds: string[]): Promise<{ success: boolean; error?: string; alreadyInvited?: string[] }> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+                return { success: false, error: 'Not authenticated' };
+        }
+
+        // Fetch event details to get party name
+        const { data: event, error: eventError } = await supabase
+                .from('Event')
+                .select('name')
+                .eq('id', eventId)
+                .single();
+
+        if (eventError || !event) {
+                return { success: false, error: 'Event not found' };
+        }
+
+        // Check for existing registrations (invited, registered, or waitlisted)
+        const { data: existingRegistrations } = await supabase
+                .from('EventRegistration')
+                .select('user_id, status')
+                .eq('event_id', eventId)
+                .in('user_id', friendIds);
+
+        const existingMap = new Map((existingRegistrations || []).map(r => [r.user_id, r.status]));
+        
+        // Separate users by their current status
+        const alreadyActiveIds = new Set<string>();
+        const cancelledIds: string[] = [];
+        const newInviteIds: string[] = [];
+        
+        friendIds.forEach(friendId => {
+                const status = existingMap.get(friendId);
+                if (status === 'invited' || status === 'registered' || status === 'waitlisted') {
+                        alreadyActiveIds.add(friendId);
+                } else if (status === 'cancelled') {
+                        cancelledIds.push(friendId);
+                } else {
+                        newInviteIds.push(friendId);
+                }
+        });
+
+        if (newInviteIds.length === 0 && cancelledIds.length === 0) {
+                return { success: false, error: 'All selected friends have already been invited or registered', alreadyInvited: friendIds };
+        }
+
+        // Update cancelled registrations to 'invited'
+        if (cancelledIds.length > 0) {
+                const { error: updateError } = await supabase
+                        .from('EventRegistration')
+                        .update({ status: 'invited' })
+                        .eq('event_id', eventId)
+                        .in('user_id', cancelledIds);
+
+                if (updateError) {
+                        console.error('Error updating cancelled invitations:', updateError);
+                        return { success: false, error: 'Failed to re-invite users who declined' };
+                }
+        }
+
+        // Create new EventRegistration records with 'invited' status
+        if (newInviteIds.length > 0) {
+                const registrations = newInviteIds.map(friendId => ({
+                        event_id: eventId,
+                        user_id: friendId,
+                        status: 'invited' as const,
+                }));
+
+                const { error: insertError } = await supabase
+                        .from('EventRegistration')
+                        .insert(registrations);
+
+                if (insertError) {
+                        console.error('Error creating invitations:', insertError);
+                        return { success: false, error: 'Failed to create invitations' };
+                }
+        }
+
+        const friendsToInvite = [...newInviteIds, ...cancelledIds];
+
+        // Create notifications for each friend
+        const { createNotification } = await import('./notifications');
+        
+        for (const friendId of friendsToInvite) {
+                await createNotification({
+                        userId: friendId,
+                        actorId: user.id,
+                        type: 'party_invite',
+                        eventId: eventId,
+                        message: `You've been invited to ${event.name}`,
+                });
+        }
+
+        return { 
+                success: true, 
+                alreadyInvited: Array.from(alreadyActiveIds)
+        };
+}
+
+/**
  * Create a new event/party
  */
 export async function createEvent(event: {
@@ -365,7 +486,7 @@ export async function cancelEventRegistration(eventId: string): Promise<boolean>
  */
 export async function getUserEventRegistration(eventId: string): Promise<{
         isRegistered: boolean;
-        status: 'registered' | 'cancelled' | 'waitlisted' | null;
+        status: 'registered' | 'cancelled' | 'waitlisted' | 'invited' | null;
 }> {
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -426,11 +547,12 @@ export async function updateRegistrationStatus(
 
 /**
  * Fetch attendees for an event with their profile information
- * Returns separate lists for registered (confirmed) and waitlisted (pending approval) attendees
+ * Returns separate lists for registered (confirmed), waitlisted (pending approval), and invited attendees
  */
 export async function fetchEventAttendees(eventId: string): Promise<{
         registered: Array<{ id: string; full_name: string | null; avatar_url: string | null }>;
         waitlisted: Array<{ id: string; full_name: string | null; avatar_url: string | null }>;
+        invited: Array<{ id: string; full_name: string | null; avatar_url: string | null }>;
         pendingCount: number;
 }> {
         // Fetch all registrations for this event (excluding cancelled)
@@ -438,18 +560,18 @@ export async function fetchEventAttendees(eventId: string): Promise<{
                 .from('EventRegistration')
                 .select('user_id, status')
                 .eq('event_id', eventId)
-                .in('status', ['registered', 'waitlisted']);
+                .in('status', ['registered', 'waitlisted', 'invited']);
 
         if (regError || !registrations) {
                 console.error('Error fetching registrations:', regError);
-                return { registered: [], waitlisted: [], pendingCount: 0 };
+                return { registered: [], waitlisted: [], invited: [], pendingCount: 0 };
         }
 
         // Get unique user IDs
         const userIds = [...new Set(registrations.map(r => r.user_id))];
 
         if (userIds.length === 0) {
-                return { registered: [], waitlisted: [], pendingCount: 0 };
+                return { registered: [], waitlisted: [], invited: [], pendingCount: 0 };
         }
 
         // Fetch profile data for all attendees
@@ -460,7 +582,7 @@ export async function fetchEventAttendees(eventId: string): Promise<{
 
         if (profileError || !profiles) {
                 console.error('Error fetching profiles:', profileError);
-                return { registered: [], waitlisted: [], pendingCount: 0 };
+                return { registered: [], waitlisted: [], invited: [], pendingCount: 0 };
         }
 
         // Map profiles to registrations
@@ -468,6 +590,7 @@ export async function fetchEventAttendees(eventId: string): Promise<{
 
         const registered: Array<{ id: string; full_name: string | null; avatar_url: string | null }> = [];
         const waitlisted: Array<{ id: string; full_name: string | null; avatar_url: string | null }> = [];
+        const invited: Array<{ id: string; full_name: string | null; avatar_url: string | null }> = [];
 
         registrations.forEach(reg => {
                 const profile = profileMap.get(reg.user_id);
@@ -476,11 +599,13 @@ export async function fetchEventAttendees(eventId: string): Promise<{
                                 registered.push(profile);
                         } else if (reg.status === 'waitlisted') {
                                 waitlisted.push(profile);
+                        } else if (reg.status === 'invited') {
+                                invited.push(profile);
                         }
                 }
         });
 
-        return { registered, waitlisted, pendingCount: waitlisted.length };
+        return { registered, waitlisted, invited, pendingCount: waitlisted.length };
 }
 
 /**
