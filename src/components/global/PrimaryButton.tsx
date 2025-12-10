@@ -1,6 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, TouchableOpacityProps, ActivityIndicator } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { TouchableOpacity, TouchableOpacityProps, ActivityIndicator, View } from 'react-native';
 import { Text } from '@/src/components/ui/text';
 import { colors } from '@/src/theme/colors';
 
@@ -28,11 +27,9 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
             disabled={isDisabled}
             {...props}
         >
-            <LinearGradient
-                colors={[colors.primary[500], colors.primary[600]]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+            <View
                 style={{
+                    backgroundColor: colors.primary[500],
                     paddingVertical: 12,
                     paddingHorizontal: fullWidth ? 0 : 24,
                     borderRadius: 8,
@@ -46,7 +43,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
                         {title}
                     </Text>
                 )}
-            </LinearGradient>
+            </View>
         </TouchableOpacity>
     );
 };
