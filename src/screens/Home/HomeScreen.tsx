@@ -503,12 +503,6 @@ export const HomeScreen: React.FC = () => {
       post_id: activePostId,
     });
 
-    // Track comment deleted
-    posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
-      feature: 'comment_deleted',
-      post_id: activePostId,
-    });
-
     const res = await deleteComment(commentId, user.id);
     if (!res.success) {
       console.warn(res.error);
