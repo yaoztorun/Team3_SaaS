@@ -47,7 +47,8 @@ export const UpcomingEvents = () => {
         const statuses = await Promise.all(statusPromises);
         const statusMap: Record<string, 'registered' | 'waitlisted' | null> = {};
         statuses.forEach(({ eventId, status }) => {
-            statusMap[eventId] = status === 'cancelled' ? null : status;
+            // Filter out 'invited' status as it's not relevant for public events list
+            statusMap[eventId] = status === 'cancelled' || status === 'invited' ? null : status;
         });
         setRegistrationStatus(statusMap);
 
