@@ -1063,7 +1063,7 @@ export const HomeScreen: React.FC = () => {
             value={feedFilter === 'friends' ? 'left' : 'right'}
             onChange={(val: 'left' | 'right') => setFeedFilter(val === 'left' ? 'friends' : 'for-you')}
             leftLabel="Friends"
-            rightLabel="For you"
+            rightLabel="Public"
           />
         </Box>
 

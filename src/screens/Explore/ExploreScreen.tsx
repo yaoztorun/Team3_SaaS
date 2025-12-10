@@ -216,11 +216,17 @@ export const ExploreScreen = () => {
                 <Box className="h-px bg-gray-200 mx-4 mb-6" />
 
                 {/* What Can I Make Section */}
-                <Box className="px-4 mb-6">
-                    <Heading level="h4" className="mb-3">What Can I Make?</Heading>
+                <Box className="mb-6">
                     <Pressable
                         onPress={() => navigateToSection('WhatCanIMake')}
-                        className="border-2 border-[#00bba7] rounded-2xl p-8 items-center justify-center"
+                        className="px-4 mb-3 flex-row items-center justify-between"
+                    >
+                        <Heading level="h4">What Can I Make?</Heading>
+                        <ChevronRight size={20} color="#000" />
+                    </Pressable>
+                    <Pressable
+                        onPress={() => navigateToSection('WhatCanIMake')}
+                        className="mx-4 border-2 border-[#00bba7] rounded-2xl p-8 items-center justify-center"
                     >
                         <Text className="text-3xl mb-1">+</Text>
                         <Text className="text-sm text-[#4a5565]">Add Ingredients</Text>
