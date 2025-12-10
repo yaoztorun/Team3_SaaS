@@ -15,6 +15,7 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/src/theme/colors';
 import { supabase } from '@/src/lib/supabase';
+import { Flame } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ACTIVE_CARD_WIDTH = 220;
@@ -52,11 +53,11 @@ async function fetchMostLoggedCocktailsThisMonth(): Promise<CarouselItem[]> {
 
     // Count occurrences of each cocktail
     const cocktailCounts = new Map<string, { id: string; name: string; image: string; count: number }>();
-    
+
     drinkLogs?.forEach((log: any) => {
       const cocktailId = log.cocktail_id;
       const cocktail = log.Cocktail;
-      
+
       if (cocktail && cocktail.image_url) {
         if (cocktailCounts.has(cocktailId)) {
           cocktailCounts.get(cocktailId)!.count++;
@@ -549,7 +550,9 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
                 shadowRadius: 6,
                 elevation: 4,
               }}>
-                <Text style={{ fontSize: 13, marginRight: 4 }}>🔥</Text>
+                <Text style={{ fontSize: 13, marginRight: 4 }}>
+                  <Flame size={20} color="#f97316" fill="#f97316" />
+                </Text>
                 <Text style={{ color: colors.primary[600], fontSize: 13, fontWeight: '700' }}>
                   {cocktails[currentCocktailIndex]?.count || 0}
                 </Text>
