@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
         Modal,
         ScrollView,
@@ -16,6 +16,20 @@ import { FeedPostCard, TextInputField, Avatar } from '@/src/components/global';
 import { ArrowLeft, MoreVertical, Trash2 } from 'lucide-react-native';
 import type { CommentRow } from '@/src/api/comments';
 
+// Only import Swipeable on native platforms to avoid web bundle errors
+let Swipeable: any = null;
+if (Platform.OS !== 'web') {
+        const GestureHandler = require('react-native-gesture-handler');
+        Swipeable = GestureHandler.Swipeable;
+}
+
+const getInitials = (name: string) => {
+        const parts = name.trim().split(/\s+/);
+        if (parts.length === 0) return '?';
+        if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+};
+
 interface PostModalProps {
         visible: boolean;
         focusedPost: any | null;
@@ -23,12 +37,17 @@ interface PostModalProps {
         commentsForPost: CommentRow[];
         newComment: string;
         sendingComment: boolean;
+        lastDeletedComment?: CommentRow | null;
+        userId?: string;
+        scrollToBottom?: boolean;
         isOwnPost?: boolean;
         onClose: () => void;
         onToggleLike: () => void;
         onPressCocktail: () => void;
         onCommentChange: (text: string) => void;
         onSendComment: () => void;
+        onDeleteComment?: (commentId: string) => void;
+        onUndoDelete?: () => void;
         onDeletePost?: () => void;
         formatTimeAgo: (date: string) => string;
 }
@@ -40,19 +59,34 @@ export const PostModal: React.FC<PostModalProps> = ({
         commentsForPost,
         newComment,
         sendingComment,
+        lastDeletedComment,
+        userId,
+        scrollToBottom = false,
         isOwnPost = false,
         onClose,
         onToggleLike,
         onPressCocktail,
         onCommentChange,
         onSendComment,
+        onDeleteComment,
+        onUndoDelete,
         onDeletePost,
         formatTimeAgo,
 }) => {
+        const commentsScrollViewRef = useRef<ScrollView | null>(null);
         const [menuVisible, setMenuVisible] = useState(false);
         const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
         const [pendingDelete, setPendingDelete] = useState(false);
         const [undoTimeout, setUndoTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
+
+        // Scroll to bottom when comments load or when scrollToBottom flag changes
+        useEffect(() => {
+                if (scrollToBottom && commentsScrollViewRef.current) {
+                        setTimeout(() => {
+                                commentsScrollViewRef.current?.scrollToEnd({ animated: false });
+                        }, 100);
+                }
+        }, [scrollToBottom, commentsForPost.length]);
 
         return (
                 <Modal
@@ -224,8 +258,9 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                         </View>
                                                 )}
 
-                                                {/* Content */}
+                                                {/* Post + comments */}
                                                 <ScrollView
+                                                        ref={commentsScrollViewRef}
                                                         style={{ flex: 1 }}
                                                         contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
                                                 >
@@ -242,23 +277,25 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                         )}
 
                                                         {/* Comments Section */}
-                                                        <Text className="text-sm font-semibold text-neutral-900 mb-2">
+                                                        <Text className="text-sm font-semibold text-neutral-900 mb-3">
                                                                 Comments
                                                         </Text>
 
-                                                        {commentsLoading ? (
+                                                        {commentsLoading && (
                                                                 <Box className="py-3 items-center">
                                                                         <ActivityIndicator size="small" color="#00BBA7" />
                                                                 </Box>
-                                                        ) : commentsForPost.length === 0 ? (
-                                                                <Text className="text-sm text-gray-400">No comments yet</Text>
-                                                        ) : (
-                                                                commentsForPost.map((comment: CommentRow) => {
-                                                                        const userName = comment.Profile?.full_name || 'User';
-                                                                        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                                                                        const avatarUrl = comment.Profile?.avatar_url ?? null;
-                                                                        return (
-                                                                                <Box key={comment.id} className="mb-4 bg-white">
+                                                        )}
+
+                                                        {!commentsLoading &&
+                                                                commentsForPost.map((c) => {
+                                                                        const canDelete = c.user_id === userId;
+                                                                        const userName = c.Profile?.full_name ?? 'Unknown user';
+                                                                        const initials = getInitials(userName);
+                                                                        const avatarUrl = c.Profile?.avatar_url ?? null;
+
+                                                                        const commentContent = (
+                                                                                <Box className="mb-4 bg-white">
                                                                                         <Box className="flex-row items-start">
                                                                                                 <Box className="mr-3">
                                                                                                         <Avatar
@@ -269,44 +306,97 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                                                         />
                                                                                                 </Box>
                                                                                                 <Box className="flex-1">
-                                                                                                        <Text className="text-sm font-semibold text-neutral-900">
+                                                                                                        <Text className="text-sm font-semibold text-neutral-900 mb-1">
                                                                                                                 {userName}
                                                                                                         </Text>
-                                                                                                        <Text className="text-sm text-neutral-700 mt-1">
-                                                                                                                {comment.content}
-                                                                                                        </Text>
-                                                                                                        <Text className="text-xs text-neutral-400 mt-1">
-                                                                                                                {formatTimeAgo(comment.created_at)}
+                                                                                                        <Text className="text-sm text-neutral-700">
+                                                                                                                {c.content}
                                                                                                         </Text>
                                                                                                 </Box>
+                                                                                                {/* Show delete button on web */}
+                                                                                                {Platform.OS === 'web' && canDelete && onDeleteComment && (
+                                                                                                        <Pressable
+                                                                                                                className="ml-2 p-2"
+                                                                                                                onPress={() => onDeleteComment(c.id)}
+                                                                                                        >
+                                                                                                                <Trash2 size={16} color="#ef4444" />
+                                                                                                        </Pressable>
+                                                                                                )}
                                                                                         </Box>
                                                                                 </Box>
                                                                         );
-                                                                })
+
+                                                                        // On web: render without Swipeable
+                                                                        if (Platform.OS === 'web') {
+                                                                                return <View key={c.id}>{commentContent}</View>;
+                                                                        }
+
+                                                                        // On native: use Swipeable for swipe-to-delete
+                                                                        return (
+                                                                                <Swipeable
+                                                                                        key={c.id}
+                                                                                        enabled={canDelete}
+                                                                                        renderRightActions={() => (
+                                                                                                <Pressable
+                                                                                                        className="bg-red-500 justify-center items-center w-16 rounded-lg"
+                                                                                                        onPress={() => onDeleteComment && onDeleteComment(c.id)}
+                                                                                                >
+                                                                                                        <Trash2 size={20} color="#fff" />
+                                                                                                </Pressable>
+                                                                                        )}
+                                                                                        onSwipeableOpen={() => {
+                                                                                                if (canDelete && onDeleteComment) onDeleteComment(c.id);
+                                                                                        }}
+                                                                                >
+                                                                                        {commentContent}
+                                                                                </Swipeable>
+                                                                        );
+                                                                })}
+
+                                                        {!commentsLoading && commentsForPost.length === 0 && (
+                                                                <Text className="text-sm text-neutral-500">
+                                                                        No comments yet
+                                                                </Text>
+                                                        )}
+
+                                                        {/* Undo bar */}
+                                                        {lastDeletedComment && onUndoDelete && (
+                                                                <Box className="flex-row items-center justify-between mt-2 px-3 py-2 rounded-lg bg-neutral-100">
+                                                                        <Text className="text-xs text-neutral-700">
+                                                                                Comment deleted
+                                                                        </Text>
+                                                                        <Pressable onPress={onUndoDelete}>
+                                                                                <Text className="text-xs font-semibold text-[#009689]">
+                                                                                        Undo
+                                                                                </Text>
+                                                                        </Pressable>
+                                                                </Box>
                                                         )}
                                                 </ScrollView>
 
-                                                {/* Comment Input */}
-                                                <Box className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-white border-t border-neutral-200">
-                                                        <Box className="flex-row items-center">
-                                                                <Box className="flex-1 mr-2">
-                                                                        <TextInputField
-                                                                                value={newComment}
-                                                                                onChangeText={onCommentChange}
-                                                                                placeholder="Add a comment..."
-                                                                                multiline={false}
-                                                                        />
+                                                {/* Input row at bottom */}
+                                                {userId && (
+                                                        <Box className="px-4 py-3 border-t border-neutral-200 bg-white">
+                                                                <Box className="flex-row items-center gap-2">
+                                                                        <Box className="flex-1">
+                                                                                <TextInputField
+                                                                                        value={newComment}
+                                                                                        onChangeText={onCommentChange}
+                                                                                        placeholder="Add a comment..."
+                                                                                />
+                                                                        </Box>
+                                                                        <Pressable
+                                                                                className="px-4 py-2 rounded-full bg-[#009689]"
+                                                                                onPress={onSendComment}
+                                                                                disabled={sendingComment || !newComment.trim()}
+                                                                        >
+                                                                                <Text className="text-white text-sm font-medium">
+                                                                                        {sendingComment ? '...' : 'Send'}
+                                                                                </Text>
+                                                                        </Pressable>
                                                                 </Box>
-                                                                <Pressable
-                                                                        onPress={onSendComment}
-                                                                        disabled={!newComment.trim() || sendingComment}
-                                                                >
-                                                                        <Text className={newComment.trim() ? 'text-sm font-semibold text-teal-500' : 'text-sm font-semibold text-neutral-300'}>
-                                                                                {sendingComment ? 'Sending...' : 'Post'}
-                                                                        </Text>
-                                                                </Pressable>
                                                         </Box>
-                                                </Box>
+                                                )}
                                         </Box>
                                 </KeyboardAvoidingView>
                         </Box>
