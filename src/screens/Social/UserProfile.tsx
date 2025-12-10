@@ -25,6 +25,7 @@ import {
 } from '@/src/api/friendship';
 import { Heading, ToggleSwitch, FeedPostCard, TextInputField } from '@/src/components/global';
 import { ProfileStats } from '@/src/screens/Profile/components/ProfileStats';
+import { PostModal } from '@/src/screens/Profile/components/PostModal';
 import { GridGallery, type RecentDrink as GridRecentDrink } from '@/src/screens/Profile/components/GridGallery';
 import { fetchUserBadges, Badge } from '@/src/api/badges';
 import { BadgeModal } from '@/src/components/global/BadgeModal';
@@ -92,7 +93,7 @@ export const UserProfile = () => {
     const [friendshipId, setFriendshipId] = useState<string | null>(null);
 
     // Use centralized stats hook
-    const { userStats, loadingStats, avgRatingOutOf5, ratingTrendCounts5 } = useUserStats(userId);
+    const { userStats, loadingStats, avgRatingOutOf5 } = useUserStats(userId);
     const [badges, setBadges] = useState<Badge[]>([]);
     const [loadingBadges, setLoadingBadges] = useState(false);
     const [selectedBadge, setSelectedBadge] = useState<Badge | null>(null);
@@ -108,6 +109,7 @@ export const UserProfile = () => {
     const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState('');
     const [sendingComment, setSendingComment] = useState(false);
+    const [lastDeletedComment, setLastDeletedComment] = useState<CommentRow | null>(null);
 
     useEffect(() => {
         loadUserProfile();
@@ -380,6 +382,68 @@ export const UserProfile = () => {
                 likes: focusedPost.likes + (prevLiked ? 1 : -1),
             });
         }
+    };
+
+    const handleDeleteComment = async (commentId: string) => {
+        const comment = commentsForPost.find(c => c.id === commentId);
+        if (!comment) return;
+
+        // Store for potential undo
+        setLastDeletedComment(comment);
+
+        // Immediately remove from UI
+        setCommentsForPost(prev => prev.filter(c => c.id !== commentId));
+
+        // Update comment count
+        if (focusedPost) {
+            setFocusedPost({
+                ...focusedPost,
+                comments: Math.max(0, focusedPost.comments - 1),
+            });
+        }
+
+        // Wait 5 seconds before actually deleting from DB
+        setTimeout(async () => {
+            const { error } = await supabase
+                .from('Comment')
+                .delete()
+                .eq('id', commentId);
+
+            if (error) {
+                console.error('Error deleting comment:', error);
+                // If error, restore the comment
+                setCommentsForPost(prev => [...prev, comment].sort((a, b) => 
+                    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                ));
+                if (focusedPost) {
+                    setFocusedPost({
+                        ...focusedPost,
+                        comments: focusedPost.comments + 1,
+                    });
+                }
+            }
+
+            setLastDeletedComment(null);
+        }, 5000);
+    };
+
+    const handleUndoDeleteComment = () => {
+        if (!lastDeletedComment) return;
+
+        // Restore comment to list
+        setCommentsForPost(prev => [...prev, lastDeletedComment].sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        ));
+
+        // Update comment count
+        if (focusedPost) {
+            setFocusedPost({
+                ...focusedPost,
+                comments: focusedPost.comments + 1,
+            });
+        }
+
+        setLastDeletedComment(null);
     };
 
     const handlePressCocktail = async (cocktailId: string) => {
@@ -667,7 +731,6 @@ export const UserProfile = () => {
                                 <ProfileStats
                                     userStats={userStats}
                                     avgRatingOutOf5={avgRatingOutOf5}
-                                    ratingTrendCounts5={ratingTrendCounts5}
                                     loading={loadingStats}
                                     title="Stats"
                                 />
@@ -700,112 +763,24 @@ export const UserProfile = () => {
             />
 
             {/* Post Detail Modal */}
-            <Modal
+            <PostModal
                 visible={showPostModal}
-                animationType="slide"
-                transparent={false}
-                onRequestClose={closePostModal}
-            >
-                <Box style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
-                    <KeyboardAvoidingView
-                        style={{ flex: 1, maxWidth: 480, width: '100%', alignSelf: 'center', backgroundColor: '#fff' }}
-                        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                    >
-                        <Box className="flex-1 bg-white">
-                            {/* Header */}
-                            <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
-                                <Pressable onPress={closePostModal} className="mr-3">
-                                    <ArrowLeft size={24} color="#000" />
-                                </Pressable>
-                                <Text className="text-base font-semibold text-neutral-900">
-                                    Post
-                                </Text>
-                            </Box>
-
-                            {/* Content */}
-                            <ScrollView
-                                style={{ flex: 1 }}
-                                contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
-                            >
-                                {focusedPost && (
-                                    <FeedPostCard
-                                        {...focusedPost}
-                                        onToggleLike={() => handleToggleLike(focusedPost.id)}
-                                        onPressComments={() => { }}
-                                        onPressCocktail={handlePressCocktail}
-                                    />
-                                )}
-
-                                <Box className="mt-4" />
-                                <Text className="text-sm font-semibold text-neutral-900 mb-2">
-                                    Comments
-                                </Text>
-
-                                {commentsLoading ? (
-                                    <Box className="py-3 items-center">
-                                        <ActivityIndicator size="small" color="#00BBA7" />
-                                    </Box>
-                                ) : commentsForPost.length === 0 ? (
-                                    <Text className="text-sm text-gray-400">No comments yet</Text>
-                                ) : (
-                                    commentsForPost.map((comment: CommentRow) => {
-                                        const userName = comment.Profile?.full_name || 'User';
-                                        const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-                                        const avatarUrl = comment.Profile?.avatar_url ?? null;
-                                        return (
-                                            <Box key={comment.id} className="mb-4 bg-white">
-                                                <Box className="flex-row items-start">
-                                                    <Box className="mr-3">
-                                                        <Avatar
-                                                            avatarUrl={avatarUrl}
-                                                            initials={initials}
-                                                            size={32}
-                                                            fallbackColor="#009689"
-                                                        />
-                                                    </Box>
-                                                    <Box className="flex-1">
-                                                        <Text className="text-sm font-semibold text-neutral-900">
-                                                            {userName}
-                                                        </Text>
-                                                        <Text className="text-sm text-neutral-700 mt-1">
-                                                            {comment.content}
-                                                        </Text>
-                                                        <Text className="text-xs text-neutral-400 mt-1">
-                                                            {formatTimeAgo(comment.created_at)}
-                                                        </Text>
-                                                    </Box>
-                                                </Box>
-                                            </Box>
-                                        );
-                                    })
-                                )}
-                            </ScrollView>
-
-                            {/* Comment Input */}
-                            <Box className="absolute bottom-0 left-0 right-0 px-4 py-3 bg-white border-t border-neutral-200">
-                                <Box className="flex-row items-center">
-                                    <Box className="flex-1 mr-2">
-                                        <TextInputField
-                                            value={newComment}
-                                            onChangeText={setNewComment}
-                                            placeholder="Add a comment..."
-                                            multiline={false}
-                                        />
-                                    </Box>
-                                    <Pressable
-                                        onPress={handleSendComment}
-                                        disabled={!newComment.trim() || sendingComment}
-                                    >
-                                        <Text className={newComment.trim() ? 'text-sm font-semibold text-teal-500' : 'text-sm font-semibold text-neutral-300'}>
-                                            {sendingComment ? 'Sending...' : 'Post'}
-                                        </Text>
-                                    </Pressable>
-                                </Box>
-                            </Box>
-                        </Box>
-                    </KeyboardAvoidingView>
-                </Box>
-            </Modal>
+                focusedPost={focusedPost}
+                commentsLoading={commentsLoading}
+                commentsForPost={commentsForPost}
+                newComment={newComment}
+                sendingComment={sendingComment}
+                lastDeletedComment={lastDeletedComment}
+                userId={currentUser?.id}
+                onClose={closePostModal}
+                onToggleLike={() => handleToggleLike(focusedPost?.id || '')}
+                onPressCocktail={() => handlePressCocktail(focusedPost?.cocktailId || '')}
+                onCommentChange={setNewComment}
+                onSendComment={handleSendComment}
+                onDeleteComment={handleDeleteComment}
+                onUndoDelete={handleUndoDeleteComment}
+                formatTimeAgo={formatTimeAgo}
+            />
         </Box>
     );
 };
