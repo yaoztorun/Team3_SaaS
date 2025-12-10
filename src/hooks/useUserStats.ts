@@ -16,19 +16,6 @@ export const useUserStats = (userId: string | undefined) => {
         return Math.round(raw);
     }, [userStats?.avgRating]);
 
-    const ratingTrendCounts5 = useMemo(() => {
-        const arr = userStats?.ratingTrend?.map((it: any) => it.count) ?? [];
-        // Ratings are already on 0-5 scale, map them directly
-        return [
-            arr[0] ?? 0,  // 0 stars
-            arr[1] ?? 0,  // 1 star
-            arr[2] ?? 0,  // 2 stars
-            arr[3] ?? 0,  // 3 stars
-            arr[4] ?? 0,  // 4 stars
-            arr[5] ?? 0,  // 5 stars
-        ];
-    }, [userStats?.ratingTrend]);
-
     const loadStats = async () => {
         if (!userId) {
             setUserStats(null);
@@ -58,7 +45,6 @@ export const useUserStats = (userId: string | undefined) => {
         loadingStats,
         error,
         avgRatingOutOf5,
-        ratingTrendCounts5,
         refreshStats: loadStats,
     };
 };
