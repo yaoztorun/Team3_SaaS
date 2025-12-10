@@ -5,6 +5,8 @@ import LoginScreen from '../Auth/LoginScreen';
 import RegisterScreen from '../Auth/RegisterScreen';
 import ForgotPasswordScreen from '../Auth/ForgotPasswordScreen';
 import ResetPasswordScreen from '../Auth/ResetPasswordScreen';
+import { TermsOfService } from '../Legal/TermsOfService';
+import { PrivacyPolicy } from '../Legal/PrivacyPolicy';
 import { globalScreenOptions } from '@/src/theme/navigationTransitions';
 
 const Stack = createStackNavigator<AuthStackParamList>();
@@ -16,6 +18,20 @@ export const AuthStack = () => {
             <Stack.Screen name="Register" component={RegisterScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen 
+                name="TermsOfService" 
+                component={TermsOfService}
+                options={{
+                    cardStyle: { flex: 1 },
+                }}
+            />
+            <Stack.Screen 
+                name="PrivacyPolicy" 
+                component={PrivacyPolicy}
+                options={{
+                    cardStyle: { flex: 1 },
+                }}
+            />
         </Stack.Navigator>
     );
 };
