@@ -484,6 +484,42 @@ export const ProfileScreen = () => {
     }
   };
 
+  // ---------- delete post ----------
+  const handleDeletePost = async () => {
+    if (!user?.id || !focusedPost) return;
+
+    // Only allow deletion of own posts
+    if (focusedPost.userId !== user.id) {
+      console.warn('Cannot delete post: not the owner');
+      return;
+    }
+
+    try {
+      // Delete the drink log from the database
+      const { error } = await supabase
+        .from('DrinkLog')
+        .delete()
+        .eq('id', focusedPost.id)
+        .eq('user_id', user.id); // Extra safety check
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        return;
+      }
+
+      // Remove from local state lists
+      setRecentDrinks((prev) => prev.filter((d) => d.id !== focusedPost.id));
+      setPublicLogs((prev) => prev.filter((d) => d.id !== focusedPost.id));
+      setPrivateLogs((prev) => prev.filter((d) => d.id !== focusedPost.id));
+      setLikedItems((prev) => prev.filter((d) => d.id !== focusedPost.id));
+
+      // Close the modal
+      closePostModal();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+    }
+  };
+
 
   return (
     <Box className="flex-1 bg-neutral-50">
@@ -646,11 +682,13 @@ export const ProfileScreen = () => {
         commentsForPost={commentsForPost}
         newComment={newComment}
         sendingComment={sendingComment}
+        isOwnPost={focusedPost?.userId === user?.id}
         onClose={closePostModal}
         onToggleLike={() => handleToggleLike(focusedPost?.id || '')}
         onPressCocktail={() => handlePressCocktail(focusedPost?.cocktailId || '')}
         onCommentChange={setNewComment}
         onSendComment={handleSendComment}
+        onDeletePost={handleDeletePost}
         formatTimeAgo={formatTimeAgo}
       />
     </Box>
