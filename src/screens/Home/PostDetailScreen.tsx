@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
         ScrollView,
         ActivityIndicator,
@@ -6,12 +6,14 @@ import {
         KeyboardAvoidingView,
         Platform,
         View,
+        TouchableOpacity,
+        Alert,
 } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { FeedPostCard, TextInputField, Avatar } from '@/src/components/global';
-import { ArrowLeft, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Trash2, MoreVertical } from 'lucide-react-native';
 import type { CommentRow } from '@/src/api/comments';
 import type { FeedPost } from './HomeScreen';
 
@@ -32,6 +34,7 @@ type PostDetailScreenProps = {
         lastDeletedComment: CommentRow | null;
         userId?: string;
         scrollToBottom?: boolean;
+        isOwnPost?: boolean;
         onClose: () => void;
         onToggleLike: () => void;
         onPressUser: (userId: string) => void;
@@ -41,6 +44,7 @@ type PostDetailScreenProps = {
         onSendComment: () => void;
         onDeleteComment: (commentId: string) => void;
         onUndoDelete: () => void;
+        onDeletePost?: () => void;
 };
 
 const getInitials = (name: string) => {
@@ -60,6 +64,7 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
         lastDeletedComment,
         userId,
         scrollToBottom = false,
+        isOwnPost = false,
         onClose,
         onToggleLike,
         onPressUser,
@@ -69,8 +74,13 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
         onSendComment,
         onDeleteComment,
         onUndoDelete,
+        onDeletePost,
 }) => {
         const commentsScrollViewRef = useRef<ScrollView | null>(null);
+        const [menuVisible, setMenuVisible] = useState(false);
+        const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+        const [pendingDelete, setPendingDelete] = useState(false);
+        const [undoTimeout, setUndoTimeout] = useState<ReturnType<typeof setTimeout> | null>(null);
 
         // Scroll to bottom when comments load or when scrollToBottom flag changes
         useEffect(() => {
@@ -95,14 +105,161 @@ export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
                                 >
                                         <Box className="flex-1 bg-white">
                                                 {/* Header with back button */}
-                                                <Box className="flex-row items-center px-4 py-4 border-b border-neutral-200">
-                                                        <Pressable onPress={onClose} className="mr-3">
-                                                                <ArrowLeft size={24} color="#000" />
-                                                        </Pressable>
-                                                        <Text className="text-base font-semibold text-neutral-900">
-                                                                Post
-                                                        </Text>
+                                                <Box className="flex-row items-center justify-between px-4 py-4 border-b border-neutral-200" style={{ zIndex: 10 }}>
+                                                        <Box className="flex-row items-center">
+                                                                <Pressable onPress={onClose} className="mr-3">
+                                                                        <ArrowLeft size={24} color="#000" />
+                                                                </Pressable>
+                                                                <Text className="text-base font-semibold text-neutral-900">
+                                                                        Post
+                                                                </Text>
+                                                        </Box>
+                                                        {/* 3-dot menu for post owner */}
+                                                        {isOwnPost && onDeletePost && (
+                                                                <Pressable
+                                                                        onPress={() => setMenuVisible(!menuVisible)}
+                                                                        className="p-2"
+                                                                >
+                                                                        <MoreVertical size={22} color="#525252" />
+                                                                </Pressable>
+                                                        )}
                                                 </Box>
+
+                                                {/* Dropdown menu overlay */}
+                                                {menuVisible && (
+                                                        <>
+                                                                <Pressable
+                                                                        style={{
+                                                                                position: 'absolute',
+                                                                                top: 0,
+                                                                                left: 0,
+                                                                                right: 0,
+                                                                                bottom: 0,
+                                                                                zIndex: 998,
+                                                                        }}
+                                                                        onPress={() => setMenuVisible(false)}
+                                                                />
+                                                                <View style={{
+                                                                        position: 'absolute',
+                                                                        top: 52,
+                                                                        right: 16,
+                                                                        backgroundColor: '#fff',
+                                                                        borderRadius: 12,
+                                                                        shadowColor: '#000',
+                                                                        shadowOpacity: 0.2,
+                                                                        shadowOffset: { width: 0, height: 4 },
+                                                                        shadowRadius: 16,
+                                                                        elevation: 12,
+                                                                        minWidth: 170,
+                                                                        zIndex: 999,
+                                                                        borderWidth: 1,
+                                                                        borderColor: '#e5e5e5',
+                                                                }}>
+                                                                        <TouchableOpacity
+                                                                                onPress={() => {
+                                                                                        setMenuVisible(false);
+                                                                                        setShowDeleteConfirm(true);
+                                                                                }}
+                                                                                style={{
+                                                                                        flexDirection: 'row',
+                                                                                        alignItems: 'center',
+                                                                                        paddingVertical: 14,
+                                                                                        paddingHorizontal: 16,
+                                                                                }}
+                                                                        >
+                                                                                <Trash2 size={18} color="#ef4444" />
+                                                                                <Text style={{ marginLeft: 12, color: '#ef4444', fontSize: 15, fontWeight: '600' }}>
+                                                                                        Delete Post
+                                                                                </Text>
+                                                                        </TouchableOpacity>
+                                                                </View>
+                                                        </>
+                                                )}
+
+                                                {/* Delete Confirmation Dialog */}
+                                                {showDeleteConfirm && (
+                                                        <View style={{
+                                                                position: 'absolute',
+                                                                top: 0,
+                                                                left: 0,
+                                                                right: 0,
+                                                                bottom: 0,
+                                                                backgroundColor: 'rgba(0,0,0,0.4)',
+                                                                justifyContent: 'center',
+                                                                alignItems: 'center',
+                                                                zIndex: 1000,
+                                                        }}>
+                                                                <View style={{
+                                                                        backgroundColor: '#fff',
+                                                                        borderRadius: 12,
+                                                                        paddingVertical: 14,
+                                                                        paddingHorizontal: 16,
+                                                                        width: 200,
+                                                                        elevation: 10,
+                                                                }}>
+                                                                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#171717', marginBottom: 4, textAlign: 'center' }}>Delete post?</Text>
+                                                                        <Text style={{ fontSize: 11, color: '#666', marginBottom: 12, textAlign: 'center' }}>Undo within 5 seconds</Text>
+                                                                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                                                                                <TouchableOpacity
+                                                                                        onPress={() => setShowDeleteConfirm(false)}
+                                                                                        style={{ flex: 1, paddingVertical: 7, borderRadius: 6, backgroundColor: '#f0f0f0', alignItems: 'center' }}
+                                                                                >
+                                                                                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#525252' }}>Cancel</Text>
+                                                                                </TouchableOpacity>
+                                                                                <TouchableOpacity
+                                                                                        onPress={() => {
+                                                                                                setShowDeleteConfirm(false);
+                                                                                                setPendingDelete(true);
+                                                                                                const timeout = setTimeout(() => {
+                                                                                                        setPendingDelete(false);
+                                                                                                        if (onDeletePost) onDeletePost();
+                                                                                                }, 5000);
+                                                                                                setUndoTimeout(timeout);
+                                                                                        }}
+                                                                                        style={{ flex: 1, paddingVertical: 7, borderRadius: 6, backgroundColor: '#009689', alignItems: 'center' }}
+                                                                                >
+                                                                                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#fff' }}>Delete</Text>
+                                                                                </TouchableOpacity>
+                                                                        </View>
+                                                                </View>
+                                                        </View>
+                                                )}
+
+                                                {/* Undo Delete Banner */}
+                                                {pendingDelete && (
+                                                        <View style={{
+                                                                position: 'absolute',
+                                                                bottom: 100,
+                                                                left: 16,
+                                                                right: 16,
+                                                                backgroundColor: '#333',
+                                                                borderRadius: 10,
+                                                                paddingVertical: 12,
+                                                                paddingHorizontal: 14,
+                                                                flexDirection: 'row',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'space-between',
+                                                                zIndex: 1001,
+                                                                elevation: 8,
+                                                        }}>
+                                                                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '500' }}>Deleting post...</Text>
+                                                                <TouchableOpacity
+                                                                        onPress={() => {
+                                                                                if (undoTimeout) clearTimeout(undoTimeout);
+                                                                                setUndoTimeout(null);
+                                                                                setPendingDelete(false);
+                                                                        }}
+                                                                        style={{
+                                                                                paddingVertical: 6,
+                                                                                paddingHorizontal: 14,
+                                                                                backgroundColor: '#009689',
+                                                                                borderRadius: 6,
+                                                                        }}
+                                                                >
+                                                                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Undo</Text>
+                                                                </TouchableOpacity>
+                                                        </View>
+                                                )}
 
                                                 {/* Post + comments */}
                                                 <ScrollView

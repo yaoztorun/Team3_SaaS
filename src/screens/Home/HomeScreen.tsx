@@ -547,6 +547,45 @@ export const HomeScreen: React.FC = () => {
     );
   };
 
+  // ---------- delete post ----------
+  const handleDeletePost = async () => {
+    if (!user?.id || !focusedPost) return;
+
+    // Only allow deletion of own posts
+    if (focusedPost.userId !== user.id) {
+      console.warn('Cannot delete post: not the owner');
+      return;
+    }
+
+    try {
+      // Delete the drink log from the database
+      const { error } = await supabase
+        .from('DrinkLog')
+        .delete()
+        .eq('id', focusedPost.id)
+        .eq('user_id', user.id); // Extra safety check
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        return;
+      }
+
+      // Track post deleted
+      posthogCapture(ANALYTICS_EVENTS.FEATURE_USED, {
+        feature: 'post_deleted',
+        post_id: focusedPost.id,
+      });
+
+      // Remove from feed
+      setFeedPosts((prev) => prev.filter((p) => p.id !== focusedPost.id));
+
+      // Close the detail screen
+      closeComments();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+    }
+  };
+
   return (
     <Box className="flex-1 bg-neutral-50">
       <TopBar title="Sippin'" onNotificationPress={handleNotificationSelect} showLogo />
@@ -698,6 +737,7 @@ export const HomeScreen: React.FC = () => {
         lastDeletedComment={lastDeletedComment}
         userId={user?.id}
         scrollToBottom={scrollToBottom}
+        isOwnPost={focusedPost?.userId === user?.id}
         onClose={closeComments}
         onToggleLike={() => focusedPost && handleToggleLike(focusedPost.id)}
         onPressUser={handlePressUser}
@@ -712,6 +752,7 @@ export const HomeScreen: React.FC = () => {
         onSendComment={handleSendComment}
         onDeleteComment={handleDeleteComment}
         onUndoDelete={handleUndoDeleteComment}
+        onDeletePost={handleDeletePost}
       />
 
       {/* Tagged Friends Modal */}
