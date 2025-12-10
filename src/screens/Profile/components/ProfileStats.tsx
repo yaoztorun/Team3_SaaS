@@ -202,7 +202,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                     </>
                 ) : (
                     <Box className="h-48 items-center justify-center">
-                        <Text className="text-gray-400">No cocktails logged yet</Text>
+                        <Text className="text-gray-400">No cocktails posted yet</Text>
                     </Box>
                 )}
             </Box>

@@ -1,7 +1,7 @@
 // src/screens/navigation/TopBar.tsx
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigation } from '@react-navigation/native';
-import { View, Image } from 'react-native';
+import { View, Image, Modal } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
@@ -12,6 +12,7 @@ import {
   Bell,
   Settings as SettingsIcon,
   ArrowLeft,
+  X,
 } from 'lucide-react-native';
 import { colors } from '@/src/theme/colors';
 import { spacing } from '@/src/theme/spacing';
@@ -37,6 +38,7 @@ interface TopBarProps {
     id: string;
     type: string;
     drinkLogId?: string | null;
+    eventId?: string | null;
   }) => void;
   showSettingsIcon?: boolean;
   onSettingsPress?: () => void;
@@ -64,6 +66,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showStreakModal, setShowStreakModal] = useState(false);
 
   // stats state (streak + total drinks)
   const [computedStreak, setComputedStreak] = useState<number | null>(null);
@@ -142,12 +145,39 @@ export const TopBar: React.FC<TopBarProps> = ({
       setUnreadCount((prev) => Math.max(0, prev - 1));
     }
 
-    // bubble up to parent (e.g. HomeScreen) with id/type/drinkLogId
-    if (onNotificationPress) {
+    // Handle party invites directly, don't delegate to parent
+    if (notification.type === 'party_invite' && notification.eventId) {
+      // Navigate to PartyDetails when party invite is clicked
+      console.log('Navigating to party details with eventId:', notification.eventId);
+      try {
+        // Try nested navigation first
+        navigation.navigate('Main' as never, {
+          screen: 'Social',
+          params: {
+            screen: 'PartyDetails',
+            params: { partyId: notification.eventId },
+          },
+        } as never);
+      } catch (e) {
+        console.error('Failed to navigate to party details:', e);
+        // Fallback: try direct navigation
+        try {
+          navigation.navigate('Social' as never, {
+            screen: 'PartyDetails',
+            params: { partyId: notification.eventId },
+          } as never);
+        } catch (e2) {
+          console.error('Fallback navigation also failed:', e2);
+        }
+      }
+    }
+    // bubble up to parent for other notification types (e.g. HomeScreen) with id/type/drinkLogId/eventId
+    else if (onNotificationPress) {
       onNotificationPress({
         id: notification.id,
         type: notification.type,
         drinkLogId: notification.drinkLogId,
+        eventId: notification.eventId,
       });
     } else if (notification.drinkLogId) {
       // Fallback: open Home tab and deep-link to the post
@@ -204,6 +234,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       message: row.message ?? 'New activity',
       timeAgo: formatTimeAgo(row.created_at),
       isRead: row.is_read,
+      eventId: row.event_id,
       type: row.type,
       drinkLogId: row.drink_log_id,
     }));
@@ -292,7 +323,8 @@ export const TopBar: React.FC<TopBarProps> = ({
           ) : (
             <>
               {/* Streak */}
-              <View
+              <Pressable
+                onPress={() => setShowStreakModal(true)}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -309,7 +341,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 >
                   {displayStreak}
                 </Text>
-              </View>
+              </Pressable>
 
               {/* Cocktails logged */}
               <View
@@ -351,6 +383,66 @@ export const TopBar: React.FC<TopBarProps> = ({
         onNotificationPress={handleNotificationItemPress}
         onDeleteNotification={handleDeleteNotification}
       />
+
+      {/* Streak Info Modal */}
+      <Modal
+        visible={showStreakModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowStreakModal(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 items-center justify-center p-4"
+          onPress={() => setShowStreakModal(false)}
+        >
+          <Pressable
+            className="bg-white rounded-3xl p-6 w-full max-w-sm"
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <Pressable
+              onPress={() => setShowStreakModal(false)}
+              className="absolute top-4 right-4 z-10"
+            >
+              <X size={24} color="#6b7280" />
+            </Pressable>
+
+            {/* Icon */}
+            <Box className="items-center mb-4">
+              <Box className="w-20 h-20 rounded-full bg-orange-100 items-center justify-center">
+                <Flame size={48} color="#f97316" fill="#f97316" />
+              </Box>
+            </Box>
+
+            {/* Title */}
+            <Text className="text-2xl font-bold text-neutral-900 text-center mb-2">
+              Weekly Streak
+            </Text>
+
+            {/* Current Streak */}
+            <Text className="text-4xl font-bold text-orange-600 text-center mb-4">
+              {displayStreak} {displayStreak === 1 ? 'Week' : 'Weeks'}
+            </Text>
+
+            {/* Description */}
+            <Text className="text-base text-neutral-600 text-center mb-4 leading-relaxed">
+              Your streak shows how many consecutive weeks you've posted at least one cocktail.
+            </Text>
+
+            {/* How to maintain */}
+            <Box className="bg-orange-50 rounded-2xl p-4 border border-orange-200">
+              <Text className="text-sm font-semibold text-neutral-900 mb-2">
+                How to maintain your streak:
+              </Text>
+              <Text className="text-sm text-neutral-700 leading-relaxed">
+                • Post at least one cocktail each week{'\n'}
+                • Each week with a post increases your streak by 1{'\n'}
+                • Keep posting weekly to build longer streaks!
+              </Text>
+            </Box>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </Box>
   );
 };

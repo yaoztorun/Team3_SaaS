@@ -1058,12 +1058,12 @@ export const HomeScreen: React.FC = () => {
         </Box>
 
         {/* Feed toggle */}
-        <Box className="mb-4 bg-white rounded-2xl p-1">
+        <Box className="mb-4">
           <ToggleSwitch
             value={feedFilter === 'friends' ? 'left' : 'right'}
             onChange={(val: 'left' | 'right') => setFeedFilter(val === 'left' ? 'friends' : 'for-you')}
             leftLabel="Friends"
-            rightLabel="For you"
+            rightLabel="Public"
           />
         </Box>
 
@@ -1287,7 +1287,7 @@ export const HomeScreen: React.FC = () => {
 
                 {!commentsLoading && commentsForPost.length === 0 && (
                   <Text className="text-sm text-neutral-500">
-                    Be the first to comment.
+                    No comments yet
                   </Text>
                 )}
 

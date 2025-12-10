@@ -516,7 +516,7 @@ export const ProfileScreen = () => {
         />
 
         {/* View Toggle */}
-        <Box className="mb-4 bg-white rounded-2xl p-1">
+        <Box className="mb-4">
           <ToggleSwitch
             value={currentView === 'logged-drinks' ? 'left' : 'right'}
             onChange={(val: 'left' | 'right') => setCurrentView(val === 'left' ? 'logged-drinks' : 'stats')}
