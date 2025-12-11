@@ -15,7 +15,7 @@ import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { colors } from '@/src/theme/colors';
 import { supabase } from '@/src/lib/supabase';
-import { Flame } from 'lucide-react-native';
+import { Wine } from 'lucide-react-native';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const ACTIVE_CARD_WIDTH = 220;
@@ -551,7 +551,7 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
                 elevation: 4,
               }}>
                 <Text style={{ fontSize: 13, marginRight: 4 }}>
-                  <Flame size={20} color="#f97316" fill="#f97316" />
+                  <Wine size={20} color={colors.primary[500]} />
                 </Text>
                 <Text style={{ color: colors.primary[600], fontSize: 13, fontWeight: '700' }}>
                   {cocktails[currentCocktailIndex]?.count || 0}
