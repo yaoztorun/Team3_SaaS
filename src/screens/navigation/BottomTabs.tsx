@@ -1,7 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Animated, GestureResponderEvent, Text as RNText, Platform } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Box } from '@/src/components/ui/box';
 import { Center } from '@/src/components/ui/center';
 import { Pressable } from '@/src/components/ui/pressable';
@@ -227,30 +226,23 @@ const CenterButton = ({
                 <Animated.View
                     style={{
                         transform: [{ scale: scaleAnim }],
+                        backgroundColor: colors.primary[500],
+                        width: 70,
+                        height: 70,
+                        borderRadius: 35,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        shadowColor: colors.primary[500],
+                        shadowOffset: {
+                            width: 0,
+                            height: 4,
+                        },
+                        shadowOpacity: 0.4,
+                        shadowRadius: 8,
+                        elevation: 8,
                     }}
                 >
-                    <LinearGradient
-                        colors={[colors.primary[500], colors.primary[600]]}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={{
-                            width: 70,
-                            height: 70,
-                            borderRadius: 35,
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            shadowColor: colors.primary[500],
-                            shadowOffset: {
-                                width: 0,
-                                height: 4,
-                            },
-                            shadowOpacity: 0.4,
-                            shadowRadius: 8,
-                            elevation: 8,
-                        }}
-                    >
-                        <PlusIcon color={colors.white} size={32} strokeWidth={2.5} />
-                    </LinearGradient>
+                    <PlusIcon color={colors.white} size={32} strokeWidth={2.5} />
                 </Animated.View>
             </Pressable>
         </Box>

@@ -115,6 +115,7 @@ export const PartyDetails: React.FC = () => {
     );
 
     const loadAttendees = async () => {
+        if (!party?.id) return;
         const { registered, waitlisted, invited } = await fetchEventAttendees(party.id);
         setRegisteredAttendees(registered);
         setWaitlistedAttendees(waitlisted);
@@ -122,6 +123,7 @@ export const PartyDetails: React.FC = () => {
     };
 
     const loadUserRegistrationStatus = async () => {
+        if (!party?.id) return;
         const { status } = await getUserEventRegistration(party.id);
         // Treat cancelled as null
         setUserRegistrationStatus(status === 'cancelled' ? null : status);
@@ -135,6 +137,7 @@ export const PartyDetails: React.FC = () => {
 
     // Handle user registration toggle
     const handleRegistrationToggle = async () => {
+        if (!party) return;
         setIsRegistering(true);
         try {
             if (userRegistrationStatus === 'registered' || userRegistrationStatus === 'waitlisted' || userRegistrationStatus === 'invited') {
@@ -159,6 +162,7 @@ export const PartyDetails: React.FC = () => {
 
     // Handle approval/rejection of waitlisted users
     const handleApproval = async (userId: string, approve: boolean) => {
+        if (!party?.id) return;
         setProcessingRequests(prev => new Set(prev).add(userId));
         try {
             const newStatus = approve ? 'registered' : 'cancelled';

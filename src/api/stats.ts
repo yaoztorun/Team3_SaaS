@@ -3,7 +3,6 @@ import { supabase } from '../lib/supabase';
 export type UserStats = {
     drinksLogged: number;
     avgRating: number;
-    barsVisited: number;
     popularCocktail: {
         name: string;
         count: number;
@@ -43,17 +42,7 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
             .select('*', { count: 'exact', head: true })
             .eq('user_id', userId);
 
-        // 2. Bars Visited - count distinct location_id (excluding null/home)
-        const { data: barData } = await supabase
-            .from('DrinkLog')
-            .select('location_id')
-            .eq('user_id', userId)
-            .not('location_id', 'is', null);
-
-        const uniqueLocations = new Set(barData?.map(d => d.location_id) || []);
-        const barsVisited = uniqueLocations.size;
-
-        // 3. Average Rating - get average of rating column
+        // 2. Average Rating - get average of rating column
         const { data: ratingData } = await supabase
             .from('DrinkLog')
             .select('rating')
@@ -141,7 +130,6 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
         return {
             drinksLogged: drinksLogged || 0,
             avgRating,
-            barsVisited,
             popularCocktail,
             topCocktails,
             ratingTrend,
@@ -152,7 +140,6 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
         return {
             drinksLogged: 0,
             avgRating: 0,
-            barsVisited: 0,
             popularCocktail: null,
             topCocktails: [],
             ratingTrend: Array.from({ length: 6 }, (_, i) => ({ rating: i, count: 0 })),

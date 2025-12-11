@@ -5,6 +5,8 @@ export type AuthStackParamList = {
     Register: undefined;
     ForgotPassword: undefined;
     ResetPassword: undefined;
+    TermsOfService: undefined;
+    PrivacyPolicy: undefined;
 };
 
 export type MainTabParamList = {
@@ -20,6 +22,8 @@ export type RootStackParamList = {
     Main: NavigatorScreenParams<MainTabParamList>;
     UserProfile: { userId: string };
     Settings: undefined;
+    TermsOfService: undefined;
+    PrivacyPolicy: undefined;
 };
 
 declare global {

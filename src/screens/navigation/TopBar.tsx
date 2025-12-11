@@ -45,6 +45,7 @@ interface TopBarProps {
   showBack?: boolean;
   onBackPress?: () => void;
   showLogo?: boolean;
+  hideStats?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -57,6 +58,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   showBack = false,
   showLogo = false,
   onBackPress,
+  hideStats = false,
 }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -314,13 +316,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           )}
         </View>
 
-        {/* Right side: either settings icon (for profile) or stats + bell */}
+        {/* Right side: either settings icon (for profile), stats + bell (if not hidden), or nothing */}
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           {showSettingsIcon ? (
             <Pressable onPress={onSettingsPress} style={{ marginRight: 4 }}>
               <SettingsIcon size={24} color="#6b7280" />
             </Pressable>
-          ) : (
+          ) : !hideStats ? (
             <>
               {/* Streak */}
               <Pressable
@@ -371,7 +373,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 )}
               </Pressable>
             </>
-          )}
+          ) : null}
         </View>
       </View>
 
