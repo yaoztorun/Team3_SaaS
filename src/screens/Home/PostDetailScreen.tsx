@@ -1,20 +1,21 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
-        Modal,
         ScrollView,
+        ActivityIndicator,
+        Modal,
         KeyboardAvoidingView,
         Platform,
-        ActivityIndicator,
-        Image,
         View,
         TouchableOpacity,
+        Alert,
 } from 'react-native';
 import { Box } from '@/src/components/ui/box';
 import { Text } from '@/src/components/ui/text';
 import { Pressable } from '@/src/components/ui/pressable';
 import { FeedPostCard, TextInputField, Avatar } from '@/src/components/global';
-import { ArrowLeft, MoreVertical, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Trash2, MoreVertical } from 'lucide-react-native';
 import type { CommentRow } from '@/src/api/comments';
+import type { FeedPost } from './HomeScreen';
 
 // Only import Swipeable on native platforms to avoid web bundle errors
 let Swipeable: any = null;
@@ -23,6 +24,29 @@ if (Platform.OS !== 'web') {
         Swipeable = GestureHandler.Swipeable;
 }
 
+type PostDetailScreenProps = {
+        visible: boolean;
+        post: FeedPost | null;
+        comments: CommentRow[];
+        commentsLoading: boolean;
+        newComment: string;
+        sendingComment: boolean;
+        lastDeletedComment: CommentRow | null;
+        userId?: string;
+        scrollToBottom?: boolean;
+        isOwnPost?: boolean;
+        onClose: () => void;
+        onToggleLike: () => void;
+        onPressUser: (userId: string) => void;
+        onPressTags: () => void;
+        onPressCocktail: (cocktailId: string) => void;
+        onChangeComment: (text: string) => void;
+        onSendComment: () => void;
+        onDeleteComment: (commentId: string) => void;
+        onUndoDelete: () => void;
+        onDeletePost?: () => void;
+};
+
 const getInitials = (name: string) => {
         const parts = name.trim().split(/\s+/);
         if (parts.length === 0) return '?';
@@ -30,33 +54,11 @@ const getInitials = (name: string) => {
         return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-interface PostModalProps {
-        visible: boolean;
-        focusedPost: any | null;
-        commentsLoading: boolean;
-        commentsForPost: CommentRow[];
-        newComment: string;
-        sendingComment: boolean;
-        lastDeletedComment?: CommentRow | null;
-        userId?: string;
-        scrollToBottom?: boolean;
-        isOwnPost?: boolean;
-        onClose: () => void;
-        onToggleLike: () => void;
-        onPressCocktail: () => void;
-        onCommentChange: (text: string) => void;
-        onSendComment: () => void;
-        onDeleteComment?: (commentId: string) => void;
-        onUndoDelete?: () => void;
-        onDeletePost?: () => void;
-        formatTimeAgo: (date: string) => string;
-}
-
-export const PostModal: React.FC<PostModalProps> = ({
+export const PostDetailScreen: React.FC<PostDetailScreenProps> = ({
         visible,
-        focusedPost,
+        post,
+        comments,
         commentsLoading,
-        commentsForPost,
         newComment,
         sendingComment,
         lastDeletedComment,
@@ -65,13 +67,14 @@ export const PostModal: React.FC<PostModalProps> = ({
         isOwnPost = false,
         onClose,
         onToggleLike,
+        onPressUser,
+        onPressTags,
         onPressCocktail,
-        onCommentChange,
+        onChangeComment,
         onSendComment,
         onDeleteComment,
         onUndoDelete,
         onDeletePost,
-        formatTimeAgo,
 }) => {
         const commentsScrollViewRef = useRef<ScrollView | null>(null);
         const [menuVisible, setMenuVisible] = useState(false);
@@ -86,7 +89,7 @@ export const PostModal: React.FC<PostModalProps> = ({
                                 commentsScrollViewRef.current?.scrollToEnd({ animated: false });
                         }, 100);
                 }
-        }, [scrollToBottom, commentsForPost.length]);
+        }, [scrollToBottom, comments.length]);
 
         return (
                 <Modal
@@ -95,13 +98,13 @@ export const PostModal: React.FC<PostModalProps> = ({
                         transparent={false}
                         onRequestClose={onClose}
                 >
-                        <Box style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
+                        <View style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
                                 <KeyboardAvoidingView
                                         style={{ flex: 1, maxWidth: 480, width: '100%', alignSelf: 'center', backgroundColor: '#fff' }}
                                         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
                                 >
                                         <Box className="flex-1 bg-white">
-                                                {/* Header */}
+                                                {/* Header with back button */}
                                                 <Box className="flex-row items-center justify-between px-4 py-4 border-b border-neutral-200" style={{ zIndex: 10 }}>
                                                         <Box className="flex-row items-center">
                                                                 <Pressable onPress={onClose} className="mr-3">
@@ -264,23 +267,31 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                         style={{ flex: 1 }}
                                                         contentContainerStyle={{ padding: 16, paddingBottom: 80 }}
                                                 >
-                                                        {focusedPost && (
+                                                        {/* Focused post card */}
+                                                        {post && (
                                                                 <Box className="mb-4">
                                                                         <FeedPostCard
-                                                                                {...focusedPost}
+                                                                                {...post}
                                                                                 onToggleLike={onToggleLike}
+                                                                                // comments button does nothing here (we're already in detail)
                                                                                 onPressComments={() => { }}
+                                                                                onPressUser={() => {
+                                                                                        if (post.userId) {
+                                                                                                onPressUser(post.userId);
+                                                                                        }
+                                                                                }}
+                                                                                onPressTags={onPressTags}
                                                                                 onPressCocktail={onPressCocktail}
-                                                                                onPressUser={() => { }}
                                                                         />
                                                                 </Box>
                                                         )}
 
-                                                        {/* Comments Section */}
-                                                        <Text className="text-sm font-semibold text-neutral-900 mb-3">
+                                                        {/* Comments title */}
+                                                        <Text className="text-sm font-semibold text-neutral-900 mb-2">
                                                                 Comments
                                                         </Text>
 
+                                                        {/* Comments list */}
                                                         {commentsLoading && (
                                                                 <Box className="py-3 items-center">
                                                                         <ActivityIndicator size="small" color="#00BBA7" />
@@ -288,7 +299,7 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                         )}
 
                                                         {!commentsLoading &&
-                                                                commentsForPost.map((c) => {
+                                                                comments.map((c) => {
                                                                         const canDelete = c.user_id === userId;
                                                                         const userName = c.Profile?.full_name ?? 'Unknown user';
                                                                         const initials = getInitials(userName);
@@ -314,7 +325,7 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                                                         </Text>
                                                                                                 </Box>
                                                                                                 {/* Show delete button on web */}
-                                                                                                {Platform.OS === 'web' && canDelete && onDeleteComment && (
+                                                                                                {Platform.OS === 'web' && canDelete && (
                                                                                                         <Pressable
                                                                                                                 className="ml-2 p-2"
                                                                                                                 onPress={() => onDeleteComment(c.id)}
@@ -339,13 +350,13 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                                         renderRightActions={() => (
                                                                                                 <Pressable
                                                                                                         className="bg-red-500 justify-center items-center w-16 rounded-lg"
-                                                                                                        onPress={() => onDeleteComment && onDeleteComment(c.id)}
+                                                                                                        onPress={() => onDeleteComment(c.id)}
                                                                                                 >
                                                                                                         <Trash2 size={20} color="#fff" />
                                                                                                 </Pressable>
                                                                                         )}
                                                                                         onSwipeableOpen={() => {
-                                                                                                if (canDelete && onDeleteComment) onDeleteComment(c.id);
+                                                                                                if (canDelete) onDeleteComment(c.id);
                                                                                         }}
                                                                                 >
                                                                                         {commentContent}
@@ -353,14 +364,14 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                         );
                                                                 })}
 
-                                                        {!commentsLoading && commentsForPost.length === 0 && (
+                                                        {!commentsLoading && comments.length === 0 && (
                                                                 <Text className="text-sm text-neutral-500">
                                                                         No comments yet
                                                                 </Text>
                                                         )}
 
                                                         {/* Undo bar */}
-                                                        {lastDeletedComment && onUndoDelete && (
+                                                        {lastDeletedComment && (
                                                                 <Box className="flex-row items-center justify-between mt-2 px-3 py-2 rounded-lg bg-neutral-100">
                                                                         <Text className="text-xs text-neutral-700">
                                                                                 Comment deleted
@@ -381,7 +392,7 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                         <Box className="flex-1">
                                                                                 <TextInputField
                                                                                         value={newComment}
-                                                                                        onChangeText={onCommentChange}
+                                                                                        onChangeText={onChangeComment}
                                                                                         placeholder="Add a comment..."
                                                                                 />
                                                                         </Box>
@@ -399,7 +410,7 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                 )}
                                         </Box>
                                 </KeyboardAvoidingView>
-                        </Box>
+                        </View>
                 </Modal>
         );
 };

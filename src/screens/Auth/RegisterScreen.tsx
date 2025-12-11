@@ -234,12 +234,20 @@ const RegisterScreen: React.FC = () => {
                 </Box>
 
                 {/* Terms and Privacy */}
-                <Text className="text-center text-neutral-500 text-sm mb-6 mt-2">
-                    By signing up, you agree to our{' '}
-                    <Text className="text-primary-500">Terms of Service</Text>
-                    {' '}and{' '}
-                    <Text className="text-primary-500">Privacy Policy</Text>
-                </Text>
+                <View className="flex-row flex-wrap justify-center items-center mb-6 mt-2">
+                    <Text className="text-center text-neutral-500 text-sm">
+                        By signing up, you agree to our{' '}
+                    </Text>
+                    <Pressable onPress={() => navigation.navigate('TermsOfService')}>
+                        <Text className="text-teal-500 text-sm" style={{ textDecorationLine: 'underline' }}>Terms of Service</Text>
+                    </Pressable>
+                    <Text className="text-center text-neutral-500 text-sm">
+                        {' '}and{' '}
+                    </Text>
+                    <Pressable onPress={() => navigation.navigate('PrivacyPolicy')}>
+                        <Text className="text-teal-500 text-sm" style={{ textDecorationLine: 'underline' }}>Privacy Policy</Text>
+                    </Pressable>
+                </View>
             </Box>
 
             {/* Success Modal */}

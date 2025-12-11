@@ -42,7 +42,7 @@ export const TextInputField: React.FC<TextInputFieldProps> = ({
                 <RNTextInput
                     className={`flex-1 p-3 ${icon && iconPosition === 'left' ? 'pl-2' : ''} ${icon && iconPosition === 'right' ? 'pr-2' : ''}`}
                     placeholderTextColor="#717182"
-                    style={{ outlineStyle: 'none' } as any}
+                    style={{ fontSize: 16, outlineStyle: 'none' } as any}
                     onFocus={() => setIsFocused(true)}
                     onBlur={() => setIsFocused(false)}
                     {...props}

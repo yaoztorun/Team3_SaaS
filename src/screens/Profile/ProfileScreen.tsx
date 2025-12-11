@@ -72,7 +72,7 @@ export const ProfileScreen = () => {
   // removed red-dot indicator state
 
   // stats state - using centralized hook
-  const { userStats, loadingStats, avgRatingOutOf5, ratingTrendCounts5, refreshStats } = useUserStats(user?.id);
+  const { userStats, loadingStats, avgRatingOutOf5, refreshStats } = useUserStats(user?.id);
 
   // badges state
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -86,6 +86,7 @@ export const ProfileScreen = () => {
   const [commentsLoading, setCommentsLoading] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [sendingComment, setSendingComment] = useState(false);
+  const [lastDeletedComment, setLastDeletedComment] = useState<CommentRow | null>(null);
 
   // topbar stats (streak + total drinks)
   const [streakCount, setStreakCount] = useState(0);
@@ -484,6 +485,104 @@ export const ProfileScreen = () => {
     }
   };
 
+  // ---------- delete post ----------
+  const handleDeleteComment = async (commentId: string) => {
+    const comment = commentsForPost.find(c => c.id === commentId);
+    if (!comment) return;
+
+    // Store for potential undo
+    setLastDeletedComment(comment);
+
+    // Immediately remove from UI
+    setCommentsForPost(prev => prev.filter(c => c.id !== commentId));
+
+    // Update comment count
+    if (focusedPost) {
+      setFocusedPost({
+        ...focusedPost,
+        comments: Math.max(0, focusedPost.comments - 1),
+      });
+    }
+
+    // Wait 5 seconds before actually deleting from DB
+    setTimeout(async () => {
+      const { error } = await supabase
+        .from('Comment')
+        .delete()
+        .eq('id', commentId);
+
+      if (error) {
+        console.error('Error deleting comment:', error);
+        // If error, restore the comment
+        setCommentsForPost(prev => [...prev, comment].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        ));
+        if (focusedPost) {
+          setFocusedPost({
+            ...focusedPost,
+            comments: focusedPost.comments + 1,
+          });
+        }
+      }
+
+      setLastDeletedComment(null);
+    }, 5000);
+  };
+
+  const handleUndoDeleteComment = () => {
+    if (!lastDeletedComment) return;
+
+    // Restore comment to list
+    setCommentsForPost(prev => [...prev, lastDeletedComment].sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    ));
+
+    // Update comment count
+    if (focusedPost) {
+      setFocusedPost({
+        ...focusedPost,
+        comments: focusedPost.comments + 1,
+      });
+    }
+
+    setLastDeletedComment(null);
+  };
+
+  const handleDeletePost = async () => {
+    if (!user?.id || !focusedPost) return;
+
+    // Only allow deletion of own posts
+    if (focusedPost.userId !== user.id) {
+      console.warn('Cannot delete post: not the owner');
+      return;
+    }
+
+    try {
+      // Delete the drink log from the database
+      const { error } = await supabase
+        .from('DrinkLog')
+        .delete()
+        .eq('id', focusedPost.id)
+        .eq('user_id', user.id); // Extra safety check
+
+      if (error) {
+        console.error('Error deleting post:', error);
+        return;
+      }
+
+      // Remove from local state lists
+      setRecentDrinks((prev) => prev.filter((d) => d.id !== focusedPost.id));
+      setPublicLogs((prev) => prev.filter((d) => d.id !== focusedPost.id));
+      setPrivateLogs((prev) => prev.filter((d) => d.id !== focusedPost.id));
+      setLikedItems((prev) => prev.filter((d) => d.id !== focusedPost.id));
+
+      // Close the modal
+      closePostModal();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+    }
+  };
+
 
   return (
     <Box className="flex-1 bg-neutral-50">
@@ -624,7 +723,6 @@ export const ProfileScreen = () => {
             <ProfileStats
               userStats={userStats}
               avgRatingOutOf5={avgRatingOutOf5}
-              ratingTrendCounts5={ratingTrendCounts5}
               loading={loadingStats}
             />
           </>
@@ -646,11 +744,17 @@ export const ProfileScreen = () => {
         commentsForPost={commentsForPost}
         newComment={newComment}
         sendingComment={sendingComment}
+        lastDeletedComment={lastDeletedComment}
+        userId={user?.id}
+        isOwnPost={focusedPost?.userId === user?.id}
         onClose={closePostModal}
         onToggleLike={() => handleToggleLike(focusedPost?.id || '')}
         onPressCocktail={() => handlePressCocktail(focusedPost?.cocktailId || '')}
         onCommentChange={setNewComment}
         onSendComment={handleSendComment}
+        onDeleteComment={handleDeleteComment}
+        onUndoDelete={handleUndoDeleteComment}
+        onDeletePost={handleDeletePost}
         formatTimeAgo={formatTimeAgo}
       />
     </Box>

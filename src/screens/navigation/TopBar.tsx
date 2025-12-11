@@ -45,6 +45,7 @@ interface TopBarProps {
   showBack?: boolean;
   onBackPress?: () => void;
   showLogo?: boolean;
+  hideStats?: boolean;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -57,6 +58,7 @@ export const TopBar: React.FC<TopBarProps> = ({
   showBack = false,
   showLogo = false,
   onBackPress,
+  hideStats = false,
 }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -145,12 +147,13 @@ export const TopBar: React.FC<TopBarProps> = ({
       setUnreadCount((prev) => Math.max(0, prev - 1));
     }
 
-    // Handle party invites directly, don't delegate to parent
+    // Close modal after marking as read
+    setShowNotifications(false);
+
+    // Handle party invites - navigate to PartyDetails
     if (notification.type === 'party_invite' && notification.eventId) {
-      // Navigate to PartyDetails when party invite is clicked
       console.log('Navigating to party details with eventId:', notification.eventId);
       try {
-        // Try nested navigation first
         navigation.navigate('Main' as never, {
           screen: 'Social',
           params: {
@@ -160,7 +163,6 @@ export const TopBar: React.FC<TopBarProps> = ({
         } as never);
       } catch (e) {
         console.error('Failed to navigate to party details:', e);
-        // Fallback: try direct navigation
         try {
           navigation.navigate('Social' as never, {
             screen: 'PartyDetails',
@@ -170,8 +172,44 @@ export const TopBar: React.FC<TopBarProps> = ({
           console.error('Fallback navigation also failed:', e2);
         }
       }
+      return;
     }
-    // bubble up to parent for other notification types (e.g. HomeScreen) with id/type/drinkLogId/eventId
+
+    // Handle friend requests - navigate to Friends screen (SocialMain with initialView)
+    if (notification.type === 'friend_request') {
+      try {
+        navigation.navigate('Main' as never, {
+          screen: 'Social',
+          params: {
+            screen: 'SocialMain',
+            params: { initialView: 'friends' },
+          },
+        } as never);
+      } catch (e) {
+        console.error('Failed to navigate to Friends:', e);
+        try {
+          navigation.navigate('Social' as never, {
+            screen: 'SocialMain',
+            params: { initialView: 'friends' },
+          } as never);
+        } catch (e2) {
+          console.error('Fallback navigation also failed:', e2);
+        }
+      }
+      return;
+    }
+
+    // Handle friend accepted - navigate to friend's profile
+    if (notification.type === 'friend_accepted' && notification.actorId) {
+      try {
+        navigation.navigate('UserProfile', { userId: notification.actorId } as never);
+      } catch (e) {
+        console.error('Failed to navigate to UserProfile:', e);
+      }
+      return;
+    }
+
+    // bubble up to parent for drink-related notifications (e.g. HomeScreen) with id/type/drinkLogId/eventId
     else if (onNotificationPress) {
       onNotificationPress({
         id: notification.id,
@@ -237,6 +275,7 @@ export const TopBar: React.FC<TopBarProps> = ({
       eventId: row.event_id,
       type: row.type,
       drinkLogId: row.drink_log_id,
+      actorId: row.actor_id,
     }));
 
     setNotifications(mapped);
@@ -314,13 +353,13 @@ export const TopBar: React.FC<TopBarProps> = ({
           )}
         </View>
 
-        {/* Right side: either settings icon (for profile) or stats + bell */}
+        {/* Right side: either settings icon (for profile), stats + bell (if not hidden), or nothing */}
         <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           {showSettingsIcon ? (
             <Pressable onPress={onSettingsPress} style={{ marginRight: 4 }}>
               <SettingsIcon size={24} color="#6b7280" />
             </Pressable>
-          ) : (
+          ) : !hideStats ? (
             <>
               {/* Streak */}
               <Pressable
@@ -371,7 +410,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                 )}
               </Pressable>
             </>
-          )}
+          ) : null}
         </View>
       </View>
 

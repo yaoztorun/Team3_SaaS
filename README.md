@@ -7,7 +7,7 @@
 **Sippin** is a Progressive Web App (PWA) that helps cocktail lovers log, rate, and explore drinks.  
 Users can discover cocktails they can make with ingredients at home, add their own recipes, and plan parties.
 
-Built with React Native (Web/PWA), Sippin delivers a native-like mobile experience directly in the browser, with offline support and installability on any device.
+Built with React Native (Web/PWA), Sippin delivers a native-like mobile experience directly in the browser with installability on any device.
 
 ### 🌐 Live Demo
 Try the app at [team3-saas.vercel.app](https://team3-saas.vercel.app)
@@ -33,7 +33,6 @@ Discover great cocktail bars in your area
 Browse Sippin-approved bartending tools and cocktail gear from trusted partners
 
 **Progressive Web App 📱**  
-- Works offline with full PWA support
 - Install directly to your home screen on any device
 - Native-like mobile experience in your browser  
 
@@ -123,13 +122,13 @@ npm run pwa
 
 This will:
 1. Export the optimized web build
-2. Generate the service worker for offline support
+2. Generate the service worker
 3. Serve the PWA locally
 
 You can then:
 - Test the PWA in your browser
 - Install it to your home screen (mobile) or desktop
-- Test offline functionality
+- Test PWA features and performance
 
 >💡 The production build is optimized and minified. Use this to test performance and PWA features before deploying.
 

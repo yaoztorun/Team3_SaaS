@@ -187,14 +187,14 @@ const Settings: React.FC = () => {
                     <Box className="mb-4 bg-white rounded-2xl">
                         <Pressable 
                             className="p-4 border-b border-neutral-100 flex-row justify-between items-center"
-                            onPress={() => Linking.openURL('https://your-privacy-policy-url.com')}
+                            onPress={() => rootNavigation.navigate('PrivacyPolicy')}
                         >
                             <Text className="text-sm font-medium text-neutral-800">Privacy Policy</Text>
                             <Text className="text-neutral-400">›</Text>
                         </Pressable>
                         <Pressable 
                             className="p-4 flex-row justify-between items-center"
-                            onPress={() => Linking.openURL('https://your-terms-of-service-url.com')}
+                            onPress={() => rootNavigation.navigate('TermsOfService')}
                         >
                             <Text className="text-sm font-medium text-neutral-800">Terms of Service</Text>
                             <Text className="text-neutral-400">›</Text>
