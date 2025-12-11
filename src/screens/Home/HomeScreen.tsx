@@ -145,12 +145,15 @@ export const HomeScreen: React.FC = () => {
     try { await AsyncStorage.removeItem('recent_recipe_count'); } catch { }
   };
 
-  // Handle carousel card tap to navigate to All Cocktails with search
-  const handleCarouselTap = (cocktailId: string, searchQuery: string) => {
-    navigation.navigate('Explore' as never, {
-      screen: 'AllCocktails',
-      params: { initialQuery: searchQuery },
-    } as never);
+  // Handle carousel card tap to navigate directly to CocktailDetail
+  const handleCarouselTap = async (cocktailId: string, cocktailName: string) => {
+    const cocktail = await fetchCocktailById(cocktailId);
+    if (cocktail) {
+      navigation.navigate('Explore' as never, {
+        screen: 'CocktailDetail',
+        params: { cocktail, returnTo: 'Home' },
+      } as never);
+    }
   };
 
   // Reload feed when screen comes into focus (e.g., after creating a post)
