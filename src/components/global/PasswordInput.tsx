@@ -36,6 +36,7 @@ export const PasswordInput: React.FC<PasswordInputProps> = ({
             onChangeText={onChangeText}
             secureTextEntry={!showPassword}
             onSubmitEditing={onSubmitEditing}
+            style={{ fontSize: 16 }}
             icon={
                 <Pressable onPress={togglePassword}>
                     {showPassword ? (
