@@ -21,6 +21,7 @@ export interface Notification {
   type: string;
   drinkLogId?: string | null;
   eventId?: string | null;
+  actorId?: string | null;
 }
 
 interface NotificationModalProps {

@@ -400,13 +400,40 @@ export const HomeScreen: React.FC = () => {
   };
 
   // called from TopBar when a notification is tapped
-  const handleNotificationSelect = (payload: {
+  const handleNotificationSelect = async (payload: {
     id: string;
     type: string;
     drinkLogId?: string | null;
   }) => {
-    if (!payload.drinkLogId) return;
-    openComments(payload.drinkLogId);
+    // For drink-related notifications (like, comment, close_friend_post), navigate to PostDetail
+    if (payload.drinkLogId && (payload.type === 'like' || payload.type === 'comment' || payload.type === 'close_friend_post')) {
+      // Fetch the drink log to get full details
+      const { data, error } = await supabase
+        .from('DrinkLog')
+        .select(`
+          *,
+          Profile:user_id (
+            id,
+            full_name,
+            avatar_url
+          ),
+          Cocktail:cocktail_id (
+            id,
+            name,
+            image_url
+          )
+        `)
+        .eq('id', payload.drinkLogId)
+        .single();
+
+      if (error || !data) {
+        console.error('Failed to fetch drink log:', error);
+        return;
+      }
+
+      // Navigate to PostDetailScreen
+      navigation.navigate('PostDetail', { post: data } as never);
+    }
   };
 
   const closeComments = () => {
