@@ -470,6 +470,7 @@ export type Database = {
           actor_id: string | null
           created_at: string
           drink_log_id: string | null
+          event_id: string | null
           friendship_id: string | null
           id: string
           is_read: boolean
@@ -481,6 +482,7 @@ export type Database = {
           actor_id?: string | null
           created_at?: string
           drink_log_id?: string | null
+          event_id?: string | null
           friendship_id?: string | null
           id?: string
           is_read?: boolean
@@ -492,6 +494,7 @@ export type Database = {
           actor_id?: string | null
           created_at?: string
           drink_log_id?: string | null
+          event_id?: string | null
           friendship_id?: string | null
           id?: string
           is_read?: boolean
@@ -501,6 +504,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "Notification_actor_id_fkey1"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Notification_drink_log_id_fkey"
             columns: ["drink_log_id"]
             isOneToOne: false
@@ -508,10 +518,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "Notification_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "Event"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "Notification_friendship_id_fkey"
             columns: ["friendship_id"]
             isOneToOne: false
             referencedRelation: "Friendship"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Notification_user_id_fkey1"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "Profile"
             referencedColumns: ["id"]
           },
         ]
@@ -652,6 +676,7 @@ export type Database = {
         | "friend_request"
         | "friend_accepted"
         | "close_friend_post"
+        | "party_invite"
       party_type:
         | "house party"
         | "outdoor event"
@@ -812,6 +837,7 @@ export const Constants = {
         "friend_request",
         "friend_accepted",
         "close_friend_post",
+        "party_invite",
       ],
       party_type: [
         "house party",
