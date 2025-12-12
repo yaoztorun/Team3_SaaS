@@ -114,7 +114,7 @@ export const WhatCanIMake = () => {
             >
                 {/* Instructions */}
                 <Box className="mb-3">
-                    <Text className="text-sm text-gray-600">Please select ingredients you have available:</Text>
+                    <Text className="text-sm text-gray-600">Select your ingredients or use the search bar to find others:</Text>
                 </Box>
 
                 {/* Chips */}

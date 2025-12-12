@@ -216,6 +216,12 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
         tapStartRef.current = Date.now();
         // Reset auto-scroll timer on user interaction
         resetAutoScrollTimer();
+        // Stop any ongoing animations on iOS to prevent sticking
+        if (Platform.OS === 'ios') {
+          dragX.stopAnimation();
+          gestureX.stopAnimation();
+          cardOpacity.stopAnimation();
+        }
       },
       onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10,
       onPanResponderMove: (_, gesture) => {
