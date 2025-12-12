@@ -153,14 +153,3 @@ npx tsc --noEmit
 npx expo doctor
 ```
 
-</br>
-
-## Deployment
-
-The app uses **continuous deployment** via GitHub Actions to Vercel:
-- Push to `main` → deploys to **Production** ([team3-saas.vercel.app](https://team3-saas.vercel.app))
-- Push to `dev` → deploys to **Development** ([team3-saasdev.vercel.app](https://team3-saasdev.vercel.app))
-
-No manual deployment needed — just push your code!
-
-
