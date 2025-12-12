@@ -208,28 +208,9 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
 
   // PanResponder for swipe gestures
   const swipeThreshold = 80; // px drag required to trigger swipe
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        // for tap detection
-        tapStartRef.current = Date.now();
-        // Reset auto-scroll timer on user interaction
-        resetAutoScrollTimer();
-        // Stop any ongoing animations on iOS to prevent sticking
-        if (Platform.OS === 'ios') {
-          dragX.stopAnimation();
-          gestureX.stopAnimation();
-          cardOpacity.stopAnimation();
-        }
-      },
-      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10,
-      onPanResponderMove: (_, gesture) => {
-        dragX.setValue(gesture.dx);
-        gestureX.setValue(gesture.dx);
-      },
-      onPanResponderRelease: (_, gesture) => {
-        const { dx } = gesture;
+  
+  // Helper function to handle gesture end (used by both Release and Terminate on iOS)
+  const handleGestureEnd = (dx: number) => {
         // Detect quick tap with minimal movement to trigger callback
         const tapDuration = Date.now() - (tapStartRef.current || Date.now());
         if (Math.abs(dx) < 6 && tapDuration < 200) {
@@ -299,7 +280,52 @@ export const CocktailCarousel: React.FC<CocktailCarouselProps> = ({ onCardTap })
             }),
           ]).start();
         });
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        // for tap detection
+        tapStartRef.current = Date.now();
+        // Reset auto-scroll timer on user interaction
+        resetAutoScrollTimer();
+        // Stop any ongoing animations on iOS to prevent sticking
+        if (Platform.OS === 'ios') {
+          dragX.stopAnimation();
+          gestureX.stopAnimation();
+          cardOpacity.stopAnimation();
+        }
       },
+      onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dx) > 10,
+      onPanResponderMove: (_, gesture) => {
+        dragX.setValue(gesture.dx);
+        gestureX.setValue(gesture.dx);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        handleGestureEnd(gesture.dx);
+      },
+      // Critical for iOS: handle cases where gesture is interrupted/cancelled
+      onPanResponderTerminate: (_, gesture) => {
+        // On iOS, this is called when the gesture is interrupted (e.g., by system or another responder)
+        // Reset the card position to avoid it getting stuck off-center
+        Animated.parallel([
+          Animated.spring(dragX, { 
+            toValue: 0, 
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40,
+          }),
+          Animated.spring(gestureX, { 
+            toValue: 0, 
+            useNativeDriver: true,
+            friction: 8,
+            tension: 40,
+          }),
+        ]).start();
+      },
+      // Allow termination on iOS to prevent gesture conflicts
+      onPanResponderTerminationRequest: () => Platform.OS === 'ios',
     })
   ).current;
 
