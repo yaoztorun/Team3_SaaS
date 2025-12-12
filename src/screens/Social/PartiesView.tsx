@@ -14,7 +14,7 @@ import { Heading } from '@/src/components/global';
 
 export const PartiesView = () => {
     const navigation = useNavigation<any>();
-    const [registrationStatus, setRegistrationStatus] = useState<Record<string, 'registered' | 'cancelled' | 'waitlisted' | null>>({});
+    const [registrationStatus, setRegistrationStatus] = useState<Record<string, 'registered' | 'cancelled' | 'waitlisted' | 'invited' | null>>({});
     const [processingEvents, setProcessingEvents] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
     const [myEvents, setMyEvents] = useState<EventWithDetails[]>([]);
@@ -56,7 +56,7 @@ export const PartiesView = () => {
             return { eventId: event.id, status: result.status };
         });
         const statuses = await Promise.all(statusPromises);
-        const statusMap: Record<string, 'registered' | 'cancelled' | 'waitlisted' | null> = {};
+        const statusMap: Record<string, 'registered' | 'cancelled' | 'waitlisted' | 'invited' | null> = {};
         statuses.forEach(({ eventId, status }) => {
             statusMap[eventId] = status;
         });

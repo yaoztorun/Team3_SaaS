@@ -45,7 +45,7 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
                             {userStats?.drinksLogged || 0}
                         </Text>
                         <Text className="text-xs text-neutral-500">
-                            Drinks Logged
+                            Drinks Posted
                         </Text>
                     </Box>
                     <Box className="items-center">

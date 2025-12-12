@@ -340,9 +340,13 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                 <Text className="text-sm text-neutral-950">Ingredients *</Text>
                 <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
                     {ingredients.length === 0 && (
-                        <Box className="px-2 py-4">
-                            <Text className="text-neutral-500">No ingredients yet. Add one below.</Text>
-                        </Box>
+                        <TouchableOpacity
+                            className="px-2 py-4"
+                            onPress={addIngredient}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="text-neutral-500 text-center">Tap to add your first ingredient</Text>
+                        </TouchableOpacity>
                     )}
 
                     {ingredients.map((ing) => (
@@ -403,9 +407,13 @@ const RecipeView: React.FC<RecipeViewProps> = ({
                 <Text className="text-sm text-neutral-950">Instructions *</Text>
                 <Box className="bg-white p-4 rounded-xl border border-gray-200 space-y-3">
                     {instructions.length === 0 && (
-                        <Box className="px-2 py-4">
-                            <Text className="text-neutral-500">No steps yet. Add one below.</Text>
-                        </Box>
+                        <TouchableOpacity
+                            className="px-2 py-4"
+                            onPress={addStep}
+                            activeOpacity={0.7}
+                        >
+                            <Text className="text-neutral-500 text-center">Tap to add your first step</Text>
+                        </TouchableOpacity>
                     )}
 
                     {instructions.map((step, index) => (

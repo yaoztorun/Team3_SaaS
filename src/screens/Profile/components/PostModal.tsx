@@ -191,11 +191,11 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                         borderRadius: 12,
                                                                         paddingVertical: 14,
                                                                         paddingHorizontal: 16,
-                                                                        width: 200,
+                                                                        width: 240,
                                                                         elevation: 10,
                                                                 }}>
                                                                         <Text style={{ fontSize: 14, fontWeight: '600', color: '#171717', marginBottom: 4, textAlign: 'center' }}>Delete post?</Text>
-                                                                        <Text style={{ fontSize: 11, color: '#666', marginBottom: 12, textAlign: 'center' }}>Undo within 5 seconds</Text>
+                                                                        <Text style={{ fontSize: 11, color: '#666', marginBottom: 12, textAlign: 'center' }}>Are you sure you want to delete this post?</Text>
                                                                         <View style={{ flexDirection: 'row', gap: 8 }}>
                                                                                 <TouchableOpacity
                                                                                         onPress={() => setShowDeleteConfirm(false)}
@@ -206,55 +206,14 @@ export const PostModal: React.FC<PostModalProps> = ({
                                                                                 <TouchableOpacity
                                                                                         onPress={() => {
                                                                                                 setShowDeleteConfirm(false);
-                                                                                                setPendingDelete(true);
-                                                                                                const timeout = setTimeout(() => {
-                                                                                                        setPendingDelete(false);
-                                                                                                        if (onDeletePost) onDeletePost();
-                                                                                                }, 5000);
-                                                                                                setUndoTimeout(timeout);
+                                                                                                if (onDeletePost) onDeletePost();
                                                                                         }}
-                                                                                        style={{ flex: 1, paddingVertical: 7, borderRadius: 6, backgroundColor: '#009689', alignItems: 'center' }}
+                                                                                        style={{ flex: 1, paddingVertical: 7, borderRadius: 6, backgroundColor: '#dc2626', alignItems: 'center' }}
                                                                                 >
                                                                                         <Text style={{ fontSize: 12, fontWeight: '600', color: '#fff' }}>Delete</Text>
                                                                                 </TouchableOpacity>
                                                                         </View>
                                                                 </View>
-                                                        </View>
-                                                )}
-
-                                                {/* Undo Delete Banner */}
-                                                {pendingDelete && (
-                                                        <View style={{
-                                                                position: 'absolute',
-                                                                bottom: 100,
-                                                                left: 16,
-                                                                right: 16,
-                                                                backgroundColor: '#333',
-                                                                borderRadius: 10,
-                                                                paddingVertical: 12,
-                                                                paddingHorizontal: 14,
-                                                                flexDirection: 'row',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'space-between',
-                                                                zIndex: 1001,
-                                                                elevation: 8,
-                                                        }}>
-                                                                <Text style={{ color: '#fff', fontSize: 13, fontWeight: '500' }}>Deleting post...</Text>
-                                                                <TouchableOpacity
-                                                                        onPress={() => {
-                                                                                if (undoTimeout) clearTimeout(undoTimeout);
-                                                                                setUndoTimeout(null);
-                                                                                setPendingDelete(false);
-                                                                        }}
-                                                                        style={{
-                                                                                paddingVertical: 6,
-                                                                                paddingHorizontal: 14,
-                                                                                backgroundColor: '#009689',
-                                                                                borderRadius: 6,
-                                                                        }}
-                                                                >
-                                                                        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>Undo</Text>
-                                                                </TouchableOpacity>
                                                         </View>
                                                 )}
 
