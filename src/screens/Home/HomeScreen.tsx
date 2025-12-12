@@ -408,34 +408,81 @@ export const HomeScreen: React.FC = () => {
     type: string;
     drinkLogId?: string | null;
   }) => {
-    // For drink-related notifications (like, comment, close_friend_post), navigate to PostDetail
+    // For drink-related notifications (like, comment, close_friend_post), open the post detail
     if (payload.drinkLogId && (payload.type === 'like' || payload.type === 'comment' || payload.type === 'close_friend_post')) {
-      // Fetch the drink log to get full details
-      const { data, error } = await supabase
-        .from('DrinkLog')
-        .select(`
-          *,
-          Profile:user_id (
-            id,
-            full_name,
-            avatar_url
-          ),
-          Cocktail:cocktail_id (
-            id,
-            name,
-            image_url
-          )
-        `)
-        .eq('id', payload.drinkLogId)
-        .single();
+      // Check if post already exists in feed
+      const existingPost = feedPosts.find((p) => p.id === payload.drinkLogId);
+      
+      if (existingPost) {
+        // Post is in feed, use existing openComments function
+        await openComments(payload.drinkLogId);
+      } else {
+        // Post not in feed, fetch it and open directly
+        const { data, error } = await supabase
+          .from('DrinkLog')
+          .select(`
+            *,
+            Profile:user_id (
+              id,
+              full_name,
+              avatar_url
+            ),
+            Cocktail:cocktail_id (
+              id,
+              name,
+              image_url
+            )
+          `)
+          .eq('id', payload.drinkLogId)
+          .single();
 
-      if (error || !data) {
-        console.error('Failed to fetch drink log:', error);
-        return;
+        if (error || !data) {
+          console.error('Failed to fetch drink log:', error);
+          return;
+        }
+
+        // Transform to FeedPost format
+        const fullName = data.Profile?.full_name || 'Unknown';
+        const cocktailName = data.Cocktail?.name || 'Unknown cocktail';
+        const cocktailId = data.Cocktail?.id || data.cocktail_id || '';
+        const imageUrl = data.image_url || data.Cocktail?.image_url || '';
+
+        // Load additional data (likes, comments, tags)
+        const [likesData, commentsMap, tagsMap] = await Promise.all([
+          getLikesForLogs([data.id], user?.id || null),
+          getCommentCountsForLogs([data.id]),
+          getTagsForLogs([data.id]),
+        ]);
+
+        const feedPost: FeedPost = {
+          id: data.id,
+          cocktailId,
+          userName: fullName,
+          userInitials: getInitials(fullName),
+          userId: data.Profile?.id || data.user_id,
+          avatarUrl: data.Profile?.avatar_url || undefined,
+          timeAgo: formatTimeAgo(data.created_at),
+          cocktailName,
+          rating: data.rating || 0,
+          imageUrl,
+          likes: likesData.counts.get(data.id) || 0,
+          comments: commentsMap.get(data.id) || 0,
+          caption: data.caption || '',
+          isLiked: likesData.likedByMe.has(data.id),
+          taggedFriends: tagsMap.get(data.id) || [],
+        };
+
+        // Set the focused post and open detail view
+        setFocusedPost(feedPost);
+        setActivePostId(data.id);
+        setCommentsVisible(true);
+        await loadComments(data.id);
+
+        // Scroll to bottom after a short delay (toggle the boolean state)
+        setTimeout(() => {
+          setScrollToBottom(prev => !prev);
+        }, 300);
       }
-
-      // Navigate to PostDetailScreen
-      navigation.navigate('PostDetail', { post: data } as never);
     }
   };
 
