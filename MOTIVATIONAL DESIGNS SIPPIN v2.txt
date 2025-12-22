@@ -1,0 +1,63 @@
+-- GAMIFICATION & SELF-DETERMINATION (SDT) ---
+Users need for Competence
+Serve Achiever HEXAD user type
+- Badges: Competence and achievement
+- Streaks: Loss aversion, commitment/consistency, scarcity
+- Stats: Social comparison, Achiever type
+- Persuasive system design (PSD): Rewards and Recognition
+- Foggs Behavioral Model (FBM): Anticipation future accomplishment
+
+-- SOCIAL INFLUENCE & VALIDATION --
+Users look at behavior other to guide own behavior
+	-> usage and social engagement
+- Like & Comment & Feed: Normalise behavior, Bandwagon Effect
+	-> Social proof/validation
+- Friend Request & Tagging & Parties: 
+	- Requests & Tagging: Social debt -> Reciprocity
+	- Group behavior
+	-> Subjective norm, Social Facilitation
+- Simple cocktail post: leads to larger commitment, foot-in-the-door
+- Profile Stats & Badges: Social comparison & Recognition
+
+-- PERSUASIVE DESIGN & BEHAVIORAL NUDGES --
+Make desired action easy and provide helpful transparent guidance
+- Posting Simple:
+	- Ability (FBM)
+	- Simple flow -> Reduction
+	- Suggestions -> Minimise cognitive load
+- What can i make: Tailoring (PSD) and Facilitation (FBM)
+	-> simplify decision for motivated but lack ability
+- Notification defaults: 
+	- Most ON by default
+	- Maximise engagement
+	- Transparent, automatic mind nudge
+- Post visibility default:
+	- Private as default selected
+	- User autonomy
+	- Ethical
+- 1-5 star rating: External anchor, guide users perception and expectation
+
+-- DARK PATTERNS --
+Prioritise User Autonomy and Transparency
+- Full control notifications
+	-> no Roach Motel
+- Default post privacy: Posts default to private
+	-> no Privacy Zuckering
+- No hidden costs: app is free to use
+	-> no Deceptive Pricing
+- Positively/Neutraly framed language (e.g. Dont use "No I hate having fun")
+	-> no Confirmshaming
+
+-- Product Led Growth (PLG) --
+- Steak system: retention
+- Share buttons: 
+	- referral to external apps
+	- Referral loop is tracked -> effectiveness of new Acquisition
+- North star: 
+	- Focus Activation & Usage
+	- TTFA: First post
+	- Northstar metric: % signed up users use at least 3 features within one week
+
+
+
+
