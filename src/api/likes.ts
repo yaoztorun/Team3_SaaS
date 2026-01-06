@@ -1,6 +1,7 @@
 // src/api/likes.ts
 import { supabase } from '@/src/lib/supabase';
 import { createNotification } from '@/src/api/notifications';
+import { sendPushNotification, NotificationTemplates, shouldSendPushNotification } from '@/src/api/pushNotifications';
 
 export async function getLikesForLogs(
   drinkLogIds: string[],
@@ -95,6 +96,7 @@ export async function toggleLike(
     const cocktailName = (log as any).Cocktail?.name || 'drink';
     const actorName = actorProfile?.full_name || 'Someone';
 
+    // Create in-app notification
     await createNotification({
       userId: log.user_id as string,
       actorId: userId,
@@ -102,6 +104,15 @@ export async function toggleLike(
       drinkLogId,
       message: `${actorName} liked your ${cocktailName}`,
     });
+
+    // Send push notification if user has it enabled
+    const shouldSend = await shouldSendPushNotification(log.user_id as string, 'likes');
+    if (shouldSend) {
+      sendPushNotification(
+        log.user_id as string,
+        NotificationTemplates.like(actorName, cocktailName, drinkLogId)
+      ).catch(err => console.error('Push notification error:', err));
+    }
   }
 
   return { success: true };

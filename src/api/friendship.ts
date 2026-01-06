@@ -2,6 +2,7 @@ import { supabase } from '../lib/supabase';
 import { Friendship, FriendRequest, Friend } from '../types/friendship';
 import { Profile } from '../types/profile';
 import { createNotification } from './notifications';
+import { sendPushNotification, NotificationTemplates, shouldSendPushNotification } from './pushNotifications';
 
 // Search for users by name or email
 export async function searchUsers(query: string, currentUserId: string): Promise<Profile[]> {
@@ -66,6 +67,15 @@ export async function sendFriendRequest(userId: string, friendId: string): Promi
         friendshipId: insertedFriendship.id,
         message: `${senderName} sent you a friend request`,
     });
+
+    // Send push notification if user has it enabled
+    const shouldSend = await shouldSendPushNotification(friendId, 'friend_requests');
+    if (shouldSend) {
+        sendPushNotification(
+            friendId,
+            NotificationTemplates.friendRequest(senderName)
+        ).catch(err => console.error('Push notification error:', err));
+    }
 
     return { success: true };
 }
@@ -160,6 +170,12 @@ export async function acceptFriendRequest(friendshipId: string): Promise<{ succe
             friendshipId: friendshipId,
             message: `${accepterName} accepted your friend request`,
         });
+
+        // Send push notification (always send for friend accepted, not in settings)
+        sendPushNotification(
+            originalSenderId,
+            NotificationTemplates.friendAccepted(accepterName)
+        ).catch(err => console.error('Push notification error:', err));
     }
 
     return { success: true };

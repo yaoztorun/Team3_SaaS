@@ -26,6 +26,12 @@
 
     <link rel="manifest" href="/manifest.json" />
     
+    <!-- Apple PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Sippin" />
+    <link rel="apple-touch-icon" href="/icon_192.png" />
+    
     <!-- Google Fonts: Rubik for headings, Inter for body, Roboto for Google button -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -43,7 +49,15 @@
               console.log('Development mode: Cleared all caches');
             }
             
-            const reg = await navigator.serviceWorker.register('/sw.js');
+            // Unregister all existing service workers to force fresh install
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(registrations.map(reg => reg.unregister()));
+            console.log('Unregistered old service workers');
+            
+            // Register new service worker
+            const reg = await navigator.serviceWorker.register('/sw.js', {
+              updateViaCache: 'none' // Don't use HTTP cache for service worker
+            });
             console.log('Service Worker registered:', reg.scope);
             
             // Force immediate update check

@@ -133,6 +133,16 @@ export async function inviteFriendsToParty(eventId: string, friendIds: string[])
 
         // Create notifications for each friend
         const { createNotification } = await import('./notifications');
+        const { sendPushNotification, NotificationTemplates, shouldSendPushNotification } = await import('./pushNotifications');
+        
+        // Get organizer's name for push notification
+        const { data: organizerProfile } = await supabase
+                .from('Profile')
+                .select('full_name')
+                .eq('id', user.id)
+                .single();
+        
+        const organizerName = organizerProfile?.full_name || 'Someone';
         
         for (const friendId of friendsToInvite) {
                 await createNotification({
@@ -142,6 +152,15 @@ export async function inviteFriendsToParty(eventId: string, friendIds: string[])
                         eventId: eventId,
                         message: `You've been invited to ${event.name}`,
                 });
+
+                // Send push notification if user has it enabled
+                const shouldSend = await shouldSendPushNotification(friendId, 'party_invites');
+                if (shouldSend) {
+                        sendPushNotification(
+                                friendId,
+                                NotificationTemplates.eventInvite(organizerName, event.name, eventId)
+                        ).catch(err => console.error('Push notification error:', err));
+                }
         }
 
         return { 

@@ -25,6 +25,7 @@ export const PrimaryButton: React.FC<PrimaryButtonProps> = ({
             onPress={onPress}
             activeOpacity={0.8}
             disabled={isDisabled}
+            style={{ outline: 'none' } as any}
             {...props}
         >
             <View

@@ -1,6 +1,7 @@
 // src/api/comments.ts
 import { supabase } from '@/src/lib/supabase';
 import { createNotification } from '@/src/api/notifications';
+import { sendPushNotification, NotificationTemplates, shouldSendPushNotification } from '@/src/api/pushNotifications';
 
 export type CommentRow = {
   id: string;
@@ -66,6 +67,15 @@ export async function addComment(
       drinkLogId,
       message: `${actorName} commented on your ${cocktailName}`,
     });
+
+    // Send push notification if user has it enabled
+    const shouldSend = await shouldSendPushNotification(log.user_id as string, 'comments');
+    if (shouldSend) {
+      sendPushNotification(
+        log.user_id as string,
+        NotificationTemplates.comment(actorName, cocktailName, content, drinkLogId)
+      ).catch(err => console.error('Push notification error:', err));
+    }
   }
 
   return { success: true };

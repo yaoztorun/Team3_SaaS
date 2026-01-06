@@ -24,3 +24,5 @@ export { UnitSelectorModal } from './UnitSelectorModal';
 export { BadgeModal } from './BadgeModal';
 export { Avatar } from './Avatar';
 export { PasswordInput } from './PasswordInput';
+export { PWAInstallPrompt } from './PWAInstallPrompt';
+export { PushNotificationPrompt } from './PushNotificationPrompt';
