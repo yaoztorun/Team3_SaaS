@@ -28,6 +28,8 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
     }
   }, []);
 
+  const instructionLineHeight = 2;
+
   return (
     <Modal
       visible={visible}
@@ -93,33 +95,27 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
             {/* iOS-specific instructions */}
             {isIOS && (
               <Box className="bg-blue-50 rounded-xl p-3">
-                <View style={{ gap: 6 }}>
+                <View style={{ gap: 4 }}>
                   <Text className="text-sm font-semibold text-gray-900 text-center">
                     How to install:
                   </Text>
-                  <View style={{ gap: 4 }}>
+                  <View style={{ gap: 2 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                      <Text className="text-blue-600 font-bold text-sm" style={{ width: 20 }}>1.</Text>
-                      <Text className="text-xs text-gray-700" style={{ flex: 1, lineHeight: 18 }}>
+                      <Text className="text-teal-600 font-bold text-sm" style={{ width: 18, lineHeight: instructionLineHeight }}>1.</Text>
+                      <Text className="text-sm text-gray-700" style={{ flex: 1, lineHeight: instructionLineHeight }}>
                         Tap the three dots (•••) at the bottom
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                      <Text className="text-blue-600 font-bold text-sm" style={{ width: 20 }}>2.</Text>
-                      <Text className="text-xs text-gray-700" style={{ flex: 1, lineHeight: 18 }}>
-                        Tap the Share icon 
+                      <Text className="text-teal-600 font-bold text-sm" style={{ width: 18, lineHeight: instructionLineHeight }}>2.</Text>
+                      <Text className="text-sm text-gray-700" style={{ flex: 1, lineHeight: instructionLineHeight }}>
+                        Tap the Share icon
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                      <Text className="text-blue-600 font-bold text-sm" style={{ width: 20 }}>3.</Text>
-                      <Text className="text-xs text-gray-700" style={{ flex: 1, lineHeight: 18 }}>
+                      <Text className="text-teal-600 font-bold text-sm" style={{ width: 18, lineHeight: instructionLineHeight }}>3.</Text>
+                      <Text className="text-sm text-gray-700" style={{ flex: 1, lineHeight: instructionLineHeight }}>
                         Select "Add to Home Screen"
-                      </Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-                      <Text className="text-blue-600 font-bold text-sm" style={{ width: 20 }}>4.</Text>
-                      <Text className="text-xs text-gray-700" style={{ flex: 1, lineHeight: 18 }}>
-                        Tap "Add"
                       </Text>
                     </View>
                   </View>
