@@ -363,7 +363,7 @@ export const ProfileScreen = () => {
 
       // Get comment count
       const { count: commentCount } = await supabase
-        .from('Comment')
+        .from('DrinkLogComment')
         .select('*', { count: 'exact', head: true })
         .eq('drink_log_id', drink.id);
 
@@ -507,7 +507,7 @@ export const ProfileScreen = () => {
     // Wait 5 seconds before actually deleting from DB
     setTimeout(async () => {
       const { error } = await supabase
-        .from('Comment')
+        .from('DrinkLogComment')
         .delete()
         .eq('id', commentId);
 

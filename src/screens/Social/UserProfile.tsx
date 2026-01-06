@@ -405,7 +405,7 @@ export const UserProfile = () => {
         // Wait 5 seconds before actually deleting from DB
         setTimeout(async () => {
             const { error } = await supabase
-                .from('Comment')
+                .from('DrinkLogComment')
                 .delete()
                 .eq('id', commentId);
 
