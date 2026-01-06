@@ -9,6 +9,8 @@ import { HomeIcon, SearchIcon, UserIcon, PlusIcon } from 'lucide-react-native';
 import { Svg, G, Path } from 'react-native-svg';
 import { colors } from '@/src/theme/colors';
 import { CommonActions } from '@react-navigation/native';
+import { usePendingFriendRequests } from '@/src/hooks/usePendingFriendRequests';
+import { FriendRequestProvider } from '@/src/contexts/FriendRequestContext';
 
 // Import screens
 import { HomeScreen } from '@/src/screens/Home/HomeScreen';
@@ -29,27 +31,30 @@ const isIOS = () => {
 };
 
 export default function BottomTabs() {
+    const { count: pendingRequestsCount, refresh } = usePendingFriendRequests();
+
     return (
-        <Tab.Navigator
-            screenOptions={{
-                headerShown: false, // We're using our custom TopBar
-                tabBarShowLabel: true,
-                tabBarActiveTintColor: colors.primary[500],
-                tabBarInactiveTintColor: colors.neutral[400],
-                tabBarLabelStyle: {
-                    fontFamily: 'Inter, system-ui, sans-serif',
-                    fontSize: 12,
-                    fontWeight: '500',
-                },
-                tabBarStyle: {
-                    backgroundColor: colors.white,
-                    borderTopWidth: 1,
-                    borderTopColor: '#e5e7eb',
-                    elevation: 10,
-                    height: isIOS() ? 75 : 60,
-                },
-            }}
-        >
+        <FriendRequestProvider refreshBadge={refresh}>
+            <Tab.Navigator
+                screenOptions={{
+                    headerShown: false, // We're using our custom TopBar
+                    tabBarShowLabel: true,
+                    tabBarActiveTintColor: colors.primary[500],
+                    tabBarInactiveTintColor: colors.neutral[400],
+                    tabBarLabelStyle: {
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        fontSize: 12,
+                        fontWeight: '500',
+                    },
+                    tabBarStyle: {
+                        backgroundColor: colors.white,
+                        borderTopWidth: 1,
+                        borderTopColor: '#e5e7eb',
+                        elevation: 10,
+                        height: isIOS() ? 75 : 60,
+                    },
+                }}
+            >
             <Tab.Screen
                 name="Home"
                 component={HomeScreen}
@@ -120,6 +125,17 @@ export default function BottomTabs() {
                     },
                 })}
                 options={{
+                    tabBarBadge: pendingRequestsCount > 0 ? pendingRequestsCount : undefined,
+                    tabBarBadgeStyle: {
+                        backgroundColor: colors.primary[500],
+                        color: colors.white,
+                        fontSize: 10,
+                        fontWeight: '600',
+                        minWidth: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        marginLeft: 4,
+                    },
                     tabBarIcon: ({ focused }) => (
                         <IconButton
                             icon={
@@ -161,6 +177,7 @@ export default function BottomTabs() {
                 }}
             />
         </Tab.Navigator>
+        </FriendRequestProvider>
     );
 }
 

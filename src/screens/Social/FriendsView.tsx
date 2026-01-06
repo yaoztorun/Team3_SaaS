@@ -10,6 +10,7 @@ import { HStack } from '@/src/components/ui/hstack';
 import { Pressable } from '@/src/components/ui/pressable';
 import { SearchBar, Heading, Avatar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
+import { useFriendRequestBadge } from '@/src/contexts/FriendRequestContext';
 import {
         searchUsers,
         sendFriendRequest,
@@ -28,6 +29,7 @@ import { ANALYTICS_EVENTS, posthogCapture } from '@/src/analytics';
 export const FriendsView = () => {
         const navigation = useNavigation<NativeStackNavigationProp<SocialStackParamList>>();
         const { user } = useAuth();
+        const { refreshBadge } = useFriendRequestBadge();
 
         // Search state
         const [searchQuery, setSearchQuery] = useState('');
@@ -119,6 +121,8 @@ export const FriendsView = () => {
 
                 if (result.success) {
                         await loadFriendData();
+                        // Immediately refresh the badge count
+                        refreshBadge();
                 } else {
                         alert(result.error || 'Failed to accept friend request');
                 }
@@ -131,6 +135,8 @@ export const FriendsView = () => {
 
                 if (result.success) {
                         await loadFriendData();
+                        // Immediately refresh the badge count
+                        refreshBadge();
                 } else {
                         alert(result.error || 'Failed to reject friend request');
                 }

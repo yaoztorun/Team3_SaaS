@@ -14,6 +14,7 @@ import { Button } from '@/src/components/ui/button';
 import { Avatar } from '@/src/components/global';
 import { useAuth } from '@/src/hooks/useAuth';
 import { useUserStats } from '@/src/hooks/useUserStats';
+import { useFriendRequestBadge } from '@/src/contexts/FriendRequestContext';
 import {
     sendFriendRequest,
     getFriendshipStatus,
@@ -488,6 +489,8 @@ export const UserProfile = () => {
         setProcessingRequest(false);
     };
 
+    const { refreshBadge } = useFriendRequestBadge();
+
     const handleAcceptRequest = async () => {
         if (!pendingRequestId) return;
 
@@ -496,6 +499,8 @@ export const UserProfile = () => {
 
         if (result.success) {
             setFriendshipStatus('accepted');
+            // Immediately refresh the badge count
+            refreshBadge();
         } else {
             alert(result.error || 'Failed to accept friend request');
         }
@@ -512,6 +517,8 @@ export const UserProfile = () => {
             setFriendshipStatus('none');
             setFriendshipId(null);
             setPendingRequestId(null);
+            // Immediately refresh the badge count
+            refreshBadge();
         } else {
             alert(result.error || 'Failed to reject friend request');
         }
